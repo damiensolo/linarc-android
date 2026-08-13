@@ -28,6 +28,8 @@ object PunchlistRoutes {
     const val NEW_ISSUE_PUNCH = "new_issue_punch"
     const val NEW_RFI = "new_rfi"
     const val DAILY_LOG = "daily_log"
+    const val DAILY_LOG_RECORD = "daily_log_record"
+    const val DAILY_LOG_DETAIL = "daily_log_detail/{recordId}"
     const val PHOTO_VIDEO = "photo_video"
     const val SCAN_MATERIAL = "scan_material"
     const val OUTBOX = "outbox"

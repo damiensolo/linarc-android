@@ -30,11 +30,17 @@ import com.solomondesign.punchlist.ui.common.MenuItem
 import com.solomondesign.punchlist.ui.designsystem.PunchlistButtonType
 import com.solomondesign.punchlist.ui.projects.ProjectSpaceScreen
 import com.solomondesign.punchlist.ui.punchhome.PunchHomeScreen
+import com.solomondesign.punchlist.ui.voicelog.DailyLogHomeScreen
+import com.solomondesign.punchlist.ui.voicelog.DailyLogPlaybackScreen
+import com.solomondesign.punchlist.ui.voicelog.VoiceLogScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 
 private fun projectSpaceRoute(projectName: String) =
     "project_space/${URLEncoder.encode(projectName, "UTF-8")}"
+
+private fun dailyLogDetailRoute(recordId: String) =
+    "daily_log_detail/${URLEncoder.encode(recordId, "UTF-8")}"
 
 /**
  * Root navigation shell for the whole app: a bottom nav bar (5 tabs) wrapping a
@@ -182,7 +188,23 @@ fun PunchlistNavHost() {
                 DetailPlaceholderScreen(title = "New RFI", onBack = { navController.popBackStack() })
             }
             composable(PunchlistRoutes.DAILY_LOG) {
-                DetailPlaceholderScreen(title = "Daily Log", onBack = { navController.popBackStack() })
+                DailyLogHomeScreen(
+                    onRecordNew = { navController.navigate(PunchlistRoutes.DAILY_LOG_RECORD) },
+                    onOpenRecord = { recordId -> navController.navigate(dailyLogDetailRoute(recordId)) },
+                )
+            }
+            composable(PunchlistRoutes.DAILY_LOG_RECORD) {
+                VoiceLogScreen(onExit = { navController.popBackStack() })
+            }
+            composable(
+                route = PunchlistRoutes.DAILY_LOG_DETAIL,
+                arguments = listOf(navArgument("recordId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val encodedId = backStackEntry.arguments?.getString("recordId").orEmpty()
+                DailyLogPlaybackScreen(
+                    recordId = URLDecoder.decode(encodedId, "UTF-8"),
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(PunchlistRoutes.PHOTO_VIDEO) {
                 DetailPlaceholderScreen(
