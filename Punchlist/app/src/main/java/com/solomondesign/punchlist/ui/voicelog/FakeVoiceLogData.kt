@@ -7,8 +7,8 @@ package com.solomondesign.punchlist.ui.voicelog
  * not real transcription or entity extraction.
  */
 object FakeVoiceLogData {
-    const val PROJECT_NAME = "Downtown Plaza Expansion"
-    const val HEADER_META = "10:04 AM · Area B · Admin"
+    const val PROJECT_NAME = "Riverside Medical"
+    const val HEADER_META = "10:04 AM · Area B · Foreman"
 
     const val TRANSCRIPT = "Me, Dave, and the crew worked on the structural framing " +
         "in Area B today. We used about 40 studs, but we ran out of the 12-footers " +
