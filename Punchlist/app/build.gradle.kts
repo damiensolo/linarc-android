@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.solomondesign.punchlist"
+    namespace = "com.solomondesign.app"
     compileSdk {
         version = release(37)
     }

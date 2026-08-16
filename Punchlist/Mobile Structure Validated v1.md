@@ -1,6 +1,6 @@
-# Linarc Field Prototype — Product Spec
+# Field Prototype — Product Spec
 
-This is the **single source of truth** for the Punchlist Android prototype. Do not resurrect older IA (5-tab bar, Capture tab, Reports tab, Stream-as-home, nested Project Space, OAC/dashboards). If a screen is not in this spec, do not build it.
+This is the **single source of truth** for the field Android prototype. Do not resurrect older IA (5-tab bar, Capture tab, Reports tab, Stream-as-home, nested Project Space, OAC/dashboards). If a screen is not in this spec, do not build it.
 
 ## Purpose
 
@@ -79,7 +79,7 @@ Same three tabs for every persona. Only Today focus, capture CTAs, and Plan dens
 - Demo: view as — Foreman selected and live; other personas visible. Tapping a non-live persona explains that the view is next; it must not fake a broken UI.
 - Outbox — seeded queued items (badge/count only; no sync).
 - Voice logs — history and playback of submitted recordings.
-- Design system (existing button gallery).
+- Appearance — Dark theme toggle (light and dark chrome).
 
 ## Voice-to-Log contract
 
