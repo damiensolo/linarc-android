@@ -6,14 +6,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.solomondesign.punchlist.ui.demo.DemoProjectRepository
 
 /**
- * Entry point for Voice-to-Log (Capture -> Daily Log -> Record New). Owns the flow's local
- * state and switches between the 4 screens described in `voice-to-log-spec.md`. Recording and
- * transcription are real (see `ui/voicelog/audio`); [VoiceLogParser] extraction is a real,
- * deterministic, on-device pass over the actual transcript — nothing here is canned. On submit,
- * the real audio file + transcript + extracted entities are persisted to [DailyLogRepository]
- * so the recording is viewable/playable afterward from Daily Log history.
+ * Voice-to-Log entry from the Capture FAB. Recording and transcription are real
+ * (`ui/voicelog/audio`); [VoiceLogParser] is a deterministic on-device pass over the transcript.
+ * On submit, the record is stored in [DailyLogRepository] and published to [DemoProjectRepository]
+ * so Today and Plan update in the same session.
  */
 @Composable
 fun VoiceLogScreen(onExit: () -> Unit, modifier: Modifier = Modifier) {
@@ -67,19 +66,19 @@ fun VoiceLogScreen(onExit: () -> Unit, modifier: Modifier = Modifier) {
                 delayCards = delayCards.map { if (it.id == id) it.copy(hours = hours) else it }
             },
             onSubmit = {
-                DailyLogRepository.add(
-                    DailyLogRecord(
-                        id = "log-${System.currentTimeMillis()}",
-                        timestampMillis = System.currentTimeMillis(),
-                        projectName = FakeVoiceLogData.PROJECT_NAME,
-                        audioFilePath = audioFilePath,
-                        transcript = transcript,
-                        laborCards = laborCards,
-                        materialCards = materialCards,
-                        delayCards = delayCards,
-                        issueCards = issueCards,
-                    ),
+                val record = DailyLogRecord(
+                    id = "log-${System.currentTimeMillis()}",
+                    timestampMillis = System.currentTimeMillis(),
+                    projectName = FakeVoiceLogData.PROJECT_NAME,
+                    audioFilePath = audioFilePath,
+                    transcript = transcript,
+                    laborCards = laborCards,
+                    materialCards = materialCards,
+                    delayCards = delayCards,
+                    issueCards = issueCards,
                 )
+                DailyLogRepository.add(record)
+                DemoProjectRepository.publishVoiceLog(record)
                 uiState = VoiceLogUiState.Submitted
             },
             modifier = modifier,

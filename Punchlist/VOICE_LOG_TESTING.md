@@ -6,6 +6,9 @@ Everything except your actual voice is now real: real `RECORD_AUDIO` permission,
 file. I can't speak into the emulator's microphone myself, so this last mile —
 "does it correctly transcribe an actual human voice" — needs you.
 
+Entry point is the **Capture FAB** (not a Capture tab). After submit, the log must
+appear on **Today** and any issue (e.g. Column 4 spalling) must pin on **Plan**.
+
 ## 1. One-time setup
 
 ```bash
@@ -27,21 +30,23 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
 
 ## 2. The test
 
-1. Open the app → **Capture → Daily Log → Record New Voice Log**.
-2. Approve the microphone permission if prompted.
-3. You should see **"RECORDING"**, a live timer, and the waveform reacting to real
+1. Open the app as **Foreman** (default) → **Today**.
+2. Optional: tap **Start My Day** and **Confirm**.
+3. Tap the **Capture FAB** (bottom-end “+”) → **Voice daily log**.
+4. Approve the microphone permission if prompted.
+5. You should see **"RECORDING"**, a live timer, and the waveform reacting to real
    sound (try clapping near the mic — the bars should visibly jump).
-4. Say, out loud, the example line from the spec:
+6. Say, out loud, the example line from the spec:
    > "Hey, it's Hector. Me, Dave, and the crew worked on the structural framing in
    > Area B today. We used about 40 studs, but we ran out of the 12-footers
    > because the delivery got delayed. Rain started at 2 PM, so we had to tarp
    > everything and call it a day early. Also, we noticed some minor spalling on
    > the concrete slab near column 4, needs an inspector to look at it."
-5. Watch the transcript update live under the waveform as you talk (this is the
+7. Watch the transcript update live under the waveform as you talk (this is the
    real, partial `SpeechRecognizer` output — expect it to lag/restart every few
    seconds of silence; that's the continuous-dictation loop re-arming, not a bug).
-6. Tap **Stop & Parse**.
-7. On **Proposed Site Logs**, expect roughly:
+8. Tap **Stop & Parse**.
+9. On **Proposed Site Logs**, expect roughly:
    - **Labor & Time Cards**: Hector Ortiz and Dave Miller, 8.0 hrs each (8.0 is a
      default — the spoken line never actually states hours, same as the spec).
    - **Materials Installed**: a "Stud" card, quantity 40.
@@ -49,13 +54,14 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
      card (their hours will default to 1.0 unless you also say "X hours" near
      those words — the parser is regex-based, not a full LLM; see limitations).
    - **Automated Issues / Photos**: a "Spalling" card, location "Column 4".
-8. Try editing an hours value (pencil icon) and deleting a card (✕) — both should
-   update immediately.
-9. Tap **Submit** → confirmation screen → **Done**.
-10. Back on **Daily Log**, your new entry should be listed with today's
-    timestamp. Tap it.
-11. Tap **Play Recording** — you should hear your actual voice played back. Tap
-    again to pause.
+10. Try editing an hours value (pencil icon) and deleting a card (✕) — both should
+    update immediately.
+11. Tap **Submit** → confirmation screen → **Done**.
+12. Back on **Today**, you should see the new delay/issue (and a voice log card).
+    Open **Plan** — a pin should sit near **Column 4**. Tap it.
+13. **More → Voice logs** → tap the new entry.
+14. Tap **Play Recording** — you should hear your actual voice played back (if you
+    opted into saving audio). Tap again to pause.
 
 ## 3. If something looks wrong
 
@@ -72,6 +78,8 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
   transcript first — if the *words* are right but *nothing* was extracted, the
   parser's keyword list didn't match (see limitations below); that's a parser
   gap, not a capture failure.
+- **Today/Plan did not update after Submit**: the closed loop is broken — submitted
+  cards must be published into the shared demo store, not only `DailyLogRepository`.
 
 ## 4. Known, deliberate limitations (ask before I'd change these)
 
@@ -82,8 +90,8 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
   better but is a much larger dependency + device-support surface — flagging
   per this project's "ask before adding a new dependency" rule rather than
   adding it unasked.
-- **Submitted logs are in-memory only** (`DailyLogRepository`) — they disappear
-  if the app process dies. Persisting them for real needs Room (a new
+- **Submitted logs are in-memory only** (`DailyLogRepository` / demo store) — they
+  disappear if the app process dies. Persisting them for real needs Room (a new
   dependency) or another storage layer — also flagging rather than adding.
 - **Hours/quantities are only detected when actually spoken.** The spec's own
   example transcript doesn't state delay durations either — that JSON figure

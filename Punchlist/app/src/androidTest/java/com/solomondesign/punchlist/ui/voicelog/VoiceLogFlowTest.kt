@@ -3,10 +3,13 @@ package com.solomondesign.punchlist.ui.voicelog
 import android.Manifest
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.rule.GrantPermissionRule
+import com.solomondesign.punchlist.ui.demo.DemoProjectRepository
+import com.solomondesign.punchlist.ui.demo.StreamKind
 import com.solomondesign.punchlist.ui.navigation.PunchlistNavHost
 import com.solomondesign.punchlist.ui.navigation.PunchlistRoutes
 import com.solomondesign.punchlist.ui.theme.PunchlistTheme
@@ -16,16 +19,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * End-to-end pass through the real recording -> parsing -> review -> submit -> history pipeline.
- * RECORD_AUDIO is pre-granted so the test exercises the actual [android.media.MediaRecorder] /
- * [android.speech.SpeechRecognizer] wiring instead of stopping at the permission screen. This
- * can't assert on transcribed *words* — there's no real speech to feed it here — but it proves a
- * submitted record actually lands in [DailyLogRepository] and stays reachable from history.
- *
- * Recording a playable audio file is opt-in (see [VoiceRecordingScreen]) because running
- * MediaRecorder and SpeechRecognizer on the mic at once was proven, by direct testing on this
- * project's own dev emulator, to reliably break transcription — so the default path here has no
- * audio file, and a second test exercises the opt-in "Also Save Audio for Playback" path.
+ * End-to-end pass through recording -> parsing -> review -> submit -> Today/history.
+ * RECORD_AUDIO is pre-granted. Entry is the Capture FAB, not a Capture tab.
  */
 class VoiceLogFlowTest {
 
@@ -37,9 +32,8 @@ class VoiceLogFlowTest {
 
     @Before
     fun resetRepository() {
-        // DailyLogRepository is a process-wide singleton — without this, a record left over from
-        // a previous test method makes history-screen text matches ambiguous (two identical rows).
         DailyLogRepository.clear()
+        DemoProjectRepository.clear()
     }
 
     @Test
@@ -53,14 +47,19 @@ class VoiceLogFlowTest {
         goToRecordingScreen()
         composeTestRule.onNodeWithText("Stop & Parse").performClick()
         waitForReviewScreen()
-        submitAndReturnToHistory()
+        submitAndReturnToToday()
 
         val record = DailyLogRepository.records.firstOrNull()
         checkNotNull(record) { "Submitting should add a record to DailyLogRepository" }
         check(record.audioFilePath.isBlank()) {
             "Default recording flow shouldn't save an audio file (it's opt-in): ${record.audioFilePath}"
         }
+        check(DemoProjectRepository.streamItems.any { it.kind == StreamKind.DAILY_LOG && it.relatedRecordId == record.id }) {
+            "Submitted voice log should appear on Today"
+        }
 
+        composeTestRule.onNodeWithTag("bottomNavTab_${PunchlistRoutes.MORE_HOME}").performClick()
+        composeTestRule.onNodeWithText("Voice logs").performClick()
         composeTestRule.onNodeWithText(record.projectName).performClick()
         composeTestRule.onNodeWithText(
             "No recording was saved for this entry — this device can't capture audio for " +
@@ -81,7 +80,7 @@ class VoiceLogFlowTest {
         composeTestRule.onNodeWithText("Also Save Audio for Playback").performClick()
         composeTestRule.onNodeWithText("Stop & Parse").performClick()
         waitForReviewScreen()
-        submitAndReturnToHistory()
+        submitAndReturnToToday()
 
         val record = DailyLogRepository.records.firstOrNull()
         checkNotNull(record) { "Submitting should add a record to DailyLogRepository" }
@@ -89,33 +88,32 @@ class VoiceLogFlowTest {
             "Opting into audio recording should write a real file at ${record.audioFilePath}"
         }
 
+        composeTestRule.onNodeWithTag("bottomNavTab_${PunchlistRoutes.MORE_HOME}").performClick()
+        composeTestRule.onNodeWithText("Voice logs").performClick()
         composeTestRule.onNodeWithText(record.projectName).performClick()
         composeTestRule.onNodeWithText("Play Recording").assertExists().performClick()
     }
 
     private fun goToRecordingScreen() {
-        // Capture -> Daily Log -> Record New Voice Log launches real recording (Screen A).
-        composeTestRule.onNodeWithTag("bottomNavTab_${PunchlistRoutes.CAPTURE_HOME}").performClick()
-        composeTestRule.onNodeWithText("Daily Log").performClick()
-        composeTestRule.onNodeWithText("Record New Voice Log").performClick()
+        composeTestRule.onNodeWithContentDescription("Capture").performClick()
+        composeTestRule.onNodeWithTag("captureVoice").performClick()
         composeTestRule.waitUntil(timeoutMillis = 5_000) {
             composeTestRule.onAllNodesWithText("Stop & Parse").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun waitForReviewScreen() {
-        // Parsing (Screen B) runs the real VoiceLogParser and auto-advances to Review (Screen C).
         composeTestRule.waitUntil(timeoutMillis = 8_000) {
             composeTestRule.onAllNodesWithText("Proposed Site Logs").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    private fun submitAndReturnToHistory() {
+    private fun submitAndReturnToToday() {
         composeTestRule.onNodeWithText("Submit").performClick()
         composeTestRule.waitUntil(timeoutMillis = 5_000) {
             composeTestRule.onAllNodesWithText("Done").fetchSemanticsNodes().isNotEmpty()
         }
         composeTestRule.onNodeWithText("Done").performClick()
-        composeTestRule.onNodeWithText("Record New Voice Log").assertExists()
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
     }
 }
