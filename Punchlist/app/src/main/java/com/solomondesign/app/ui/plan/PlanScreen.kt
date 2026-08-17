@@ -41,11 +41,12 @@ import com.solomondesign.app.ui.demo.PinKind
 import com.solomondesign.app.ui.demo.PlanPin
 import com.solomondesign.app.ui.designsystem.DesignTokens
 import com.solomondesign.app.ui.designsystem.FieldPageHeader
+import com.solomondesign.app.ui.profile.ProfileAvatarButton
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanScreen(modifier: Modifier = Modifier) {
+fun PlanScreen(onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
     val pins = DemoProjectRepository.pins.toList()
     var selectedPin by remember { mutableStateOf<PlanPin?>(null) }
 
@@ -57,6 +58,7 @@ fun PlanScreen(modifier: Modifier = Modifier) {
         FieldPageHeader(
             title = "Plan",
             subtitle = "${DemoProjectRepository.PROJECT_NAME} · ${DemoProjectRepository.AREA} · Level 2",
+            trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
         )
         AreaBSheet(
             pins = pins,

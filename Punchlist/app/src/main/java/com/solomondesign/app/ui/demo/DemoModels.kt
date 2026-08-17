@@ -1,6 +1,8 @@
 package com.solomondesign.app.ui.demo
 
 import androidx.compose.ui.graphics.Color
+import com.solomondesign.app.ui.theme.LightPresenceAssigned
+import com.solomondesign.app.ui.theme.LightPresenceOnSite
 import com.solomondesign.app.ui.theme.PresenceAssigned
 import com.solomondesign.app.ui.theme.PresenceOffSite
 import com.solomondesign.app.ui.theme.PresenceOnSite
@@ -64,8 +66,13 @@ fun CrewPresence.statusLabel(area: String): String = when (this) {
     CrewPresence.OFF_SITE -> "Off site"
 }
 
-fun CrewPresence.badgeColor(): Color = when (this) {
-    CrewPresence.ON_SITE -> PresenceOnSite
-    CrewPresence.ASSIGNED -> PresenceAssigned
-    CrewPresence.OFF_SITE -> PresenceOffSite
+/** Not @Composable: reads [DemoProjectRepository.darkTheme] directly, safe since callers already
+ * recompose on that state (it drives [com.solomondesign.app.ui.theme.AppTheme] at the root). */
+fun CrewPresence.badgeColor(): Color {
+    val dark = DemoProjectRepository.darkTheme
+    return when (this) {
+        CrewPresence.ON_SITE -> if (dark) PresenceOnSite else LightPresenceOnSite
+        CrewPresence.ASSIGNED -> if (dark) PresenceAssigned else LightPresenceAssigned
+        CrewPresence.OFF_SITE -> PresenceOffSite
+    }
 }

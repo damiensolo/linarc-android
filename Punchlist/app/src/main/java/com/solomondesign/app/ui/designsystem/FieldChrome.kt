@@ -6,10 +6,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -29,22 +31,34 @@ import androidx.compose.ui.unit.sp
 import com.solomondesign.app.ui.theme.AvatarPalette
 import com.solomondesign.app.ui.theme.OnDark
 
+/**
+ * Page header used at the top of Today/Plan/Tools. [trailing] is an optional slot for a
+ * fixed-size element (e.g. the profile avatar) anchored to the upper-right; leave it null
+ * for headers that don't need one.
+ */
 @Composable
 fun FieldPageHeader(
     title: String,
-    subtitle: String? = null,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier = modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-        Text(text = title, style = MaterialTheme.typography.headlineLarge)
-        if (subtitle != null) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
+    Row(
+        modifier = modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.headlineLarge)
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
+        trailing?.invoke()
     }
 }
 
@@ -152,12 +166,12 @@ fun FieldWorkRow(
     title: String,
     subtitle: String?,
     statusColor: Color,
+    modifier: Modifier = Modifier,
     avatarName: String? = null,
     avatarColor: Color = AvatarPalette.colorAt(0),
     avatarPhotoRes: Int? = null,
     enabled: Boolean = false,
     onClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     ListItem(
         modifier = modifier.clickable(enabled = enabled, onClick = onClick),

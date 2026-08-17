@@ -29,7 +29,7 @@ private val DarkScheme = darkColorScheme(
     surfaceContainer = Raised,
     surfaceContainerHigh = RaisedHover,
     surfaceContainerHighest = Hairline,
-    outline = Hairline,
+    outline = Outline,
     outlineVariant = Hairline,
     inverseSurface = OnDark,
     inverseOnSurface = CanvasBlack,
@@ -41,13 +41,13 @@ private val DarkScheme = darkColorScheme(
 )
 
 private val LightScheme = lightColorScheme(
-    primary = Accent,
+    primary = LightAccent,
     onPrimary = OnDark,
     primaryContainer = LightRaisedHover,
     onPrimaryContainer = LightOnSurface,
     secondary = LightSecondaryText,
     onSecondary = OnDark,
-    tertiary = StatusProgress,
+    tertiary = LightStatusProgress,
     onTertiary = CanvasBlack,
     background = LightBackground,
     onBackground = LightOnSurface,
@@ -62,19 +62,19 @@ private val LightScheme = lightColorScheme(
     surfaceContainer = LightRaised,
     surfaceContainerHigh = LightRaisedHover,
     surfaceContainerHighest = LightHairline,
-    outline = LightHairline,
+    outline = LightOutline,
     outlineVariant = LightHairline,
     inverseSurface = CanvasBlack,
     inverseOnSurface = OnDark,
-    inversePrimary = Accent,
-    error = ErrorRed,
+    inversePrimary = LightAccent,
+    error = LightErrorRed,
     onError = OnDark,
     scrim = CanvasBlack,
     surfaceTint = Color.Transparent,
 )
 
 /**
- * Field prototype chrome. [darkTheme] defaults to the More → Appearance store so
+ * Field prototype chrome. [darkTheme] defaults to the Tools → Appearance store so
  * toggling it recomposes the whole tree.
  */
 @Composable

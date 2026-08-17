@@ -37,7 +37,7 @@ class AppNavHostTest {
         }
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TODAY_HOME}").assertExists()
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.PLAN_HOME}").assertExists()
-        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.MORE_HOME}").assertExists()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").assertExists()
 
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.PLAN_HOME}").performClick()
         composeTestRule.onNodeWithTag("planScreen").assertExists()
@@ -59,14 +59,14 @@ class AppNavHostTest {
     }
 
     @Test
-    fun more_showsDemoViewAs_withForemanLiveAndOthersListed() {
+    fun tools_showsDemoViewAs_withForemanLiveAndOthersListed() {
         composeTestRule.setContent {
             AppTheme {
                 AppNavHost()
             }
         }
 
-        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.MORE_HOME}").performClick()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
         composeTestRule.onNodeWithTag("demoViewAsRow").performClick()
         composeTestRule.onNodeWithTag("persona_FOREMAN").assertExists()
         composeTestRule.onNodeWithTag("persona_SUPERINTENDENT").assertExists()
@@ -76,16 +76,57 @@ class AppNavHostTest {
     }
 
     @Test
-    fun more_showsThemeToggle_andHidesDesignSystem() {
+    fun tools_showsThemeToggle_andHidesDesignSystem() {
         composeTestRule.setContent {
             AppTheme {
                 AppNavHost()
             }
         }
 
-        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.MORE_HOME}").performClick()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
         composeTestRule.onNodeWithTag("themeToggle").assertExists()
         composeTestRule.onNodeWithText("Dark theme").assertExists()
         composeTestRule.onNodeWithText("Design system").assertDoesNotExist()
+    }
+
+    @Test
+    fun tools_showsCatalog_andTogglesGridAndList() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        composeTestRule.onNodeWithTag("toolsScreen").assertExists()
+        composeTestRule.onNodeWithText("Field task").assertExists()
+        composeTestRule.onNodeWithText("Collaboration").assertExists()
+        composeTestRule.onNodeWithText("Hours on site").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("toolsViewList").performClick()
+        composeTestRule.onNodeWithText("Hours on site").assertExists()
+        composeTestRule.onNodeWithText("Who's on this job").assertExists()
+
+        composeTestRule.onNodeWithTag("toolsViewGrid").performClick()
+        composeTestRule.onNodeWithText("Hours on site").assertDoesNotExist()
+    }
+
+    @Test
+    fun tools_openAndQuickCreateReachPlaceholders() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        composeTestRule.onNodeWithTag("toolCard_field_task").performClick()
+        composeTestRule.onNodeWithText("Field task").assertExists()
+        composeTestRule.onNodeWithText("Field task · sample 1").assertExists()
+        composeTestRule.onNodeWithContentDescription("Back").performClick()
+
+        composeTestRule.onNodeWithTag("toolQuickCreate_collaboration").performClick()
+        composeTestRule.onNodeWithText("New Collaboration").assertExists()
+        composeTestRule.onNodeWithText("Quick create is a placeholder in this build.").assertExists()
     }
 }

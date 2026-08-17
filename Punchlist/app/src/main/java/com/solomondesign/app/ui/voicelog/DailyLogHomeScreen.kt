@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.designsystem.FieldPageHeader
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
 import com.solomondesign.app.ui.designsystem.AppButton
-import com.solomondesign.app.ui.theme.StatusProgress
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,7 +58,7 @@ fun DailyLogHomeScreen(
                 FieldWorkRow(
                     title = record.projectName,
                     subtitle = formatTimestamp(record.timestampMillis) + entitySummary(record),
-                    statusColor = StatusProgress,
+                    statusColor = MaterialTheme.colorScheme.tertiary,
                     enabled = true,
                     onClick = { onOpenRecord(record.id) },
                 )

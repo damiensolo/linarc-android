@@ -2,7 +2,7 @@ package com.solomondesign.app.ui.persona
 
 /**
  * Field roles the prototype can present. Only [FOREMAN] is live in this build.
- * Others appear in More → Demo: view as as visible placeholders for iteration 2.
+ * Others appear in Tools → Demo: view as as visible placeholders for iteration 2.
  */
 enum class FieldPersona(
     val displayName: String,

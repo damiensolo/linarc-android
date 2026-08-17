@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -25,14 +26,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.solomondesign.app.ui.theme.AppTheme
+import com.solomondesign.app.ui.theme.LightPresenceOnSite
+import com.solomondesign.app.ui.theme.PresenceOnSite
 
-private object ButtonTokens {
-    val PrimaryDefault = Color(0xFF5B8DEF)
-    val PrimaryPressed = Color(0xFF3B6FD4)
-    val SuccessDefault = Color(0xFF1B9E4B)
-    val ErrorDefault = Color(0xFFFF5C33)
-    val OnColor = Color.White
-}
+/** Content color is white across every filled variant; containers below track the active theme. */
+private val OnColor = Color.White
 
 private val ButtonLabelStyle = TextStyle(
     fontWeight = FontWeight.Medium,
@@ -60,20 +58,28 @@ fun AppButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val scheme = MaterialTheme.colorScheme
+    val isDark = scheme.background.luminance() < 0.5f
     val secondaryMuted = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
     val onSecondary = if (isDark) Color.White else Color(0xFF1A1A1A)
     val disabled = if (isDark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
     val onDisabled = Color(0xFF8E8E93)
 
+    // Track the active theme instead of a fixed hex, so light mode gets its own high-contrast
+    // accent (per the "I contrast" palette) rather than the dark-mode value.
+    val primaryDefault = scheme.primary
+    val primaryPressed = lerp(primaryDefault, Color.Black, 0.15f)
+    val successDefault = if (isDark) PresenceOnSite else LightPresenceOnSite
+    val errorDefault = scheme.error
+
     val baseContainerColor = when (type) {
-        AppButtonType.Primary -> ButtonTokens.PrimaryDefault
+        AppButtonType.Primary -> primaryDefault
         AppButtonType.Secondary -> secondaryMuted
-        AppButtonType.Success -> ButtonTokens.SuccessDefault
-        AppButtonType.Error -> ButtonTokens.ErrorDefault
+        AppButtonType.Success -> successDefault
+        AppButtonType.Error -> errorDefault
     }
     val containerColor = if (type == AppButtonType.Primary && isPressed) {
-        ButtonTokens.PrimaryPressed
+        primaryPressed
     } else {
         baseContainerColor
     }
@@ -95,7 +101,7 @@ fun AppButton(
             contentColor = if (type == AppButtonType.Secondary) {
                 onSecondary
             } else {
-                ButtonTokens.OnColor
+                OnColor
             },
             disabledContainerColor = disabled,
             disabledContentColor = onDisabled,

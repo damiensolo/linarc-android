@@ -58,7 +58,7 @@ class VoiceLogFlowTest {
             "Submitted voice log should appear on Today"
         }
 
-        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.MORE_HOME}").performClick()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
         composeTestRule.onNodeWithText("Voice logs").performClick()
         composeTestRule.onNodeWithText(record.projectName).performClick()
         composeTestRule.onNodeWithText(
@@ -88,7 +88,7 @@ class VoiceLogFlowTest {
             "Opting into audio recording should write a real file at ${record.audioFilePath}"
         }
 
-        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.MORE_HOME}").performClick()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
         composeTestRule.onNodeWithText("Voice logs").performClick()
         composeTestRule.onNodeWithText(record.projectName).performClick()
         composeTestRule.onNodeWithText("Play Recording").assertExists().performClick()

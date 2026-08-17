@@ -59,7 +59,7 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
 11. Tap **Submit** → confirmation screen → **Done**.
 12. Back on **Today**, you should see the new delay/issue (and a voice log card).
     Open **Plan** — a pin should sit near **Column 4**. Tap it.
-13. **More → Voice logs** → tap the new entry.
+13. **Tools → Voice logs** → tap the new entry.
 14. Tap **Play Recording** — you should hear your actual voice played back (if you
     opted into saving audio). Tap again to pause.
 

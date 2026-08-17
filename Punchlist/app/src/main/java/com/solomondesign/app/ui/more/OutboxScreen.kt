@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
-import com.solomondesign.app.ui.theme.StatusProgress
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +54,7 @@ fun OutboxScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 FieldWorkRow(
                     title = item.title,
                     subtitle = item.subtitle,
-                    statusColor = StatusProgress,
+                    statusColor = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }

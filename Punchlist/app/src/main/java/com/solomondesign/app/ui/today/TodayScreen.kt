@@ -35,9 +35,8 @@ import com.solomondesign.app.ui.designsystem.FieldPageHeader
 import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
 import com.solomondesign.app.ui.designsystem.AppButton
+import com.solomondesign.app.ui.profile.ProfileAvatarButton
 import com.solomondesign.app.ui.theme.AvatarPalette
-import com.solomondesign.app.ui.theme.StatusProgress
-import com.solomondesign.app.ui.theme.StatusUrgent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,6 +45,7 @@ import java.util.Locale
 @Composable
 fun TodayScreen(
     onOpenVoiceLog: (String) -> Unit,
+    onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
@@ -86,6 +86,7 @@ fun TodayScreen(
             FieldPageHeader(
                 title = "Today",
                 subtitle = "${persona.displayName} · ${DemoProjectRepository.AREA}",
+                trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
             )
         }
 
@@ -151,7 +152,11 @@ fun TodayScreen(
                 FieldWorkRow(
                     title = item.title,
                     subtitle = item.subtitle + " · " + formatTimestamp(item.timestampMillis),
-                    statusColor = if (item.kind == StreamKind.ISSUE) StatusUrgent else StatusProgress,
+                    statusColor = if (item.kind == StreamKind.ISSUE) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.tertiary
+                    },
                     enabled = item.relatedRecordId != null && item.kind == StreamKind.DAILY_LOG,
                     onClick = { item.relatedRecordId?.let(onOpenVoiceLog) },
                 )
@@ -166,7 +171,7 @@ fun TodayScreen(
                 statusColor = if (item.kind == StreamKind.PHOTO) {
                     MaterialTheme.colorScheme.outline
                 } else {
-                    StatusProgress
+                    MaterialTheme.colorScheme.tertiary
                 },
                 enabled = item.kind == StreamKind.DAILY_LOG && item.relatedRecordId != null,
                 onClick = {

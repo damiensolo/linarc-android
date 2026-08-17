@@ -12,9 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
-import com.solomondesign.app.ui.theme.Accent
-import com.solomondesign.app.ui.theme.StatusProgress
-import com.solomondesign.app.ui.theme.StatusUrgent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +36,7 @@ fun CaptureSheet(
             FieldWorkRow(
                 title = "Voice daily log",
                 subtitle = "Dictate labor, delays, and issues",
-                statusColor = StatusProgress,
+                statusColor = MaterialTheme.colorScheme.tertiary,
                 enabled = true,
                 onClick = onVoice,
                 modifier = Modifier.testTag("captureVoice"),
@@ -47,7 +44,7 @@ fun CaptureSheet(
             FieldWorkRow(
                 title = "Photo",
                 subtitle = "Tag a progress photo",
-                statusColor = Accent,
+                statusColor = MaterialTheme.colorScheme.primary,
                 enabled = true,
                 onClick = onPhoto,
                 modifier = Modifier.testTag("capturePhoto"),
@@ -55,7 +52,7 @@ fun CaptureSheet(
             FieldWorkRow(
                 title = "Issue",
                 subtitle = "Quick field issue",
-                statusColor = StatusUrgent,
+                statusColor = MaterialTheme.colorScheme.error,
                 enabled = true,
                 onClick = onIssue,
                 modifier = Modifier.testTag("captureIssue"),
