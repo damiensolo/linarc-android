@@ -59,6 +59,23 @@ class AppNavHostTest {
     }
 
     @Test
+    fun today_crewSection_collapsesAndExpands() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        composeTestRule.onNodeWithText("Hector Ortiz").assertExists()
+
+        composeTestRule.onNodeWithTag("crewSectionHeader").performClick()
+        composeTestRule.onNodeWithText("Hector Ortiz").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("crewSectionHeader").performClick()
+        composeTestRule.onNodeWithText("Hector Ortiz").assertExists()
+    }
+
+    @Test
     fun tools_showsDemoViewAs_withForemanLiveAndOthersListed() {
         composeTestRule.setContent {
             AppTheme {

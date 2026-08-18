@@ -31,6 +31,7 @@ import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.StreamKind
 import com.solomondesign.app.ui.demo.badgeColor
 import com.solomondesign.app.ui.demo.statusLabel
+import com.solomondesign.app.ui.designsystem.FieldCollapsibleSectionHeader
 import com.solomondesign.app.ui.designsystem.FieldPageHeader
 import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
@@ -53,6 +54,7 @@ fun TodayScreen(
     val streamItems = DemoProjectRepository.streamItems.toList()
     val crew = DemoProjectRepository.crew
     var showStartMyDay by remember { mutableStateOf(false) }
+    var crewExpanded by remember { mutableStateOf(true) }
 
     val blockers = streamItems.filter { it.kind == StreamKind.BLOCKER || it.kind == StreamKind.ISSUE }
     val captures = streamItems.filter {
@@ -125,16 +127,26 @@ fun TodayScreen(
             }
         }
 
-        item { FieldSectionLabel("Crew") }
-        itemsIndexed(crew, key = { _, member -> member.name }) { index, member ->
-            FieldWorkRow(
-                title = member.name,
-                subtitle = "${member.trade} · ${member.presence.statusLabel(DemoProjectRepository.AREA)}",
-                statusColor = member.presence.badgeColor(),
-                avatarName = member.name,
-                avatarColor = AvatarPalette.colorAt(index),
-                avatarPhotoRes = member.photoRes,
+        item {
+            FieldCollapsibleSectionHeader(
+                title = "Crew",
+                count = crew.size,
+                expanded = crewExpanded,
+                onToggleExpanded = { crewExpanded = !crewExpanded },
+                modifier = Modifier.testTag("crewSectionHeader"),
             )
+        }
+        if (crewExpanded) {
+            itemsIndexed(crew, key = { _, member -> member.name }) { index, member ->
+                FieldWorkRow(
+                    title = member.name,
+                    subtitle = "${member.trade} · ${member.presence.statusLabel(DemoProjectRepository.AREA)}",
+                    statusColor = member.presence.badgeColor(),
+                    avatarName = member.name,
+                    avatarColor = AvatarPalette.colorAt(index),
+                    avatarPhotoRes = member.photoRes,
+                )
+            }
         }
 
         item { FieldSectionLabel("Blockers") }
