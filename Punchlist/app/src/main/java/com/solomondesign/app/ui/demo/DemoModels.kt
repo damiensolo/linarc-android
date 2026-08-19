@@ -52,7 +52,17 @@ data class CrewMember(
     val trade: String,
     val presence: CrewPresence,
     val photoRes: Int? = null,
+    /**
+     * Stable, route-safe identity. Demo data has no server ids, so it is derived from [name].
+     * Declared last with a default so every existing constructor call is unaffected — Kotlin
+     * default values may reference earlier parameters.
+     */
+    val id: String = crewIdFor(name),
 )
+
+/** "Hector Ortiz" -> "hector-ortiz". Pure so it can be unit tested on the JVM. */
+fun crewIdFor(name: String): String =
+    name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
 
 enum class CrewPresence {
     ON_SITE,

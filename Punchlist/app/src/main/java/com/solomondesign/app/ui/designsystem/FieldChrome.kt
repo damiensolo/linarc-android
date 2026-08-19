@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -230,6 +231,7 @@ fun FieldWorkRow(
     avatarColor: Color = AvatarPalette.colorAt(0),
     avatarPhotoRes: Int? = null,
     enabled: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     ListItem(
@@ -266,5 +268,34 @@ fun FieldWorkRow(
                 StatusIndicator(color = statusColor)
             }
         },
+        trailingContent = trailing,
     )
+}
+
+/**
+ * Uniform empty state for lists that can legitimately have nothing in them. Replaces the
+ * hand-rolled muted-Text blocks that were repeated per screen.
+ */
+@Composable
+fun FieldEmptyState(
+    message: String,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        if (action != null) {
+            Box(modifier = Modifier.padding(top = 16.dp)) { action() }
+        }
+    }
 }

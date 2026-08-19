@@ -1,12 +1,14 @@
 package com.solomondesign.app.ui.voicelog
 
 import android.Manifest
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.rule.GrantPermissionRule
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.StreamKind
@@ -59,6 +61,10 @@ class VoiceLogFlowTest {
         }
 
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        // Tools is a LazyColumn: "Voice logs" sits below the catalog and isn't composed until
+        // scrolled into view.
+        composeTestRule.onNodeWithTag("toolsScreen")
+            .performScrollToNode(hasText("Voice logs"))
         composeTestRule.onNodeWithText("Voice logs").performClick()
         composeTestRule.onNodeWithText(record.projectName).performClick()
         composeTestRule.onNodeWithText(
@@ -89,6 +95,10 @@ class VoiceLogFlowTest {
         }
 
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        // Tools is a LazyColumn: "Voice logs" sits below the catalog and isn't composed until
+        // scrolled into view.
+        composeTestRule.onNodeWithTag("toolsScreen")
+            .performScrollToNode(hasText("Voice logs"))
         composeTestRule.onNodeWithText("Voice logs").performClick()
         composeTestRule.onNodeWithText(record.projectName).performClick()
         composeTestRule.onNodeWithText("Play Recording").assertExists().performClick()

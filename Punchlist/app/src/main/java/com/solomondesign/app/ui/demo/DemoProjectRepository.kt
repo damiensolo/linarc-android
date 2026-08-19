@@ -4,8 +4,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import com.solomondesign.app.R
+import com.solomondesign.app.ui.collab.CurrentUser
+import com.solomondesign.app.ui.images.ImageSource
+import com.solomondesign.app.ui.images.ProjectImage
+import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.persona.FieldPersona
+import com.solomondesign.app.ui.theme.AvatarPalette
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
 
 /**
@@ -39,6 +45,18 @@ object DemoProjectRepository {
         seed()
     }
 
+    fun crewMember(id: String): CrewMember? = crew.firstOrNull { it.id == id }
+
+    fun crewIndexOf(id: String): Int = crew.indexOfFirst { it.id == id }
+
+    /**
+     * The same avatar colour the Today roster uses, so a person looks identical on every screen.
+     * [AvatarPalette] is index-driven, so resolving by id rather than by list position is what
+     * keeps Crew, Time cards, and Today in agreement.
+     */
+    fun avatarColorFor(id: String?): Color =
+        AvatarPalette.colorAt(crewIndexOf(id.orEmpty()).coerceAtLeast(0))
+
     fun selectPersona(next: FieldPersona) {
         if (next.isLive) {
             persona = next
@@ -55,9 +73,33 @@ object DemoProjectRepository {
         published.pins.forEach { pins.add(it) }
     }
 
-    fun addPhoto(title: String, subtitle: String, createIssue: Boolean) {
+    /**
+     * Publishes a captured photo to Today, the Plan sheet, and the Images grid.
+     *
+     * [captureKey] is a [com.solomondesign.app.ui.images.CapturedBitmapStore] key rather than a
+     * Bitmap, which keeps this repository free of `android.graphics` and unit-testable.
+     */
+    fun addPhoto(
+        title: String,
+        subtitle: String,
+        createIssue: Boolean,
+        captureKey: String? = null,
+        tags: List<String> = emptyList(),
+    ) {
         val now = System.currentTimeMillis()
         val photoId = "photo-$now"
+        ProjectImageRepository.add(
+            ProjectImage(
+                id = photoId,
+                title = title,
+                area = AREA,
+                tags = tags,
+                capturedAtMillis = now,
+                authorName = CurrentUser.NAME,
+                source = captureKey?.let(ImageSource::Captured)
+                    ?: ImageSource.Swatch(seed = pins.size),
+            ),
+        )
         streamItems.add(
             0,
             StreamItem(

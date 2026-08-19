@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.solomondesign.app.ui.navigation.AppRoutes
 
 enum class ToolCategory { FIELD, PROJECT, DOCUMENTATION, FINANCIALS, QUALITY }
 
@@ -28,6 +29,12 @@ data class PlatformTool(
     val icon: ImageVector,
     val canQuickCreate: Boolean,
     val quickCreateUsesPhoto: Boolean = false,
+    /**
+     * Real destination for tools that have a built screen. Null keeps the generic
+     * `tool/{id}` placeholder. Mirrors [quickCreateUsesPhoto], which is already a per-tool
+     * routing override resolved at the navigation call site.
+     */
+    val homeRoute: String? = null,
     val placeholderRows: List<String>,
 )
 
@@ -39,6 +46,7 @@ object PlatformTools {
             subtitle = "Assign and track field work",
             category = ToolCategory.FIELD,
             icon = Icons.AutoMirrored.Filled.Assignment,
+            homeRoute = AppRoutes.FIELD_TASK_LIST,
         ),
         tool(
             id = "time_card",
@@ -46,6 +54,7 @@ object PlatformTools {
             subtitle = "Hours on site",
             category = ToolCategory.FIELD,
             icon = Icons.Filled.Schedule,
+            homeRoute = AppRoutes.TIME_CARD_LIST,
         ),
         tool(
             id = "crew",
@@ -53,6 +62,7 @@ object PlatformTools {
             subtitle = "Who's on this job",
             category = ToolCategory.FIELD,
             icon = Icons.Filled.Groups,
+            homeRoute = AppRoutes.CREW_LIST,
         ),
         tool(
             id = "collaboration",
@@ -61,6 +71,7 @@ object PlatformTools {
             category = ToolCategory.PROJECT,
             icon = Icons.AutoMirrored.Filled.Send,
             canQuickCreate = true,
+            homeRoute = AppRoutes.COLLAB_TOPIC_LIST,
         ),
         tool(
             id = "images",
@@ -70,6 +81,7 @@ object PlatformTools {
             icon = Icons.Filled.PhotoLibrary,
             canQuickCreate = true,
             quickCreateUsesPhoto = true,
+            homeRoute = AppRoutes.IMAGE_GRID,
         ),
         tool(
             id = "plans",
@@ -158,6 +170,7 @@ object PlatformTools {
         icon: ImageVector,
         canQuickCreate: Boolean = false,
         quickCreateUsesPhoto: Boolean = false,
+        homeRoute: String? = null,
     ) = PlatformTool(
         id = id,
         label = label,
@@ -166,6 +179,7 @@ object PlatformTools {
         icon = icon,
         canQuickCreate = canQuickCreate,
         quickCreateUsesPhoto = quickCreateUsesPhoto,
+        homeRoute = homeRoute,
         placeholderRows = listOf(
             "$label · sample 1",
             "$label · sample 2",

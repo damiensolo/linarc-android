@@ -6,7 +6,8 @@
       "Bash(git -C /c/Users/damie/AndroidStudioProjects log --oneline -- Punchlist/.claude/settings.json)",
       "Bash(git -C /c/Users/damie/AndroidStudioProjects check-ignore -v Punchlist/.claude/settings.json)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(./gradlew testDebugUnitTest --tests \"com.solomondesign.app.ui.navigation.*\")"
     ]
   }
 }

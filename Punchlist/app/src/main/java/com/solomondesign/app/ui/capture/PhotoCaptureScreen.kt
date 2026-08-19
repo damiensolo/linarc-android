@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.images.CapturedBitmapStore
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonType
 
@@ -119,28 +120,26 @@ fun PhotoCaptureScreen(onDone: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 }
                 Spacer(Modifier.height(8.dp))
+                // Hand the captured bitmap to the process-scoped store so it shows up as a real
+                // tile in the Images grid; the "use demo photo" path falls back to a swatch.
+                val publish = { createIssue: Boolean ->
+                    DemoProjectRepository.addPhoto(
+                        title = "Progress photo",
+                        subtitle = selectedTags.joinToString(" · ").ifBlank { "Area B" },
+                        createIssue = createIssue,
+                        captureKey = bitmap?.let(CapturedBitmapStore::put),
+                        tags = selectedTags.toList(),
+                    )
+                    onDone()
+                }
                 AppButton(
                     text = "Save photo",
-                    onClick = {
-                        DemoProjectRepository.addPhoto(
-                            title = "Progress photo",
-                            subtitle = selectedTags.joinToString(" · ").ifBlank { "Area B" },
-                            createIssue = false,
-                        )
-                        onDone()
-                    },
+                    onClick = { publish(false) },
                 )
                 AppButton(
                     text = "Create issue?",
                     type = AppButtonType.Secondary,
-                    onClick = {
-                        DemoProjectRepository.addPhoto(
-                            title = "Progress photo",
-                            subtitle = selectedTags.joinToString(" · ").ifBlank { "Area B" },
-                            createIssue = true,
-                        )
-                        onDone()
-                    },
+                    onClick = { publish(true) },
                 )
             }
         }

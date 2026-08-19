@@ -25,7 +25,13 @@ FAB (end): opens Capture sheet → Voice / Photo / Issue
 
 **Profile:** an avatar in the upper-right of the Today/Plan/Tools header → `ModalBottomSheet` with the signed-in user's photo/name/job title and account actions (Edit profile, Help & Support, Driving & Operating licenses, Reset password, Logout). This identity is fixed and independent of **Demo: view as** — it is not a persona chip and must not change when the demo persona changes. There is no backend/auth in this prototype, so every action except Logout surfaces an explanatory message instead of a real flow; Logout resets the local demo session (equivalent to a fresh app launch) and returns to Today.
 
-**Immersive flows** (voice recording/review, photo, quick issue, playback, tool list/create placeholders): hide the navigation bar and FAB. Back from capture/voice returns to Today; back from a tool returns to Tools.
+**Navigation patterns.** Every destination follows one of three patterns, resolved per route by `resolveChrome()` in `ui/navigation/AppChrome.kt`:
+
+- **Pattern A — full-screen task flow** (voice recording/review, photo, quick issue, playback, tool create, image viewer): hides the navigation bar and FAB. Close/Cancel top-left, Save/Done top-right. Warn before discard *only* when unsaved edits exist. Back from capture/voice returns to Today.
+- **Pattern B — nested browsing stack** (the five built Tools areas, the remaining tool placeholders, voice log history, outbox): **keeps the navigation bar visible**. Back moves one level at a time, and reselecting the active tab returns that tab to its root screen. Each tab is a nested graph, so tab stacks are preserved independently.
+- **Pattern C — modal bottom sheet** for compact contextual actions or one-or-two parameter changes (Capture, Profile, new time entry, new topic, image source). Dismissible via scrim or swipe.
+
+**FAB.** One shared component whose icon, description, and action are configured by the current screen: Capture on the three tab roots, New time entry in Time cards, New topic on the Collaboration list, Add image on the Images grid, and absent everywhere else.
 
 ## Non-goals (do not build)
 
@@ -79,7 +85,8 @@ Same three tabs for every persona. Only Today focus, capture CTAs, and Plan dens
 
 - Grid/list catalog of platform modules, with a Material 3 segmented control to switch layout. Neutral icons and labels; no category color tiles.
 - Modules: Field task, Time card, Crew, Collaboration, Images, Plans, RFIs, Punch list, Incidents, Issues, T & M, Checklist, Drive, Toolbox Talks, Scan.
-- Quick create `+` on Collaboration, Images, RFIs, Punch list, Incidents, Issues, Toolbox Talks. Images `+` opens the existing photo capture flow; other `+` actions open a create placeholder. Tool list/detail screens are placeholders.
+- Quick create `+` on Collaboration, Images, RFIs, Punch list, Incidents, Issues, Toolbox Talks. Images `+` opens the existing photo capture flow; other `+` actions open a create placeholder.
+- **Five modules are built as real Pattern B stacks** backed by demo data: Field task (list → detail with status control, checklist, filters), Time card (crew list → member detail, contextual FAB → new-entry sheet), Crew (list → detail), Collaboration (topic list → conversation, contextual FAB → new-topic sheet), and Images (grid → full-screen Pattern A viewer with a Share / Markup / Delete / Create footer toolbar). Markup is an explicit placeholder — no drawing engine ships in this build. The remaining ten modules keep the generic list/detail placeholders.
 - Scan is catalog-only in this build (no live scanner).
 - Below the catalog: Demo: view as — Foreman selected and live; other personas visible. Tapping a non-live persona explains that the view is next; it must not fake a broken UI.
 - Outbox — seeded queued items (badge/count only; no sync).

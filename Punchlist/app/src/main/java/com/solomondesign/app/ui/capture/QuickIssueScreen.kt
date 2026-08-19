@@ -7,19 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.AppButton
+import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
 
 private val locations = listOf("Area B", "Column 4", "Level 2")
 
@@ -40,18 +35,21 @@ fun QuickIssueScreen(onDone: () -> Unit, modifier: Modifier = Modifier) {
     var note by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    Scaffold(
+    val submit = {
+        DemoProjectRepository.addIssue(title = title.trim(), location = location, note = note.trim())
+        onDone()
+    }
+
+    TaskFlowScaffold(
+        title = "New issue",
+        onClose = onDone,
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("New issue") },
-                navigationIcon = {
-                    IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
+        // Location defaults to a value, so only the free-text fields count as user edits.
+        hasUnsavedChanges = title.isNotBlank() || note.isNotBlank(),
+        onConfirm = submit,
+        confirmLabel = "Save",
+        confirmEnabled = title.isNotBlank(),
+        discardMessage = "This issue hasn't been submitted and will be lost.",
     ) { padding ->
         Column(
             modifier = Modifier
@@ -100,10 +98,7 @@ fun QuickIssueScreen(onDone: () -> Unit, modifier: Modifier = Modifier) {
             AppButton(
                 text = "Submit issue",
                 enabled = title.isNotBlank(),
-                onClick = {
-                    DemoProjectRepository.addIssue(title = title.trim(), location = location, note = note.trim())
-                    onDone()
-                },
+                onClick = submit,
             )
         }
     }
