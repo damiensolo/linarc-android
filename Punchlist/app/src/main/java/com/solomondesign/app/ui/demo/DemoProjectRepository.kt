@@ -11,6 +11,7 @@ import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ProjectImage
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.persona.FieldPersona
+import com.solomondesign.app.ui.splash.SplashVariant
 import com.solomondesign.app.ui.theme.AvatarPalette
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
 
@@ -26,6 +27,9 @@ object DemoProjectRepository {
         private set
 
     var darkTheme by mutableStateOf(true)
+
+    /** Launch-brand treatment. Kept across [clear] so A/B picks survive logout. */
+    var splashVariant by mutableStateOf(SplashVariant.DEPTH)
 
     var dayStarted by mutableStateOf(false)
         private set

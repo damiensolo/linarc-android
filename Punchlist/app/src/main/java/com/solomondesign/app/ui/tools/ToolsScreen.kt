@@ -63,6 +63,7 @@ import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
 import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.profile.ProfileAvatarButton
+import com.solomondesign.app.ui.splash.SplashVariant
 import kotlinx.coroutines.launch
 
 private const val GridColumnCount = 3
@@ -75,6 +76,7 @@ fun ToolsScreen(
     onOpenProfile: () -> Unit,
     onOpenTool: (PlatformTool) -> Unit,
     onQuickCreate: (PlatformTool) -> Unit,
+    onPreviewSplash: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
@@ -82,6 +84,7 @@ fun ToolsScreen(
     val darkTheme = DemoProjectRepository.darkTheme
     var isGrid by rememberSaveable { mutableStateOf(true) }
     var showViewAs by remember { mutableStateOf(false) }
+    var showSplashPicker by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -150,6 +153,16 @@ fun ToolsScreen(
                     enabled = true,
                     onClick = { showViewAs = true },
                     modifier = Modifier.testTag("demoViewAsRow"),
+                )
+            }
+            item {
+                FieldWorkRow(
+                    title = "Splash animation",
+                    subtitle = DemoProjectRepository.splashVariant.title,
+                    statusColor = progress,
+                    enabled = true,
+                    onClick = { showSplashPicker = true },
+                    modifier = Modifier.testTag("demoSplashRow"),
                 )
             }
             item {
@@ -254,6 +267,43 @@ fun ToolsScreen(
                         }
                     },
                     modifier = Modifier.testTag("persona_${option.name}"),
+                )
+            }
+            Column(modifier = Modifier.padding(24.dp)) { }
+        }
+    }
+
+    if (showSplashPicker) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showSplashPicker = false },
+            sheetState = sheetState,
+            containerColor = raised,
+        ) {
+            Text(
+                text = "Splash animation",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            Text(
+                text = "Plays on launch. Tap a version to preview it now.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = muted,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+            )
+            SplashVariant.entries.forEach { option ->
+                val selected = option == DemoProjectRepository.splashVariant
+                FieldWorkRow(
+                    title = option.title,
+                    subtitle = option.subtitle,
+                    statusColor = if (selected) progress else muted,
+                    enabled = true,
+                    onClick = {
+                        DemoProjectRepository.splashVariant = option
+                        showSplashPicker = false
+                        onPreviewSplash()
+                    },
+                    modifier = Modifier.testTag("splashVariant_${option.name}"),
                 )
             }
             Column(modifier = Modifier.padding(24.dp)) { }

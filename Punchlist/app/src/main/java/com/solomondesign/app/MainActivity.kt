@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
             AppTheme(darkTheme = darkTheme) {
-                AppNavHost()
+                AppNavHost(playLaunchSplash = true)
             }
         }
     }

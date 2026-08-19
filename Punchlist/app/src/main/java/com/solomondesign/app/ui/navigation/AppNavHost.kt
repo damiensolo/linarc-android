@@ -1,5 +1,8 @@
 package com.solomondesign.app.ui.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,12 +22,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -56,6 +65,8 @@ import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.more.OutboxScreen
 import com.solomondesign.app.ui.plan.PlanScreen
 import com.solomondesign.app.ui.profile.ProfileSheet
+import com.solomondesign.app.ui.splash.LinarcSplashScreen
+import com.solomondesign.app.ui.splash.SplashVariant
 import com.solomondesign.app.ui.tasks.FieldTaskDetailScreen
 import com.solomondesign.app.ui.tasks.FieldTaskListScreen
 import com.solomondesign.app.ui.timecards.NewTimeEntrySheet
@@ -84,9 +95,14 @@ private fun dailyLogDetailRoute(recordId: String) =
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavHost() {
+fun AppNavHost(playLaunchSplash: Boolean = false) {
     val navController = rememberNavController()
     var activeSheet by remember { mutableStateOf<AppSheet?>(null) }
+    var splashVisible by remember { mutableStateOf(playLaunchSplash) }
+    var splashPlaybackId by remember { mutableIntStateOf(0) }
+    var homeReveal by remember { mutableFloatStateOf(0f) }
+    val splashVariant = DemoProjectRepository.splashVariant
+    val blurHome = splashVisible && splashVariant.revealsHome
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -95,7 +111,31 @@ fun AppNavHost() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    fun previewSplash() {
+        homeReveal = 0f
+        splashPlaybackId += 1
+        splashVisible = true
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                if (blurHome && homeReveal < 0.995f) {
+                    // Radius is in dp so the frost reads on dense screens.
+                    // graphicsLayer(RenderEffect) alone often never promotes a layer.
+                    Modifier.blur(
+                        radius = ((1f - homeReveal) * 24f).dp,
+                        edgeTreatment = BlurredEdgeTreatment.Rectangle,
+                    )
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             // Null chrome.fab emits nothing, so the Scaffold reserves no space for a FAB.
@@ -187,6 +227,7 @@ fun AppNavHost() {
                         onOpenOutbox = { navController.navigate(AppRoutes.OUTBOX) },
                         onOpenVoiceLogs = { navController.navigate(AppRoutes.DAILY_LOG_HISTORY) },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
+                        onPreviewSplash = { previewSplash() },
                         // Tools with a real screen route there; the rest keep the placeholder.
                         onOpenTool = { tool ->
                             navController.navigate(tool.homeRoute ?: AppRoutes.toolHome(tool.id))
@@ -401,6 +442,7 @@ fun AppNavHost() {
             }
         }
     }
+    }
 
     // Pattern C sheets are hoisted here rather than being nav destinations: navigation-compose
     // has no built-in bottom-sheet destination, and adding one needs a new dependency.
@@ -432,6 +474,7 @@ fun AppNavHost() {
                     popUpTo(navController.graph.id) { inclusive = true }
                     launchSingleTop = true
                 }
+                previewSplash()
             },
             onPlaceholderAction = { message ->
                 activeSheet = null
@@ -483,6 +526,27 @@ fun AppNavHost() {
         )
 
         null -> Unit
+    }
+
+        if (blurHome && splashVariant != SplashVariant.DEPTH && homeReveal < 0.99f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = (1f - homeReveal) * 0.5f)),
+            )
+        }
+
+        if (splashVisible) {
+            LinarcSplashScreen(
+                variant = splashVariant,
+                playbackId = splashPlaybackId,
+                onRevealProgress = { homeReveal = it },
+                onFinished = {
+                    splashVisible = false
+                    homeReveal = 1f
+                },
+            )
+        }
     }
 }
 
