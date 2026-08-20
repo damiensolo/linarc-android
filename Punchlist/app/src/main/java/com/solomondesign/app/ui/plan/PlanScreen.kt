@@ -46,7 +46,11 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanScreen(onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
+fun PlanScreen(
+    onOpenProfile: () -> Unit,
+    onSwitchProject: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val pins = DemoProjectRepository.pins.toList()
     var selectedPin by remember { mutableStateOf<PlanPin?>(null) }
 
@@ -58,6 +62,8 @@ fun PlanScreen(onOpenProfile: () -> Unit, modifier: Modifier = Modifier) {
         FieldPageHeader(
             title = "Plan",
             subtitle = "${DemoProjectRepository.PROJECT_NAME} · ${DemoProjectRepository.AREA} · Level 2",
+            projectName = DemoProjectRepository.PROJECT_NAME,
+            onSwitchProject = onSwitchProject,
             trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
         )
         AreaBSheet(

@@ -48,6 +48,14 @@ object AvatarPalette {
 val Accent = Color(0xFF4D90FF)
 val ErrorRed = Color(0xFFFF7A22)
 
+/**
+ * Figma "surface/primary/default" — the filled pill behind the selected item in every bottom
+ * `NavigationBar` (Today/Plan/Tools and the pre-shell Project/Accounts picker). Fixed across
+ * light/dark, like [com.solomondesign.app.ui.splash.LinarcOrange], so tab selection reads the
+ * same regardless of the Appearance toggle.
+ */
+val NavSelectedBlue = Color(0xFF3B82F6)
+
 /** Light field-prototype surfaces. */
 val LightBackground = Color(0xFFFFFFFF)
 val LightOnSurface = Color(0xFF111111)

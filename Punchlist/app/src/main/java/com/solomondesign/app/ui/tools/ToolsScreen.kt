@@ -74,6 +74,7 @@ fun ToolsScreen(
     onOpenOutbox: () -> Unit,
     onOpenVoiceLogs: () -> Unit,
     onOpenProfile: () -> Unit,
+    onSwitchProject: () -> Unit,
     onOpenTool: (PlatformTool) -> Unit,
     onQuickCreate: (PlatformTool) -> Unit,
     onPreviewSplash: () -> Unit,
@@ -102,6 +103,8 @@ fun ToolsScreen(
                 FieldPageHeader(
                     title = "Tools",
                     subtitle = "${persona.displayName} · ${DemoProjectRepository.PROJECT_NAME}",
+                    projectName = DemoProjectRepository.PROJECT_NAME,
+                    onSwitchProject = onSwitchProject,
                     trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
                 )
             }

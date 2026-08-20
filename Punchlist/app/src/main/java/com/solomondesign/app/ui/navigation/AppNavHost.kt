@@ -1,5 +1,13 @@
 package com.solomondesign.app.ui.navigation
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -56,6 +63,7 @@ import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.DemoSession
 import com.solomondesign.app.ui.common.DetailPlaceholderScreen
 import com.solomondesign.app.ui.common.ListPlaceholderScreen
+import com.solomondesign.app.ui.designsystem.fieldNavigationBarItemColors
 import com.solomondesign.app.ui.images.ImageGridScreen
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ImageSourceSheet
@@ -65,6 +73,7 @@ import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.more.OutboxScreen
 import com.solomondesign.app.ui.plan.PlanScreen
 import com.solomondesign.app.ui.profile.ProfileSheet
+import com.solomondesign.app.ui.projects.ProjectListScreen
 import com.solomondesign.app.ui.splash.LinarcSplashScreen
 import com.solomondesign.app.ui.splash.SplashVariant
 import com.solomondesign.app.ui.tasks.FieldTaskDetailScreen
@@ -85,6 +94,14 @@ import java.net.URLEncoder
 private fun dailyLogDetailRoute(recordId: String) =
     "daily_log_detail/${URLEncoder.encode(recordId, "UTF-8")}"
 
+/** True for the three bottom-nav tab roots — switching between them is a sideways move, not a
+ * push, so it gets a crossfade instead of a directional slide. */
+private fun isTabRootRoute(route: String?): Boolean = bottomNavTabs.any { it.route == route }
+
+/** Pattern A / immersive destinations already hide the bottom bar (see [resolveChrome]); reusing
+ * that signal keeps motion rules and chrome rules from drifting apart. */
+private fun isImmersiveRoute(route: String?): Boolean = !resolveChrome(route).showBottomBar
+
 /**
  * Field prototype shell: Today / Plan / Tools plus a shared Material FAB.
  *
@@ -95,9 +112,13 @@ private fun dailyLogDetailRoute(recordId: String) =
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavHost(playLaunchSplash: Boolean = false) {
+fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = false) {
     val navController = rememberNavController()
     var activeSheet by remember { mutableStateOf<AppSheet?>(null) }
+    // Startup gate: Splash -> Project List -> chassis. Defaults to already-selected so every
+    // existing test/preview that calls AppNavHost() with no args still lands on Today directly;
+    // only MainActivity opts into the picker for a real cold launch.
+    var projectSelected by remember { mutableStateOf(!showProjectPicker) }
     var splashVisible by remember { mutableStateOf(playLaunchSplash) }
     var splashPlaybackId by remember { mutableIntStateOf(0) }
     var homeReveal by remember { mutableFloatStateOf(0f) }
@@ -117,6 +138,18 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
         splashVisible = true
     }
 
+    fun switchProject() {
+        activeSheet = null
+        // Same graph reset as logout, minus the data wipe: every project shares the same seeded
+        // demo data in this build, so switching just re-shows the picker and lets the next
+        // selection land on a clean Today rather than wherever the stack was.
+        navController.navigate(AppRoutes.TODAY_GRAPH) {
+            popUpTo(navController.graph.id) { inclusive = true }
+            launchSingleTop = true
+        }
+        projectSelected = false
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
     Box(
         modifier = Modifier
@@ -134,6 +167,8 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
                 },
             ),
     ) {
+    Crossfade(targetState = projectSelected, label = "projectGate") { selected ->
+    if (selected) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -185,13 +220,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
                             label = { Text(tab.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = colors.onSurface,
-                                selectedTextColor = colors.onSurface,
-                                unselectedIconColor = colors.onSurfaceVariant,
-                                unselectedTextColor = colors.onSurfaceVariant,
-                                indicatorColor = colors.surfaceContainerHigh,
-                            ),
+                            colors = fieldNavigationBarItemColors(),
                         )
                     }
                 }
@@ -202,6 +231,41 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
             navController = navController,
             startDestination = AppRoutes.TODAY_GRAPH,
             modifier = Modifier.padding(scaffoldPadding),
+            // Tab-to-tab: crossfade only, sliding would imply a hierarchy that isn't there.
+            // Into/out of an immersive (Pattern A) destination: slide vertically, like a task
+            // taking over the screen. Everything else (Pattern B push/pop): the standard Android
+            // parallax slide — new content enters fully from the side, old content only partly
+            // exits, and reverses symmetrically on the way back.
+            enterTransition = {
+                val target = targetState.destination.route
+                when {
+                    isTabRootRoute(target) && isTabRootRoute(initialState.destination.route) ->
+                        fadeIn(tween(220))
+                    isImmersiveRoute(target) -> slideInVertically { it } + fadeIn()
+                    else -> slideInHorizontally { it } + fadeIn()
+                }
+            },
+            exitTransition = {
+                val initial = initialState.destination.route
+                when {
+                    isTabRootRoute(initial) && isTabRootRoute(targetState.destination.route) ->
+                        fadeOut(tween(220))
+                    isImmersiveRoute(targetState.destination.route) -> fadeOut()
+                    else -> slideOutHorizontally { -it / 3 } + fadeOut()
+                }
+            },
+            popEnterTransition = {
+                val initial = initialState.destination.route
+                if (isImmersiveRoute(initial)) fadeIn() else slideInHorizontally { -it / 3 } + fadeIn()
+            },
+            popExitTransition = {
+                val initial = initialState.destination.route
+                if (isImmersiveRoute(initial)) {
+                    slideOutVertically { it } + fadeOut()
+                } else {
+                    slideOutHorizontally { it } + fadeOut()
+                }
+            },
         ) {
             // Layout rule: Pattern B destinations live inside their tab's graph so the tab owns
             // their back stack; Pattern A / immersive destinations live at the root.
@@ -211,13 +275,17 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
                     TodayScreen(
                         onOpenVoiceLog = { recordId -> navController.navigate(dailyLogDetailRoute(recordId)) },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
+                        onSwitchProject = { switchProject() },
                     )
                 }
             }
 
             navigation(startDestination = AppRoutes.PLAN_HOME, route = AppRoutes.PLAN_GRAPH) {
                 composable(AppRoutes.PLAN_HOME) {
-                    PlanScreen(onOpenProfile = { activeSheet = AppSheet.PROFILE })
+                    PlanScreen(
+                        onOpenProfile = { activeSheet = AppSheet.PROFILE },
+                        onSwitchProject = { switchProject() },
+                    )
                 }
             }
 
@@ -227,6 +295,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
                         onOpenOutbox = { navController.navigate(AppRoutes.OUTBOX) },
                         onOpenVoiceLogs = { navController.navigate(AppRoutes.DAILY_LOG_HISTORY) },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
+                        onSwitchProject = { switchProject() },
                         onPreviewSplash = { previewSplash() },
                         // Tools with a real screen route there; the rest keep the placeholder.
                         onOpenTool = { tool ->
@@ -442,6 +511,10 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
             }
         }
     }
+    } else {
+        ProjectListScreen(onSelectProject = { projectSelected = true })
+    }
+    }
     }
 
     // Pattern C sheets are hoisted here rather than being nav destinations: navigation-compose
@@ -465,6 +538,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false) {
 
         AppSheet.PROFILE -> ProfileSheet(
             onDismiss = { activeSheet = null },
+            onSwitchProject = { switchProject() },
             onLogout = {
                 activeSheet = null
                 DemoSession.reset()

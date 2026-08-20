@@ -13,23 +13,34 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItemColors
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -41,18 +52,26 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.solomondesign.app.ui.theme.AvatarPalette
+import com.solomondesign.app.ui.theme.NavSelectedBlue
 import com.solomondesign.app.ui.theme.OnDark
 
 /**
  * Page header used at the top of Today/Plan/Tools. [trailing] is an optional slot for a
- * fixed-size element (e.g. the profile avatar) anchored to the upper-right; leave it null
- * for headers that don't need one.
+ * fixed-size element (e.g. the profile avatar) anchored to the upper-right; leave it null for
+ * headers that don't need one.
+ *
+ * [projectName] and [onSwitchProject] are optional together: when both are set, the header grows
+ * a small tappable project chip above [title] and an overflow menu next to [trailing], so
+ * switching projects doesn't require a trip through Profile. Same handler, two shortcuts — see
+ * "Startup flow" in Mobile Structure Validated v1.md.
  */
 @Composable
 fun FieldPageHeader(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    projectName: String? = null,
+    onSwitchProject: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -60,6 +79,13 @@ fun FieldPageHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            if (projectName != null && onSwitchProject != null) {
+                ProjectSwitcherChip(
+                    projectName = projectName,
+                    onClick = onSwitchProject,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
             Text(text = title, style = MaterialTheme.typography.headlineLarge)
             if (subtitle != null) {
                 Text(
@@ -70,7 +96,65 @@ fun FieldPageHeader(
                 )
             }
         }
+        if (onSwitchProject != null) {
+            HeaderOverflowMenu(onSwitchProject = onSwitchProject)
+        }
         trailing?.invoke()
+    }
+}
+
+@Composable
+private fun ProjectSwitcherChip(
+    projectName: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(percent = 50))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onClick, onClickLabel = "Switch project", role = Role.Button)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .testTag("headerProjectChip"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = projectName,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Icon(
+            imageVector = Icons.Default.ExpandMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun HeaderOverflowMenu(
+    onSwitchProject: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.testTag("headerOverflowMenu"),
+        ) {
+            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Switch project") },
+                onClick = {
+                    expanded = false
+                    onSwitchProject()
+                },
+                modifier = Modifier.testTag("headerSwitchProjectMenuItem"),
+            )
+        }
     }
 }
 
@@ -131,6 +215,20 @@ fun FieldCollapsibleSectionHeader(
         )
     }
 }
+
+/**
+ * Selected-state recipe shared by every bottom `NavigationBar` in the app: a filled blue pill
+ * behind the icon with a matching blue label (Figma "surface/primary/default"), so tab selection
+ * reads the same on the Today/Plan/Tools chassis and the pre-shell Project/Accounts picker.
+ */
+@Composable
+fun fieldNavigationBarItemColors(): NavigationBarItemColors = NavigationBarItemDefaults.colors(
+    selectedIconColor = OnDark,
+    selectedTextColor = NavSelectedBlue,
+    indicatorColor = NavSelectedBlue,
+    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+)
 
 @Composable
 fun InitialsAvatar(

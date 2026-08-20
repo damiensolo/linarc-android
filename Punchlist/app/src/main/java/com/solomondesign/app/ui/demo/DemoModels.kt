@@ -47,6 +47,13 @@ data class OutboxItem(
     val subtitle: String,
 )
 
+/** A row in the startup Project List picker. See [DemoProjectRepository.projects]. */
+data class DemoProject(
+    val id: String,
+    val name: String,
+    val address: String,
+)
+
 data class CrewMember(
     val name: String,
     val trade: String,

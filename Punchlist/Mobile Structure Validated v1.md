@@ -6,6 +6,20 @@ This is the **single source of truth** for the field Android prototype. Do not r
 
 Internal strategy prototype: prove a field-first information architecture on Android, with Voice-to-Log as the working differentiator. The app opens as a **Foreman**. Other personas are listed in a demo switcher for a later iteration.
 
+## Startup flow
+
+Launch → Splash (brand) → Project List → Today. This sits above the three-tab chassis, with its own two-item `NavigationBar` (Projects, Accounts) — it never coexists with the Today/Plan/Tools bar; only one or the other is on screen at a time.
+
+**Project List (Projects tab):** black branded header (Linarc wordmark) above an M3 `OutlinedTextField` search (client-side name/address filter, no backend) and a `ListItem` roster (name, address, chevron, dividers). **Riverside Medical — Area B** is the only entry backed by real seeded data; the remaining rows are demo flavor so the picker doesn't read as a single-item list. Tapping **any** row loads the same seeded Today/Plan/Tools data — there are no per-project datasets in this build. This is a one-time pre-shell gate, distinct from the barred "Projects tab" below, which would be a fourth destination *inside* the Today/Plan/Tools navigation bar.
+
+**Accounts tab:** placeholder ("Accounts isn't part of this prototype yet") — same explain-don't-fake treatment as every other unbuilt action.
+
+**Getting back to the picker:** three shortcuts, one handler. On every Today/Plan/Tools header: a tappable project-name chip (above the title) and a `⋮` overflow menu ("Switch project") next to the profile avatar — plus Profile → Switch project (see Profile, below). All three reset the Today/Plan/Tools back stack and re-show the Project List; none clear demo data. The picker's own footer nav cannot otherwise be reached from inside the chassis.
+
+**Selected-nav color:** every bottom `NavigationBar` in the app (this picker's Projects/Accounts, and the chassis's Today/Plan/Tools) uses the same blue filled pill behind the selected icon, matching the Linarc Onsite Figma file.
+
+**Motion:** Pattern B push/pop uses the standard Android parallax slide (new screen enters fully from the right, previous screen partially exits left, reversed on back); Pattern A immersive routes slide vertically like a task takeover; switching Today/Plan/Tools tabs crossfades rather than sliding, since tabs are siblings, not a stack. The Splash → Project List → Today handoff and the picker's own Projects/Accounts tab swap crossfade too.
+
 ## Canonical chassis
 
 Three bottom destinations. Capture is **not** a tab.
@@ -23,7 +37,7 @@ FAB (end): opens Capture sheet → Voice / Photo / Issue
 
 **Capture:** Material 3 `FloatingActionButton` → `ModalBottomSheet` with Voice, Photo, Issue. A center “+” in the navigation bar is not allowed (it reads as a fourth tab). Quick-create `+` on a Tools card is a module action, not a fourth tab.
 
-**Profile:** an avatar in the upper-right of the Today/Plan/Tools header → `ModalBottomSheet` with the signed-in user's photo/name/job title and account actions (Edit profile, Help & Support, Driving & Operating licenses, Reset password, Logout). This identity is fixed and independent of **Demo: view as** — it is not a persona chip and must not change when the demo persona changes. There is no backend/auth in this prototype, so every action except Logout surfaces an explanatory message instead of a real flow; Logout resets the local demo session (equivalent to a fresh app launch) and returns to Today.
+**Profile:** an avatar in the upper-right of the Today/Plan/Tools header → `ModalBottomSheet` with the signed-in user's photo/name/job title and account actions (Switch project, Edit profile, Help & Support, Driving & Operating licenses, Reset password, Logout). This identity is fixed and independent of **Demo: view as** — it is not a persona chip and must not change when the demo persona changes. There is no backend/auth in this prototype, so every action except Switch project and Logout surfaces an explanatory message instead of a real flow. Switch project returns to the startup Project List (see Startup flow, above) without clearing demo data. Logout resets the local demo session (equivalent to a fresh app launch) and returns to Today.
 
 **Navigation patterns.** Every destination follows one of three patterns, resolved per route by `resolveChrome()` in `ui/navigation/AppChrome.kt`:
 
@@ -35,7 +49,7 @@ FAB (end): opens Capture sheet → Voice / Photo / Issue
 
 ## Non-goals (do not build)
 
-- Capture tab, Reports tab, Projects tab, nested Project Space (Overview / Field / Issues / Docs)
+- Capture tab, Reports tab, Projects tab, nested Project Space (Overview / Field / Issues / Docs) — the pre-shell Project List in Startup flow above is not this: it is a one-time gate before the chassis, not a bottom-nav destination
 - OAC reports, dashboards, Gantt charts, live QR/barcode scanning, cost codes
 - Legal-pad OCR, on-device Whisper/LLM, MediaPipe
 - Vector-tile / PDF markup editor, offline lasso download
@@ -111,7 +125,7 @@ On **Submit**, write to `DailyLogRepository` **and** publish structured items in
 
 ## Demo script (v1)
 
-1. Launch as Foreman → Today shows crew + Start My Day. Confirm.
+1. Launch as Foreman → Splash → Project List → select Riverside Medical → Today shows crew + Start My Day. Confirm.
 2. FAB → Voice → Hector script → review → Submit.
 3. Today shows delay + issue. Plan shows a pin near Column 4.
 4. Tools → Demo: view as → other personas visible, not live.

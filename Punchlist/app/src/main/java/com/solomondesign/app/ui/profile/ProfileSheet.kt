@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -62,15 +63,17 @@ fun ProfileAvatarButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 /**
  * Account sheet reached by tapping the header avatar. There's no backend/auth in this
- * prototype (per `Mobile Structure Validated v1.md`), so every action except Logout surfaces
- * a message instead of faking a working flow — the same treatment already used for non-live
- * personas in Tools → Demo: view as. Logout is real: it resets the local demo session via
+ * prototype (per `Mobile Structure Validated v1.md`), so every action except Switch project and
+ * Logout surfaces a message instead of faking a working flow — the same treatment already used
+ * for non-live personas in Tools → Demo: view as. Switch project returns to the startup Project
+ * List; Logout resets the local demo session via
  * [com.solomondesign.app.ui.demo.DemoProjectRepository.clear].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileSheet(
     onDismiss: () -> Unit,
+    onSwitchProject: () -> Unit,
     onLogout: () -> Unit,
     onPlaceholderAction: (String) -> Unit,
 ) {
@@ -104,6 +107,13 @@ fun ProfileSheet(
             }
         }
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        ProfileActionRow(
+            label = "Switch project",
+            icon = Icons.Filled.SwapHoriz,
+            modifier = Modifier.testTag("profileSwitchProject"),
+            onClick = onSwitchProject,
+        )
+        HorizontalDivider()
         ProfileActionRow(
             label = "Edit profile",
             icon = Icons.Filled.Edit,

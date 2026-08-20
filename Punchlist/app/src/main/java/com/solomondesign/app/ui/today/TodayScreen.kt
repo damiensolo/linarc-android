@@ -47,6 +47,7 @@ import java.util.Locale
 fun TodayScreen(
     onOpenVoiceLog: (String) -> Unit,
     onOpenProfile: () -> Unit,
+    onSwitchProject: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
@@ -88,6 +89,8 @@ fun TodayScreen(
             FieldPageHeader(
                 title = "Today",
                 subtitle = "${persona.displayName} · ${DemoProjectRepository.AREA}",
+                projectName = DemoProjectRepository.PROJECT_NAME,
+                onSwitchProject = onSwitchProject,
                 trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
             )
         }

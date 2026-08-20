@@ -200,6 +200,92 @@ class AppNavHostTest {
         composeTestRule.onNodeWithText("Hector Ortiz").assertExists()
     }
 
+    /** Startup flow: with the picker opted in, Project List gates the chassis until a row is tapped. */
+    @Test
+    fun projectPicker_selectingAProjectRevealsToday() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost(showProjectPicker = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("projectListScreen").assertExists()
+        composeTestRule.onNodeWithTag("todayScreen").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("projectRow_riverside-medical").performClick()
+
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+        composeTestRule.onNodeWithTag("projectListScreen").assertDoesNotExist()
+    }
+
+    /** The Accounts tab sits beside Projects on the picker's own footer nav (not the chassis one). */
+    @Test
+    fun projectPicker_accountsTabShowsPlaceholder() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost(showProjectPicker = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("pickerNavTab_ACCOUNTS").performClick()
+        composeTestRule.onNodeWithText("Accounts isn't part of this prototype yet.").assertExists()
+
+        composeTestRule.onNodeWithTag("pickerNavTab_PROJECTS").performClick()
+        composeTestRule.onNodeWithTag("projectRow_riverside-medical").assertExists()
+    }
+
+    /** Profile → Switch project is the way back to the picker once a project is loaded. */
+    @Test
+    fun profile_switchProject_returnsToProjectList() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost(showProjectPicker = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("projectRow_riverside-medical").performClick()
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+
+        composeTestRule.onNodeWithTag("profileAvatarButton").performClick()
+        composeTestRule.onNodeWithTag("profileSwitchProject").performClick()
+
+        composeTestRule.onNodeWithTag("projectListScreen").assertExists()
+        composeTestRule.onNodeWithTag("todayScreen").assertDoesNotExist()
+    }
+
+    /** The header chip is the fast path — no detour through Profile. */
+    @Test
+    fun header_projectChip_returnsToProjectList() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost(showProjectPicker = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("projectRow_riverside-medical").performClick()
+        composeTestRule.onNodeWithTag("headerProjectChip").performClick()
+
+        composeTestRule.onNodeWithTag("projectListScreen").assertExists()
+        composeTestRule.onNodeWithTag("todayScreen").assertDoesNotExist()
+    }
+
+    /** The header overflow menu is the second, spec-unambiguous shortcut to the same action. */
+    @Test
+    fun header_overflowMenu_switchProject_returnsToProjectList() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost(showProjectPicker = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("projectRow_riverside-medical").performClick()
+        composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
+        composeTestRule.onNodeWithTag("headerSwitchProjectMenuItem").performClick()
+
+        composeTestRule.onNodeWithTag("projectListScreen").assertExists()
+        composeTestRule.onNodeWithTag("todayScreen").assertDoesNotExist()
+    }
+
     @Test
     fun tools_showsDemoViewAs_withForemanLiveAndOthersListed() {
         composeTestRule.setContent {

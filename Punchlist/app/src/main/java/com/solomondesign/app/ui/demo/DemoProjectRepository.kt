@@ -45,6 +45,18 @@ object DemoProjectRepository {
         CrewMember("Sam Reyes", "Plumbing", CrewPresence.OFF_SITE),
     )
 
+    /**
+     * Startup Project List rows. Only [PROJECT_NAME] carries real seeded data — the rest are
+     * demo flavor so the picker doesn't read as a single-item list. Selecting any of them opens
+     * the same seeded Today/Plan/Tools data; see "Startup flow" in Mobile Structure Validated v1.
+     */
+    val projects = listOf(
+        DemoProject("riverside-medical", PROJECT_NAME, "220 Riverside Dr · $AREA"),
+        DemoProject("harbor-bridge", "Harbor Bridge Widening", "4th St & Harbor Ave"),
+        DemoProject("maple-street-school", "Maple Street School Addition", "88 Maple St"),
+        DemoProject("downtown-transit-hub", "Downtown Transit Hub", "500 Transit Way"),
+    )
+
     init {
         seed()
     }
