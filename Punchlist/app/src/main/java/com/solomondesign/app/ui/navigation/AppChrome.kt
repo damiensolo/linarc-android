@@ -137,6 +137,9 @@ private val chromeByRoute: Map<String, ScreenChrome> = mapOf(
     // Images — grid is Pattern B; the viewer is Pattern A with a floating footer toolbar.
     AppRoutes.IMAGE_GRID to ScreenChrome(NavPattern.BROWSE, ADD_IMAGE_FAB),
     AppRoutes.IMAGE_VIEWER to ScreenChrome(NavPattern.TASK_FLOW),
+
+    // Plans — the list is the tab root; the sheet viewer is Pattern A, full screen.
+    AppRoutes.PLAN_VIEWER to ScreenChrome(NavPattern.TASK_FLOW),
 )
 
 /** Fail closed: an unregistered route hides all chrome rather than showing a wrong FAB. */

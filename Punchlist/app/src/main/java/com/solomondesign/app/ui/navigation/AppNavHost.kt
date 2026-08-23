@@ -71,7 +71,8 @@ import com.solomondesign.app.ui.images.ImageViewerScreen
 import com.solomondesign.app.ui.images.ProjectImage
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.more.OutboxScreen
-import com.solomondesign.app.ui.plan.PlanScreen
+import com.solomondesign.app.ui.plan.PlanViewerScreen
+import com.solomondesign.app.ui.plan.PlansScreen
 import com.solomondesign.app.ui.profile.ProfileSheet
 import com.solomondesign.app.ui.projects.ProjectListScreen
 import com.solomondesign.app.ui.splash.LinarcSplashScreen
@@ -282,7 +283,10 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
 
             navigation(startDestination = AppRoutes.PLAN_HOME, route = AppRoutes.PLAN_GRAPH) {
                 composable(AppRoutes.PLAN_HOME) {
-                    PlanScreen(
+                    PlansScreen(
+                        onOpenSheet = { sheetId ->
+                            navController.navigate(AppRoutes.planViewer(sheetId))
+                        },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
                     )
@@ -465,6 +469,15 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 DailyLogPlaybackScreen(
                     recordId = URLDecoder.decode(encodedId, "UTF-8"),
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = AppRoutes.PLAN_VIEWER,
+                arguments = listOf(navArgument("sheetId") { type = NavType.StringType }),
+            ) { entry ->
+                PlanViewerScreen(
+                    sheetId = decodeArg(entry.arguments?.getString("sheetId")),
+                    onClose = { navController.popBackStack() },
                 )
             }
             composable(AppRoutes.PHOTO_CAPTURE) {

@@ -20,6 +20,12 @@ object AppRoutes {
     const val PLAN_HOME = "plan_home"
     const val TOOLS_HOME = "tools_home"
 
+    /**
+     * Full-screen sheet viewer (Pattern A). Lives at the nav-graph root like [IMAGE_VIEWER]
+     * because it hides the bottom bar.
+     */
+    const val PLAN_VIEWER = "plan_viewer/{sheetId}"
+
     const val VOICE_LOG = "voice_log"
     const val DAILY_LOG_HISTORY = "daily_log_history"
     const val DAILY_LOG_DETAIL = "daily_log_detail/{recordId}"
@@ -53,6 +59,8 @@ object AppRoutes {
      */
     const val IMAGE_VIEWER = "images/viewer/{imageId}"
 
+    fun planViewer(sheetId: String) = "plan_viewer/${encode(sheetId)}"
+
     fun fieldTaskDetail(taskId: String) = "field_task/${encode(taskId)}"
 
     fun timeCardDetail(crewMemberId: String) = "time_card/${encode(crewMemberId)}"
@@ -84,6 +92,7 @@ object AppRoutes {
     val ALL_ROUTES: List<String> = listOf(
         TODAY_HOME,
         PLAN_HOME,
+        PLAN_VIEWER,
         TOOLS_HOME,
         VOICE_LOG,
         DAILY_LOG_HISTORY,
@@ -118,6 +127,6 @@ data class BottomNavTab(
 
 val bottomNavTabs = listOf(
     BottomNavTab(AppRoutes.TODAY_HOME, AppRoutes.TODAY_GRAPH, "Today", Icons.Filled.Today),
-    BottomNavTab(AppRoutes.PLAN_HOME, AppRoutes.PLAN_GRAPH, "Plan", Icons.Filled.Architecture),
+    BottomNavTab(AppRoutes.PLAN_HOME, AppRoutes.PLAN_GRAPH, "Plans", Icons.Filled.Architecture),
     BottomNavTab(AppRoutes.TOOLS_HOME, AppRoutes.TOOLS_GRAPH, "Tools", Icons.Filled.Handyman),
 )

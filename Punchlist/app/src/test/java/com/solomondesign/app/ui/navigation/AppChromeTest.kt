@@ -41,6 +41,7 @@ class AppChromeTest {
             AppRoutes.QUICK_ISSUE,
             AppRoutes.TOOL_CREATE,
             AppRoutes.IMAGE_VIEWER,
+            AppRoutes.PLAN_VIEWER,
         ).forEach { route ->
             val chrome = resolveChrome(route)
             assertFalse(route, chrome.showBottomBar)
@@ -127,8 +128,9 @@ class AppChromeTest {
             AppRoutes.COLLAB_TOPIC_LIST to true,
             AppRoutes.COLLAB_TOPIC_DETAIL to true,
             AppRoutes.IMAGE_GRID to true,
-            // Pattern A: the viewer is full-screen.
+            // Pattern A: the viewers are full-screen.
             AppRoutes.IMAGE_VIEWER to false,
+            AppRoutes.PLAN_VIEWER to false,
         )
         assertEquals(
             "expectation table must cover every declared route",
