@@ -28,7 +28,6 @@
 - Bottom navigation is **only** Today, Plan, Tools.
 - Capture is a Material 3 FAB + bottom sheet (Voice / Photo / Issue), never a tab.
 - Default persona is Foreman. Other personas appear in Tools → Demo: view as as placeholders until iteration 2.
-- Do not add Capture/Reports/Projects tabs, OAC/dashboards/Gantt, a live QR scanner, OCR, PDF/vector drawing engines, LLM/Whisper dependencies, nested Project Space tabs, or a persona chip in the top app bar.
 - Prefer Material 3 (`NavigationBar`, `FAB`, `ModalBottomSheet`, `ListItem`). Do not put a center “+” in the nav bar.
 - Keep Voice-to-Log. Submitted logs must land on Today and as Plan pins, not only in a private history list.
 
