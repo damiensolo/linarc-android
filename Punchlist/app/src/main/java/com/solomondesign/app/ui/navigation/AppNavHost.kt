@@ -625,14 +625,16 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     onSaved = { saved ->
                         navController.popBackStack()
                         scope.launch {
+                            // "Queued in Outbox" is the offline-first story: saved on this
+                            // device now, synced when signal returns (see OutboxScreen).
                             snackbarHostState.showSnackbar(
                                 when (saved) {
                                     RecordCategory.ISSUE ->
-                                        "Issue saved — on Today, Plans, and Issues"
+                                        "Issue saved — on Today, Plans, and Issues · queued in Outbox"
                                     RecordCategory.INCIDENT ->
-                                        "Incident saved — on Today, Plans, and Incidents"
+                                        "Incident saved — on Today, Plans, and Incidents · queued in Outbox"
                                     RecordCategory.PUNCH ->
-                                        "Punch item saved — on Plans and the Punch list"
+                                        "Punch item saved — on Plans and the Punch list · queued in Outbox"
                                 },
                             )
                         }

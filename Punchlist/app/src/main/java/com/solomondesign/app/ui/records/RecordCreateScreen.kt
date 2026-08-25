@@ -55,6 +55,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -62,7 +65,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.demo.DemoProjectRepository
-import com.solomondesign.app.ui.designsystem.AppButton
+import com.solomondesign.app.ui.designsystem.FieldFormActionBar
+import com.solomondesign.app.ui.designsystem.FieldRequiredLabel
+import com.solomondesign.app.ui.designsystem.FieldRequiredNote
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
 import com.solomondesign.app.ui.images.ImageThumbnail
 import com.solomondesign.app.ui.images.ProjectImageRepository
@@ -125,33 +130,78 @@ fun RecordCreateScreen(
         onSaved(savedCategory)
     }
 
+    val titleFocus = remember { FocusRequester() }
+    val blockingReasonFocus = remember { FocusRequester() }
+
+    // Save stays tappable even when the form is incomplete: tapping it then explains what's
+    // missing (footer summary + inline errors) and jumps to the first empty required field,
+    // instead of sitting there as an unexplained disabled button.
+    val attemptSave: () -> Unit = {
+        if (RecordDraft.canSubmit) {
+            save()
+        } else {
+            RecordDraft.submitAttempted = true
+            when {
+                RecordDraft.titleError != null -> titleFocus.requestFocus()
+                RecordDraft.blockingReasonError != null -> blockingReasonFocus.requestFocus()
+            }
+        }
+    }
+
+    val missing = RecordDraft.missingRequiredCount
+    val footerStatus = if (RecordDraft.submitAttempted && missing > 0) {
+        "Complete $missing required field${if (missing == 1) "" else "s"} to save"
+    } else {
+        null
+    }
+
     TaskFlowScaffold(
         title = category.screenTitle,
         onClose = onClose,
         modifier = modifier,
         hasUnsavedChanges = RecordDraft.hasEdits,
-        onConfirm = save,
-        confirmLabel = "Save",
-        confirmEnabled = RecordDraft.canSubmit,
         discardTitle = "Discard ${category.label.lowercase()}?",
         discardMessage = "This ${category.label.lowercase()} hasn't been submitted and will be lost.",
+        bottomBar = {
+            FieldFormActionBar(
+                text = "Save record",
+                onClick = attemptSave,
+                statusMessage = footerStatus,
+                buttonTestTag = "recordSubmit",
+            )
+        },
     ) { padding ->
+        var titleHadFocus by remember { mutableStateOf(false) }
+        var reasonHadFocus by remember { mutableStateOf(false) }
+
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                 .testTag("recordCreateScreen"),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            FieldRequiredNote()
+
             OutlinedTextField(
                 value = RecordDraft.title,
                 onValueChange = { RecordDraft.title = it },
-                label = { Text("Title") },
+                label = { FieldRequiredLabel("Title") },
                 singleLine = true,
+                isError = RecordDraft.titleError != null,
+                supportingText = RecordDraft.titleError?.let { error -> { Text(error) } },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(titleFocus)
+                    .onFocusChanged { state ->
+                        if (state.isFocused) {
+                            titleHadFocus = true
+                        } else if (titleHadFocus) {
+                            RecordDraft.titleTouched = true
+                        }
+                    }
                     .testTag("recordTitleField"),
             )
 
@@ -329,11 +379,25 @@ fun RecordCreateScreen(
                 OutlinedTextField(
                     value = RecordDraft.blockingReason,
                     onValueChange = { RecordDraft.blockingReason = it },
-                    label = { Text("Blocking reason") },
-                    supportingText = { Text("Required to submit a blocking record") },
+                    label = { FieldRequiredLabel("Blocking reason") },
+                    isError = RecordDraft.blockingReasonError != null,
+                    supportingText = {
+                        Text(
+                            RecordDraft.blockingReasonError
+                                ?: "Required to submit a blocking record",
+                        )
+                    },
                     minLines = 2,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .focusRequester(blockingReasonFocus)
+                        .onFocusChanged { state ->
+                            if (state.isFocused) {
+                                reasonHadFocus = true
+                            } else if (reasonHadFocus) {
+                                RecordDraft.blockingReasonTouched = true
+                            }
+                        }
                         .testTag("recordBlockingReason"),
                 )
 
@@ -540,13 +604,6 @@ fun RecordCreateScreen(
                         }
                 }
             }
-
-            AppButton(
-                text = "Submit ${category.label.lowercase()}",
-                enabled = RecordDraft.canSubmit,
-                onClick = save,
-                modifier = Modifier.testTag("recordSubmit"),
-            )
         }
     }
 

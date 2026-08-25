@@ -150,6 +150,58 @@ class RecordDraftTest {
     }
 
     @Test
+    fun validation_staysQuietOnLoad_thenSpeaksAfterBlurOrSaveAttempt() {
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
+        assertNull("a fresh form shows no errors", RecordDraft.titleError)
+
+        RecordDraft.titleTouched = true
+        assertEquals("Enter a title", RecordDraft.titleError)
+
+        RecordDraft.title = "Med-gas clash"
+        assertNull("a filled field clears its error immediately", RecordDraft.titleError)
+
+        // A save attempt surfaces errors on fields the user never visited.
+        RecordDraft.setBlocking(true)
+        assertNull(RecordDraft.blockingReasonError)
+        RecordDraft.submitAttempted = true
+        assertEquals("Describe why work is blocked", RecordDraft.blockingReasonError)
+    }
+
+    @Test
+    fun missingRequiredCount_matchesCanSubmit_andCountsTheBlockingReason() {
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
+        assertEquals(1, RecordDraft.missingRequiredCount)
+
+        RecordDraft.setBlocking(true)
+        assertEquals(2, RecordDraft.missingRequiredCount)
+
+        RecordDraft.title = "Med-gas clash"
+        RecordDraft.blockingReason = "Re-route required"
+        assertEquals(0, RecordDraft.missingRequiredCount)
+        assertTrue(RecordDraft.canSubmit)
+    }
+
+    @Test
+    fun beginAndClear_resetValidationState_butFailureNeverClearsValues() {
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
+        RecordDraft.description = "typed before a failed save"
+        RecordDraft.submitAttempted = true
+        RecordDraft.titleTouched = true
+
+        // A failed save attempt only flags state; nothing the user typed is lost.
+        assertEquals("typed before a failed save", RecordDraft.description)
+
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 2L)
+        assertFalse(RecordDraft.submitAttempted)
+        assertNull("a re-begun form starts quiet again", RecordDraft.titleError)
+
+        RecordDraft.submitAttempted = true
+        RecordDraft.clear()
+        assertFalse(RecordDraft.submitAttempted)
+        assertFalse(RecordDraft.titleTouched)
+    }
+
+    @Test
     fun toRecord_carriesBlockingScope_butStripsItWhenToggledOff() {
         RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
         RecordDraft.title = "Med-gas clash"

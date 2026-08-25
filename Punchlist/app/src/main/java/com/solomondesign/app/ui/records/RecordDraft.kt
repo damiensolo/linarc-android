@@ -44,6 +44,12 @@ object RecordDraft {
     var resolutionAuthority by mutableStateOf(RESOLUTION_AUTHORITIES.first())
     var acknowledgementRequired by mutableStateOf(false)
 
+    // Progressive validation: a required field shows its error only after it loses focus or a
+    // save is attempted — never on first load — and typed values are never cleared by failure.
+    var titleTouched by mutableStateOf(false)
+    var blockingReasonTouched by mutableStateOf(false)
+    var submitAttempted by mutableStateOf(false)
+
     private var staged = false
 
     /** Drives the discard warning: a photo already attached counts as an edit. */
@@ -57,6 +63,21 @@ object RecordDraft {
      */
     val canSubmit: Boolean
         get() = title.isNotBlank() && (!blocksWork || blockingReason.isNotBlank())
+
+    val titleError: String?
+        get() = "Enter a title".takeIf {
+            title.isBlank() && (titleTouched || submitAttempted)
+        }
+
+    val blockingReasonError: String?
+        get() = "Describe why work is blocked".takeIf {
+            blocksWork && blockingReason.isBlank() && (blockingReasonTouched || submitAttempted)
+        }
+
+    /** Required fields still empty; drives the footer's "Complete N required fields" summary. */
+    val missingRequiredCount: Int
+        get() = (if (title.isBlank()) 1 else 0) +
+            (if (blocksWork && blockingReason.isBlank()) 1 else 0)
 
     /**
      * Selecting a type re-applies the configured per-type default (the admin policy): picking
@@ -110,6 +131,9 @@ object RecordDraft {
         expectedResolutionMillis = null
         escalationContactId = ""
         resolutionAuthority = RESOLUTION_AUTHORITIES.first()
+        titleTouched = false
+        blockingReasonTouched = false
+        submitAttempted = false
         // Last: applies the type's configured blocking default (first option is never blocking,
         // so a fresh form always starts with the toggle off).
         selectType(newCategory.typeOptions.first())
@@ -201,6 +225,9 @@ object RecordDraft {
         escalationContactId = ""
         resolutionAuthority = RESOLUTION_AUTHORITIES.first()
         acknowledgementRequired = false
+        titleTouched = false
+        blockingReasonTouched = false
+        submitAttempted = false
         staged = false
         CameraAttachmentInbox.reset()
     }

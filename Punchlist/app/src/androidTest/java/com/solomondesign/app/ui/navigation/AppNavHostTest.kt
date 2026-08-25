@@ -552,7 +552,7 @@ class AppNavHostTest {
 
         composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
         composeTestRule.onNodeWithTag("cameraQuickIssue").performClick()
-        composeTestRule.onNodeWithText("Title").performTextInput("Missing guardrail")
+        composeTestRule.onNodeWithText("Title *").performTextInput("Missing guardrail")
 
         // Closing with edits warns rather than exiting.
         composeTestRule.onNodeWithTag("taskFlowClose").performClick()
