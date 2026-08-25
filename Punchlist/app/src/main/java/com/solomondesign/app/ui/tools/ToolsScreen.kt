@@ -145,45 +145,6 @@ fun ToolsScreen(
                     )
                 }
             }
-            item { FieldSectionLabel("Demo") }
-            item {
-                FieldWorkRow(
-                    title = "Demo: view as",
-                    subtitle = "${persona.displayName} · Foreman is live",
-                    statusColor = progress,
-                    enabled = true,
-                    onClick = { showViewAs = true },
-                    modifier = Modifier.testTag("demoViewAsRow"),
-                )
-            }
-            item {
-                FieldWorkRow(
-                    title = "Splash animation",
-                    subtitle = DemoProjectRepository.splashVariant.title,
-                    statusColor = progress,
-                    enabled = true,
-                    onClick = { showSplashPicker = true },
-                    modifier = Modifier.testTag("demoSplashRow"),
-                )
-            }
-            item {
-                FieldWorkRow(
-                    title = "Outbox",
-                    subtitle = "$outboxCount items queued",
-                    statusColor = muted,
-                    enabled = true,
-                    onClick = onOpenOutbox,
-                )
-            }
-            item {
-                FieldWorkRow(
-                    title = "Voice logs",
-                    subtitle = "Recorded daily logs and playback",
-                    statusColor = progress,
-                    enabled = true,
-                    onClick = onOpenVoiceLogs,
-                )
-            }
             item { FieldSectionLabel("Appearance") }
             item {
                 Row(
@@ -225,6 +186,47 @@ fun ToolsScreen(
                         ),
                     )
                 }
+            }
+            // Demo controls sit last on purpose: they're strategy-demo scaffolding, not part of
+            // the product surface, so the catalog and real settings read first.
+            item { FieldSectionLabel("Demo") }
+            item {
+                FieldWorkRow(
+                    title = "Demo: view as",
+                    subtitle = "${persona.displayName} · Foreman is live",
+                    statusColor = progress,
+                    enabled = true,
+                    onClick = { showViewAs = true },
+                    modifier = Modifier.testTag("demoViewAsRow"),
+                )
+            }
+            item {
+                FieldWorkRow(
+                    title = "Splash animation",
+                    subtitle = DemoProjectRepository.splashVariant.title,
+                    statusColor = progress,
+                    enabled = true,
+                    onClick = { showSplashPicker = true },
+                    modifier = Modifier.testTag("demoSplashRow"),
+                )
+            }
+            item {
+                FieldWorkRow(
+                    title = "Outbox",
+                    subtitle = "$outboxCount items queued",
+                    statusColor = muted,
+                    enabled = true,
+                    onClick = onOpenOutbox,
+                )
+            }
+            item {
+                FieldWorkRow(
+                    title = "Voice logs",
+                    subtitle = "Recorded daily logs and playback",
+                    statusColor = progress,
+                    enabled = true,
+                    onClick = onOpenVoiceLogs,
+                )
             }
         }
         SnackbarHost(hostState = snackbarHostState)

@@ -21,10 +21,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -32,8 +34,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -294,18 +297,91 @@ fun RecordCreateScreen(
                 )
             }
 
-            Text("Assignees", style = MaterialTheme.typography.titleSmall)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Multi-select with search: typing filters the crew, tapping toggles membership
+            // without closing the menu, and the picks land below as removable chips.
+            var assigneeQuery by remember { mutableStateOf("") }
+            var assigneesExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = assigneesExpanded,
+                onExpandedChange = { assigneesExpanded = it },
             ) {
-                DemoProjectRepository.crew.forEach { member ->
-                    FilterChip(
-                        selected = member.id in RecordDraft.assigneeIds,
-                        onClick = { RecordDraft.toggleAssignee(member.id) },
-                        label = { Text(member.name) },
-                        modifier = Modifier.testTag("recordAssignee_${member.id}"),
-                    )
+                OutlinedTextField(
+                    value = assigneeQuery,
+                    onValueChange = {
+                        assigneeQuery = it
+                        assigneesExpanded = true
+                    },
+                    label = { Text("Assignees") },
+                    placeholder = { Text("Search crew") },
+                    singleLine = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(assigneesExpanded) },
+                    modifier = Modifier
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+                        .fillMaxWidth()
+                        .testTag("recordAssigneesField"),
+                )
+                ExposedDropdownMenu(
+                    expanded = assigneesExpanded,
+                    onDismissRequest = { assigneesExpanded = false },
+                ) {
+                    val matches = DemoProjectRepository.crew.filter { member ->
+                        assigneeQuery.isBlank() ||
+                            member.name.contains(assigneeQuery, ignoreCase = true) ||
+                            member.trade.contains(assigneeQuery, ignoreCase = true)
+                    }
+                    if (matches.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No crew matches \"$assigneeQuery\"") },
+                            onClick = {},
+                            enabled = false,
+                        )
+                    }
+                    matches.forEach { member ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(member.name)
+                                    Text(
+                                        text = member.trade,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            },
+                            leadingIcon = {
+                                Checkbox(
+                                    checked = member.id in RecordDraft.assigneeIds,
+                                    onCheckedChange = null,
+                                )
+                            },
+                            onClick = { RecordDraft.toggleAssignee(member.id) },
+                            modifier = Modifier.testTag("recordAssigneeOption_${member.id}"),
+                        )
+                    }
+                }
+            }
+            if (RecordDraft.assigneeIds.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RecordDraft.assigneeIds
+                        .mapNotNull { DemoProjectRepository.crewMember(it) }
+                        .forEach { member ->
+                            InputChip(
+                                selected = true,
+                                onClick = { RecordDraft.toggleAssignee(member.id) },
+                                label = { Text(member.name) },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = "Remove ${member.name}",
+                                        modifier = Modifier.size(InputChipDefaults.IconSize),
+                                    )
+                                },
+                                modifier = Modifier.testTag("recordAssigneeChip_${member.id}"),
+                            )
+                        }
                 }
             }
 
