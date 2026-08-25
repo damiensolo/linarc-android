@@ -50,9 +50,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.solomondesign.app.ui.capture.CaptureSheet
-import com.solomondesign.app.ui.capture.PhotoCaptureScreen
-import com.solomondesign.app.ui.capture.QuickIssueScreen
+import com.solomondesign.app.ui.capture.camera.CameraCaptureScreen
 import com.solomondesign.app.ui.collab.CollabTopicListScreen
 import com.solomondesign.app.ui.collab.CollabTopicScreen
 import com.solomondesign.app.ui.collab.CurrentUser
@@ -63,6 +61,7 @@ import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.DemoSession
 import com.solomondesign.app.ui.common.DetailPlaceholderScreen
 import com.solomondesign.app.ui.common.ListPlaceholderScreen
+import com.solomondesign.app.ui.designsystem.FieldNavItemIcon
 import com.solomondesign.app.ui.designsystem.fieldNavigationBarItemColors
 import com.solomondesign.app.ui.images.ImageGridScreen
 import com.solomondesign.app.ui.images.ImageSource
@@ -70,11 +69,19 @@ import com.solomondesign.app.ui.images.ImageSourceSheet
 import com.solomondesign.app.ui.images.ImageViewerScreen
 import com.solomondesign.app.ui.images.ProjectImage
 import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.markup.ImageMarkupScreen
 import com.solomondesign.app.ui.more.OutboxScreen
 import com.solomondesign.app.ui.plan.PlanViewerScreen
 import com.solomondesign.app.ui.plan.PlansScreen
 import com.solomondesign.app.ui.profile.ProfileSheet
 import com.solomondesign.app.ui.projects.ProjectListScreen
+import com.solomondesign.app.ui.records.CameraAttachmentInbox
+import com.solomondesign.app.ui.records.RECORD_LOCATIONS
+import com.solomondesign.app.ui.records.RecordCategory
+import com.solomondesign.app.ui.records.RecordCreateScreen
+import com.solomondesign.app.ui.records.RecordDetailScreen
+import com.solomondesign.app.ui.records.RecordDraft
+import com.solomondesign.app.ui.records.RecordListScreen
 import com.solomondesign.app.ui.splash.LinarcSplashScreen
 import com.solomondesign.app.ui.splash.SplashVariant
 import com.solomondesign.app.ui.tasks.FieldTaskDetailScreen
@@ -86,6 +93,7 @@ import com.solomondesign.app.ui.today.TodayScreen
 import com.solomondesign.app.ui.tools.PlatformTools
 import com.solomondesign.app.ui.tools.ToolsScreen
 import com.solomondesign.app.ui.voicelog.DailyLogHomeScreen
+import com.solomondesign.app.ui.video.VideoPlaybackScreen
 import com.solomondesign.app.ui.voicelog.DailyLogPlaybackScreen
 import com.solomondesign.app.ui.voicelog.VoiceLogScreen
 import kotlinx.coroutines.launch
@@ -104,12 +112,13 @@ private fun isTabRootRoute(route: String?): Boolean = bottomNavTabs.any { it.rou
 private fun isImmersiveRoute(route: String?): Boolean = !resolveChrome(route).showBottomBar
 
 /**
- * Field prototype shell: Today / Plan / Tools plus a shared Material FAB.
- *
- * Bottom-bar visibility and the FAB's icon/action are resolved per destination by
- * [resolveChrome] — screens never touch the [androidx.navigation.NavController] themselves.
- * Tab-root page titles live in content ([com.solomondesign.app.ui.designsystem.FieldPageHeader]);
- * pushed screens use a Material top app bar.
+ * Field prototype shell: Today / Plans / Tools tabs plus the [CaptureNavAction] button between
+ * Plans and Tools (an action in the bar, not a destination — it opens the full-screen camera and
+ * never shows a selected state). The FAB slot is contextual-only (time entry, new topic, add
+ * image), resolved per destination by [resolveChrome] — screens never touch the
+ * [androidx.navigation.NavController] themselves. Tab-root page titles live in content
+ * ([com.solomondesign.app.ui.designsystem.FieldPageHeader]); pushed screens use a Material top
+ * app bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,7 +205,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
         bottomBar = {
             if (chrome.showBottomBar) {
                 NavigationBar(containerColor = colors.surfaceContainer) {
-                    bottomNavTabs.forEach { tab ->
+                    bottomNavTabs.forEachIndexed { index, tab ->
                         // Match on the graph, not the destination, so the correct tab stays lit
                         // on nested Pattern B screens.
                         val selected = currentDestination?.hierarchy
@@ -219,10 +228,33 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                                     }
                                 }
                             },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
+                            icon = { FieldNavItemIcon(tab.icon, selected, tab.label) },
                             label = { Text(tab.label) },
                             colors = fieldNavigationBarItemColors(),
                         )
+                        // Capture sits to the right of Plans: an action in the bar, not a
+                        // destination — never selected, no back stack of its own. Same unselected
+                        // colors as Today/Plan/Tools; primary is reserved for the selected tab.
+                        if (index == 1) {
+                            NavigationBarItem(
+                                modifier = Modifier.testTag(CaptureNavAction.testTag),
+                                selected = false,
+                                onClick = {
+                                    navController.navigate(CaptureNavAction.route) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                icon = {
+                                    FieldNavItemIcon(
+                                        CaptureNavAction.icon.asImageVector(),
+                                        selected = false,
+                                        contentDescription = CaptureNavAction.contentDescription,
+                                    )
+                                },
+                                label = { Text(CaptureNavAction.label) },
+                                colors = fieldNavigationBarItemColors(),
+                            )
+                        }
                     }
                 }
             }
@@ -275,6 +307,14 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 composable(AppRoutes.TODAY_HOME) {
                     TodayScreen(
                         onOpenVoiceLog = { recordId -> navController.navigate(dailyLogDetailRoute(recordId)) },
+                        // Recent-capture photo rows open the same full-screen viewer the Images
+                        // tool uses; it lives at the nav-graph root, so it's reachable from here.
+                        onOpenImage = { imageId ->
+                            navController.navigate(AppRoutes.imageViewer(imageId))
+                        },
+                        onOpenVideo = { videoId ->
+                            navController.navigate(AppRoutes.videoPlayback(videoId))
+                        },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
                     )
@@ -306,10 +346,11 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                             navController.navigate(tool.homeRoute ?: AppRoutes.toolHome(tool.id))
                         },
                         onQuickCreate = { tool ->
-                            if (tool.quickCreateUsesPhoto) {
-                                navController.navigate(AppRoutes.PHOTO_CAPTURE)
-                            } else {
-                                navController.navigate(AppRoutes.toolCreate(tool.id))
+                            when {
+                                tool.quickCreateUsesPhoto -> navController.navigate(AppRoutes.CAMERA)
+                                tool.quickCreateRoute != null ->
+                                    navController.navigate(tool.quickCreateRoute)
+                                else -> navController.navigate(AppRoutes.toolCreate(tool.id))
                             }
                         },
                     )
@@ -453,6 +494,41 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         onBack = { navController.popBackStack() },
                     )
                 }
+
+                // ---- Record tools: Issues / Incidents / Punch list (Pattern B lists) ----
+                composable(AppRoutes.RECORD_LIST_ISSUES) {
+                    RecordListScreen(
+                        category = RecordCategory.ISSUE,
+                        onOpenRecord = { id -> navController.navigate(AppRoutes.recordDetail(id)) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(AppRoutes.RECORD_LIST_INCIDENTS) {
+                    RecordListScreen(
+                        category = RecordCategory.INCIDENT,
+                        onOpenRecord = { id -> navController.navigate(AppRoutes.recordDetail(id)) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(AppRoutes.RECORD_LIST_PUNCH) {
+                    RecordListScreen(
+                        category = RecordCategory.PUNCH,
+                        onOpenRecord = { id -> navController.navigate(AppRoutes.recordDetail(id)) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(
+                    route = AppRoutes.RECORD_DETAIL,
+                    arguments = listOf(navArgument("recordId") { type = NavType.StringType }),
+                ) { entry ->
+                    RecordDetailScreen(
+                        recordId = decodeArg(entry.arguments?.getString("recordId")),
+                        onBack = { navController.popBackStack() },
+                        onOpenImage = { imageId ->
+                            navController.navigate(AppRoutes.imageViewer(imageId))
+                        },
+                    )
+                }
             }
 
             // Root level: Pattern A and immersive flows. They hide the bottom bar, and
@@ -478,13 +554,79 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 PlanViewerScreen(
                     sheetId = decodeArg(entry.arguments?.getString("sheetId")),
                     onClose = { navController.popBackStack() },
+                    // A capture pin's photo opens in the same full-screen viewer as everywhere
+                    // else; it stacks on the plan viewer so Back returns to the sheet.
+                    onOpenImage = { imageId ->
+                        navController.navigate(AppRoutes.imageViewer(imageId))
+                    },
                 )
             }
-            composable(AppRoutes.PHOTO_CAPTURE) {
-                PhotoCaptureScreen(onDone = { navController.popBackStack() })
+            composable(AppRoutes.CAMERA) {
+                CameraCaptureScreen(
+                    onClose = { navController.popBackStack() },
+                    onPhotoSaved = { photoId ->
+                        // A record form beneath may have asked for this capture; the deposit
+                        // no-ops unless the form armed the inbox before opening the camera.
+                        CameraAttachmentInbox.deposit(photoId)
+                        navController.popBackStack()
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Photo saved — on Today, Plans, and Images")
+                        }
+                    },
+                    onVideoSaved = {
+                        navController.popBackStack()
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Video saved — on Today and Plans")
+                        }
+                    },
+                    // The quick chips swap flows rather than stack them: replacing the camera in
+                    // the back stack means Back from voice/issue lands where capture began, not
+                    // on a stale viewfinder.
+                    onVoiceLog = {
+                        navController.navigate(AppRoutes.VOICE_LOG) {
+                            popUpTo(AppRoutes.CAMERA) { inclusive = true }
+                        }
+                    },
+                    onQuickIssue = {
+                        navController.navigate(AppRoutes.recordCreate(RecordCategory.ISSUE.routeId)) {
+                            popUpTo(AppRoutes.CAMERA) { inclusive = true }
+                        }
+                    },
+                    onCreateRecord = { category ->
+                        navController.navigate(AppRoutes.recordCreate(category.routeId)) {
+                            popUpTo(AppRoutes.CAMERA) { inclusive = true }
+                        }
+                    },
+                )
             }
-            composable(AppRoutes.QUICK_ISSUE) {
-                QuickIssueScreen(onDone = { navController.popBackStack() })
+            composable(
+                route = AppRoutes.RECORD_CREATE,
+                arguments = listOf(navArgument("category") { type = NavType.StringType }),
+            ) { entry ->
+                val category = RecordCategory.fromRouteId(entry.arguments?.getString("category"))
+                    ?: RecordCategory.ISSUE
+                RecordCreateScreen(
+                    category = category,
+                    onClose = { navController.popBackStack() },
+                    onSaved = { saved ->
+                        navController.popBackStack()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                when (saved) {
+                                    RecordCategory.ISSUE ->
+                                        "Issue saved — on Today, Plans, and Issues"
+                                    RecordCategory.INCIDENT ->
+                                        "Incident saved — on Today, Plans, and Incidents"
+                                    RecordCategory.PUNCH ->
+                                        "Punch item saved — on Plans and the Punch list"
+                                },
+                            )
+                        }
+                    },
+                    // Attach-from-camera stacks the regular camera on the form; the form's
+                    // draft is a singleton, so its fields survive the round trip.
+                    onAttachCamera = { navController.navigate(AppRoutes.CAMERA) },
+                )
             }
             composable(
                 route = AppRoutes.TOOL_CREATE,
@@ -504,22 +646,64 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 ImageViewerScreen(
                     imageId = decodeArg(entry.arguments?.getString("imageId")),
                     onClose = { navController.popBackStack() },
-                    onCreateIssue = { image ->
-                        DemoProjectRepository.addIssue(
-                            title = "Issue from ${image.title}",
-                            location = image.area,
-                            note = image.tags.joinToString(" · "),
+                    // The chooser picked a category; stage the form with this photo attached
+                    // and its metadata seeded, then stack the form so Back returns here.
+                    onCreateRecord = { image, category ->
+                        RecordDraft.begin(
+                            category,
+                            System.currentTimeMillis(),
+                            seedTitle = image.title,
+                            seedLocation = RECORD_LOCATIONS.firstOrNull { image.area.contains(it) },
+                            seedPhotoImageIds = listOf(image.id),
                         )
-                        ProjectImageRepository.linkRecord(image.id, "issue-${image.id}")
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Issue created from this photo")
+                        navController.navigate(AppRoutes.recordCreate(category.routeId))
+                    },
+                    // Markup edits pixels, so it needs a real capture file; the seeded demo
+                    // tiles are procedurally drawn and get an explanation instead.
+                    onMarkup = { image ->
+                        if (image.source is ImageSource.CapturedFile) {
+                            navController.navigate(AppRoutes.imageMarkup(image.id))
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "Demo tiles can't be marked up — capture a photo to try it.",
+                                )
+                            }
                         }
                     },
-                    onMarkupUnavailable = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Markup is not part of this build.")
+                )
+            }
+            composable(
+                route = AppRoutes.IMAGE_MARKUP,
+                arguments = listOf(navArgument("imageId") { type = NavType.StringType }),
+            ) { entry ->
+                ImageMarkupScreen(
+                    imageId = decodeArg(entry.arguments?.getString("imageId")),
+                    onClose = { navController.popBackStack() },
+                    onSaved = { copyImageId ->
+                        navController.popBackStack()
+                        if (copyImageId != null) {
+                            // Show the result: the copy's viewer stacks on the original's, so
+                            // Back walks copy → original.
+                            navController.navigate(AppRoutes.imageViewer(copyImageId))
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "Marked-up copy saved — the original is unchanged",
+                                )
+                            }
+                        } else {
+                            scope.launch { snackbarHostState.showSnackbar("Markup saved") }
                         }
                     },
+                )
+            }
+            composable(
+                route = AppRoutes.VIDEO_PLAYBACK,
+                arguments = listOf(navArgument("videoId") { type = NavType.StringType }),
+            ) { entry ->
+                VideoPlaybackScreen(
+                    videoId = decodeArg(entry.arguments?.getString("videoId")),
+                    onClose = { navController.popBackStack() },
                 )
             }
         }
@@ -533,22 +717,6 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
     // Pattern C sheets are hoisted here rather than being nav destinations: navigation-compose
     // has no built-in bottom-sheet destination, and adding one needs a new dependency.
     when (activeSheet) {
-        AppSheet.CAPTURE -> CaptureSheet(
-            onVoice = {
-                activeSheet = null
-                navController.navigate(AppRoutes.VOICE_LOG)
-            },
-            onPhoto = {
-                activeSheet = null
-                navController.navigate(AppRoutes.PHOTO_CAPTURE)
-            },
-            onIssue = {
-                activeSheet = null
-                navController.navigate(AppRoutes.QUICK_ISSUE)
-            },
-            onDismiss = { activeSheet = null },
-        )
-
         AppSheet.PROFILE -> ProfileSheet(
             onDismiss = { activeSheet = null },
             onSwitchProject = { switchProject() },
@@ -592,7 +760,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
         AppSheet.IMAGE_SOURCE -> ImageSourceSheet(
             onTakePhoto = {
                 activeSheet = null
-                navController.navigate(AppRoutes.PHOTO_CAPTURE)
+                navController.navigate(AppRoutes.CAMERA)
             },
             onUseDemoImage = {
                 activeSheet = null

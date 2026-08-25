@@ -4,7 +4,6 @@ import android.Manifest
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,12 +21,16 @@ import java.io.File
 
 /**
  * End-to-end pass through recording -> parsing -> review -> submit -> Today/history.
- * RECORD_AUDIO is pre-granted. Entry is the Capture FAB, not a Capture tab.
+ * Entry is the bottom bar's Capture action -> camera -> Voice log quick chip; RECORD_AUDIO and
+ * CAMERA are pre-granted so no system dialog blocks the pass.
  */
 class VoiceLogFlowTest {
 
     @get:Rule
-    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.RECORD_AUDIO)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.CAMERA,
+    )
 
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -105,15 +108,17 @@ class VoiceLogFlowTest {
     }
 
     private fun goToRecordingScreen() {
-        composeTestRule.onNodeWithContentDescription("Capture").performClick()
-        composeTestRule.onNodeWithTag("captureVoice").performClick()
-        composeTestRule.waitUntil(timeoutMillis = 5_000) {
+        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
+        composeTestRule.onNodeWithTag("cameraQuickVoice").performClick()
+        composeTestRule.waitUntil(timeoutMillis = 15_000) {
             composeTestRule.onAllNodesWithText("Stop & Parse").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
+    // 15s to match AppNavHostTest's camera waits: the transition is synchronous UI work, so the
+    // budget only absorbs a cold or heavily loaded emulator, and 8s proved too tight there.
     private fun waitForReviewScreen() {
-        composeTestRule.waitUntil(timeoutMillis = 8_000) {
+        composeTestRule.waitUntil(timeoutMillis = 15_000) {
             composeTestRule.onAllNodesWithText("Proposed Site Logs").fetchSemanticsNodes().isNotEmpty()
         }
     }

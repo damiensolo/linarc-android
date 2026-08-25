@@ -25,11 +25,13 @@
 
 ## Field prototype (source of truth)
 - Product spec: `Mobile Structure Validated v1.md`. Follow it; do not invent parallel IA.
-- Bottom navigation is **only** Today, Plan, Tools.
-- Capture is a Material 3 FAB + bottom sheet (Voice / Photo / Issue), never a tab.
+- Bottom navigation is Today, Plan, Capture, Tools — and **Capture is an action, not a destination** (decided 2026-08-24, superseding the earlier FAB + sheet rule): it opens the full-screen in-app CameraX camera, never shows a selected state, and never owns a back stack. Do not add further tabs.
+- Voice daily log and Quick issue stay one tap away as quick chips on the camera screen; they must remain usable even when camera permission is denied.
+- The FAB is contextual-only (New time entry, New topic, Add image, New issue/incident/punch item on the record tool lists). Never reintroduce a global Capture FAB or a capture bottom sheet.
 - Default persona is Foreman. Other personas appear in Tools → Demo: view as as placeholders until iteration 2.
-- Prefer Material 3 (`NavigationBar`, `FAB`, `ModalBottomSheet`, `ListItem`). Do not put a center “+” in the nav bar.
+- Prefer Material 3 (`NavigationBar`, `FAB`, `ModalBottomSheet`, `ListItem`).
 - Keep Voice-to-Log. Submitted logs must land on Today and as Plan pins, not only in a private history list.
+- Captured photos must land on Today, as Plan pins, and in the Images grid — never only in a private list.
 
 ## Agent behavior
 - Before implementation, provide a short plan: files to change, existing components to reuse, UI state, tests, and assumptions.

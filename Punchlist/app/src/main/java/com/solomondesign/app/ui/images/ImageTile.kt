@@ -29,6 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.designsystem.DesignTokens
 
+/** Grid tiles are ~a third of the screen wide; decoding beyond this wastes memory, not detail. */
+private const val TILE_DECODE_EDGE_PX = 512
+
 /**
  * A square grid tile.
  *
@@ -55,6 +58,7 @@ fun ImageTile(
                     append(image.title)
                     append(", ")
                     append(image.area)
+                    if (image.hasMarkup) append(", marked up")
                     if (image.tags.isNotEmpty()) {
                         append(", ")
                         append(image.tags.joinToString(", "))
@@ -81,9 +85,25 @@ fun ImageTile(
                 SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
             }
 
+            is ImageSource.CapturedFile -> FilePhoto(
+                absolutePath = source.absolutePath,
+                contentDescription = null,
+                maxEdgePx = TILE_DECODE_EDGE_PX,
+                modifier = Modifier.fillMaxSize(),
+                fallback = { SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize()) },
+            )
+
             is ImageSource.Swatch -> SitePhotoSwatch(
                 seed = source.seed,
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        if (image.hasMarkup) {
+            MarkupBadge(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp),
             )
         }
 

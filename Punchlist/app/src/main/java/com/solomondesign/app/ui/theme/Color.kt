@@ -49,12 +49,11 @@ val Accent = Color(0xFF4D90FF)
 val ErrorRed = Color(0xFFFF7A22)
 
 /**
- * Figma "surface/primary/default" — the filled pill behind the selected item in every bottom
- * `NavigationBar` (Today/Plan/Tools and the pre-shell Project/Accounts picker). Fixed across
- * light/dark, like [com.solomondesign.app.ui.splash.LinarcOrange], so tab selection reads the
- * same regardless of the Appearance toggle.
+ * Quiet slate-blue for selected chrome (segmented buttons, tonal icon buttons). Same family as
+ * [Accent] so it sits next to CTAs instead of Material's default lavender `secondaryContainer`.
  */
-val NavSelectedBlue = Color(0xFF3B82F6)
+val SecondaryContainer = Color(0xFF243044)
+val OnSecondaryContainer = Accent
 
 /** Light field-prototype surfaces. */
 val LightBackground = Color(0xFFFFFFFF)
@@ -69,6 +68,8 @@ val LightOutline = Color(0xFF8E8E93)
 
 /** Light-mode counterparts to the accent tokens above (the base names carry the dark values). */
 val LightAccent = Color(0xFF0052CC)
+val LightSecondaryContainer = Color(0xFFD6E4F7)
+val LightOnSecondaryContainer = LightAccent
 val LightErrorRed = Color(0xFFFF6600)
 val LightStatusProgress = Color(0xFFFFD700)
 val LightStatusUrgent = Color(0xFFFF6600)

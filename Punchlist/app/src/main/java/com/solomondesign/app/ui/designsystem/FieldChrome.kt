@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -52,7 +55,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.solomondesign.app.ui.theme.AvatarPalette
-import com.solomondesign.app.ui.theme.NavSelectedBlue
 import com.solomondesign.app.ui.theme.OnDark
 
 /**
@@ -64,6 +66,8 @@ import com.solomondesign.app.ui.theme.OnDark
  * a small tappable project chip above [title] and an overflow menu next to [trailing], so
  * switching projects doesn't require a trip through Profile. Same handler, two shortcuts — see
  * "Startup flow" in Mobile Structure Validated v1.md.
+ *
+ * [actions] sits immediately before the overflow menu (Tools uses this for the grid/list toggle).
  */
 @Composable
 fun FieldPageHeader(
@@ -72,6 +76,7 @@ fun FieldPageHeader(
     subtitle: String? = null,
     projectName: String? = null,
     onSwitchProject: (() -> Unit)? = null,
+    actions: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -96,6 +101,7 @@ fun FieldPageHeader(
                 )
             }
         }
+        actions?.invoke()
         if (onSwitchProject != null) {
             HeaderOverflowMenu(onSwitchProject = onSwitchProject)
         }
@@ -217,18 +223,57 @@ fun FieldCollapsibleSectionHeader(
 }
 
 /**
- * Selected-state recipe shared by every bottom `NavigationBar` in the app: a filled blue pill
- * behind the icon with a matching blue label (Figma "surface/primary/default"), so tab selection
- * reads the same on the Today/Plan/Tools chassis and the pre-shell Project/Accounts picker.
+ * Color roles for every bottom `NavigationBar` in the app.
+ *
+ * Material 3's default indicator uses `secondaryContainer` (a muted chip). That is the wrong
+ * token: selected tabs must match [AppButton] Primary — saturated [ColorScheme.primary], white
+ * icon. We draw that pill in [FieldNavItemIcon] and keep the M3 indicator transparent so it
+ * cannot wash the accent out.
+ *
+ * Capture is an action, not a destination. It always uses the unselected
+ * [ColorScheme.onSurfaceVariant] colors. Never tint it primary at rest — that made Capture look
+ * selected while the real tab used a weaker blue.
  */
 @Composable
-fun fieldNavigationBarItemColors(): NavigationBarItemColors = NavigationBarItemDefaults.colors(
-    selectedIconColor = OnDark,
-    selectedTextColor = NavSelectedBlue,
-    indicatorColor = NavSelectedBlue,
-    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-)
+fun fieldNavigationBarItemColors(): NavigationBarItemColors {
+    val scheme = MaterialTheme.colorScheme
+    return NavigationBarItemDefaults.colors(
+        selectedIconColor = scheme.onPrimary,
+        selectedTextColor = scheme.primary,
+        indicatorColor = Color.Transparent,
+        unselectedIconColor = scheme.onSurfaceVariant,
+        unselectedTextColor = scheme.onSurfaceVariant,
+    )
+}
+
+private val NavSelectedPillWidth = 64.dp
+private val NavSelectedPillHeight = 32.dp
+
+/** Filled primary pill behind the selected nav icon; unselected icons stay on the bar surface. */
+@Composable
+fun FieldNavItemIcon(
+    imageVector: ImageVector,
+    selected: Boolean,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .width(NavSelectedPillWidth)
+            .height(NavSelectedPillHeight)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) scheme.primary else Color.Transparent),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(24.dp),
+            tint = if (selected) scheme.onPrimary else scheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 fun InitialsAvatar(
@@ -319,6 +364,10 @@ private fun StatusIndicator(
     }
 }
 
+/**
+ * @param leading fully custom leading content (e.g. a photo thumbnail); when set it wins over
+ *   [avatarName] and the status dot, and [statusColor] goes unused.
+ */
 @Composable
 fun FieldWorkRow(
     title: String,
@@ -329,6 +378,7 @@ fun FieldWorkRow(
     avatarColor: Color = AvatarPalette.colorAt(0),
     avatarPhotoRes: Int? = null,
     enabled: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
@@ -355,15 +405,15 @@ fun FieldWorkRow(
             }
         },
         leadingContent = {
-            if (avatarName != null) {
-                BadgedPersonAvatar(
+            when {
+                leading != null -> leading()
+                avatarName != null -> BadgedPersonAvatar(
                     name = avatarName,
                     color = avatarColor,
                     presenceColor = statusColor,
                     photoRes = avatarPhotoRes,
                 )
-            } else {
-                StatusIndicator(color = statusColor)
+                else -> StatusIndicator(color = statusColor)
             }
         },
         trailingContent = trailing,

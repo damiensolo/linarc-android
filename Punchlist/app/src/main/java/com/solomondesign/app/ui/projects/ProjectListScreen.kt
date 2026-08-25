@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProject
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
+import com.solomondesign.app.ui.designsystem.FieldNavItemIcon
 import com.solomondesign.app.ui.designsystem.LinarcWordmarkOnDark
 import com.solomondesign.app.ui.designsystem.fieldNavigationBarItemColors
 import com.solomondesign.app.ui.theme.CanvasBlack
@@ -71,12 +72,13 @@ fun ProjectListScreen(
                         selected = tab == entry,
                         onClick = { tab = entry },
                         icon = {
-                            Icon(
+                            FieldNavItemIcon(
                                 imageVector = if (entry == PickerTab.PROJECTS) {
                                     Icons.Filled.Folder
                                 } else {
                                     Icons.Filled.AccountCircle
                                 },
+                                selected = tab == entry,
                                 contentDescription = entry.label,
                             )
                         },
@@ -162,7 +164,7 @@ private fun ProjectListBrandBar(modifier: Modifier = Modifier) {
             .padding(horizontal = 20.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LinarcWordmarkOnDark(modifier = Modifier.height(24.dp))
+        LinarcWordmarkOnDark(modifier = Modifier.height(32.dp))
     }
 }
 

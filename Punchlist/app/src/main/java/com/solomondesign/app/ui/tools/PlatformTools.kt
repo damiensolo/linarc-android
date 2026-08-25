@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.solomondesign.app.ui.navigation.AppRoutes
+import com.solomondesign.app.ui.records.RecordCategory
 
 enum class ToolCategory { FIELD, PROJECT, DOCUMENTATION, FINANCIALS, QUALITY }
 
@@ -35,6 +36,8 @@ data class PlatformTool(
      * routing override resolved at the navigation call site.
      */
     val homeRoute: String? = null,
+    /** Real destination for the card's quick-create `+`. Null keeps the create placeholder. */
+    val quickCreateRoute: String? = null,
     val placeholderRows: List<String>,
 )
 
@@ -105,6 +108,8 @@ object PlatformTools {
             category = ToolCategory.QUALITY,
             icon = Icons.AutoMirrored.Filled.PlaylistAddCheck,
             canQuickCreate = true,
+            homeRoute = AppRoutes.RECORD_LIST_PUNCH,
+            quickCreateRoute = AppRoutes.recordCreate(RecordCategory.PUNCH.routeId),
         ),
         tool(
             id = "incidents",
@@ -113,6 +118,8 @@ object PlatformTools {
             category = ToolCategory.FIELD,
             icon = Icons.Filled.HealthAndSafety,
             canQuickCreate = true,
+            homeRoute = AppRoutes.RECORD_LIST_INCIDENTS,
+            quickCreateRoute = AppRoutes.recordCreate(RecordCategory.INCIDENT.routeId),
         ),
         tool(
             id = "issues",
@@ -121,6 +128,8 @@ object PlatformTools {
             category = ToolCategory.QUALITY,
             icon = Icons.Filled.ReportProblem,
             canQuickCreate = true,
+            homeRoute = AppRoutes.RECORD_LIST_ISSUES,
+            quickCreateRoute = AppRoutes.recordCreate(RecordCategory.ISSUE.routeId),
         ),
         tool(
             id = "t_and_m",
@@ -171,6 +180,7 @@ object PlatformTools {
         canQuickCreate: Boolean = false,
         quickCreateUsesPhoto: Boolean = false,
         homeRoute: String? = null,
+        quickCreateRoute: String? = null,
     ) = PlatformTool(
         id = id,
         label = label,
@@ -180,6 +190,7 @@ object PlatformTools {
         canQuickCreate = canQuickCreate,
         quickCreateUsesPhoto = quickCreateUsesPhoto,
         homeRoute = homeRoute,
+        quickCreateRoute = quickCreateRoute,
         placeholderRows = listOf(
             "$label · sample 1",
             "$label · sample 2",

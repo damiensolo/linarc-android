@@ -1,10 +1,13 @@
 package com.solomondesign.app.ui.navigation
 
+import android.Manifest
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -12,8 +15,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.test.rule.GrantPermissionRule
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.DemoSession
+import com.solomondesign.app.ui.demo.StreamKind
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.tasks.TaskStatus
 import com.solomondesign.app.ui.theme.AppTheme
@@ -23,6 +28,10 @@ import org.junit.Rule
 import org.junit.Test
 
 class AppNavHostTest {
+
+    /** Pre-granted so opening the camera never blocks a test behind the system dialog. */
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.CAMERA)
 
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -82,7 +91,8 @@ class AppNavHostTest {
         launchAndOpenTool("toolCard_time_card")
 
         composeTestRule.onNodeWithTag("timeCardListScreen").assertExists()
-        composeTestRule.onNodeWithTag("captureFab").assertDoesNotExist()
+        // The contextual FAB coexists with the bar's Capture action (Pattern B keeps the bar).
+        composeTestRule.onNodeWithTag("bottomNavCapture").assertExists()
         composeTestRule.onNodeWithTag("timeEntryFab").performClick()
 
         composeTestRule.onNodeWithTag("newTimeEntrySheet").assertExists()
@@ -163,6 +173,8 @@ class AppNavHostTest {
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TODAY_HOME}").assertExists()
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.PLAN_HOME}").assertExists()
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").assertExists()
+        // Plus the Capture action, between Plans and Tools.
+        composeTestRule.onNodeWithTag("bottomNavCapture").assertExists()
 
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.PLAN_HOME}").performClick()
         composeTestRule.onNodeWithTag("planScreen").assertExists()
@@ -180,7 +192,7 @@ class AppNavHostTest {
         composeTestRule.onNodeWithText("Foreman · Area B").assertExists()
         composeTestRule.onNodeWithText("Hector Ortiz").assertExists()
         composeTestRule.onNodeWithTag("startMyDayCard").assertExists()
-        composeTestRule.onNodeWithContentDescription("Capture").assertExists()
+        composeTestRule.onNodeWithTag("bottomNavCapture").assertExists()
     }
 
     @Test
@@ -337,11 +349,11 @@ class AppNavHostTest {
         composeTestRule.onNodeWithText("Collaboration").assertExists()
         composeTestRule.onNodeWithText("Hours on site").assertDoesNotExist()
 
-        composeTestRule.onNodeWithTag("toolsViewList").performClick()
+        composeTestRule.onNodeWithTag("toolsViewToggle").performClick()
         composeTestRule.onNodeWithText("Hours on site").assertExists()
         composeTestRule.onNodeWithText("Who's on this job").assertExists()
 
-        composeTestRule.onNodeWithTag("toolsViewGrid").performClick()
+        composeTestRule.onNodeWithTag("toolsViewToggle").performClick()
         composeTestRule.onNodeWithText("Hours on site").assertDoesNotExist()
     }
 
@@ -382,7 +394,102 @@ class AppNavHostTest {
         }
     }
 
-    /** Pattern A: full-screen task flows hide both the bottom navigation and the FAB. */
+    /** The bar's Capture action opens the full-screen camera; closing lands back on Today. */
+    @Test
+    fun captureNavAction_opensFullScreenCamera_andCloseReturnsToToday() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
+
+        composeTestRule.onNodeWithTag("cameraCaptureScreen").assertExists()
+        composeTestRule.onNodeWithTag("cameraShutter").assertExists()
+        // Immersive: the whole bar is gone, the Capture action included.
+        bottomNavTabs.forEach { tab ->
+            composeTestRule.onNodeWithTag("bottomNavTab_${tab.route}").assertDoesNotExist()
+        }
+        composeTestRule.onNodeWithTag("bottomNavCapture").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("cameraClose").performClick()
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+    }
+
+    /** Recent captures: the seeded photo row deep-links into the full-screen image viewer. */
+    @Test
+    fun today_seededPhotoRow_opensFullScreenImageViewer() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("todayScreen")
+            .performScrollToNode(hasTestTag("streamItem_stream-img-yesterday"))
+        composeTestRule.onNodeWithTag("streamItem_stream-img-yesterday").performClick()
+
+        composeTestRule.onNodeWithTag("imageViewerScreen").assertExists()
+        composeTestRule.onNodeWithTag("imageViewerToolbar").assertExists()
+
+        composeTestRule.onNodeWithTag("taskFlowClose").performClick()
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+    }
+
+    /**
+     * The full capture loop the demo tells: shoot on the (virtual) camera → save → the photo
+     * appears in Today's Recent captures as a thumbnail row → the row opens the full-screen
+     * viewer with the share / markup / delete / create toolbar → deleting there removes the
+     * Today row again. End-to-end, no shortcuts.
+     */
+    @Test
+    fun captureToViewer_endToEnd_photoLandsOnTodayAndDeletesCleanly() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
+        // The shutter stays disabled until CameraX finishes binding the camera.
+        composeTestRule.waitUntil(timeoutMillis = 15_000) {
+            composeTestRule.onAllNodes(hasTestTag("cameraShutter") and isEnabled())
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithTag("cameraShutter").performClick()
+        // Capture + JPEG processing finish on the review step.
+        composeTestRule.waitUntil(timeoutMillis = 15_000) {
+            composeTestRule.onAllNodesWithTag("photoReviewScreen").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithTag("taskFlowConfirm").performClick()
+
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+        // Let the "Photo saved" snackbar time out first: it floats over the bottom of the list,
+        // exactly where the scrolled-to row lands, and would swallow the tap. The budget is
+        // generous because the ~4s auto-dismiss lags badly on a loaded emulator.
+        composeTestRule.waitUntil(timeoutMillis = 20_000) {
+            composeTestRule.onAllNodesWithText("Photo saved — on Today, Plans, and Images")
+                .fetchSemanticsNodes().isEmpty()
+        }
+        // Newest stream item is the capture (addPhoto inserts at the top).
+        val streamItem = DemoProjectRepository.streamItems.first { it.kind == StreamKind.PHOTO }
+        check(streamItem.relatedImageId != null) { "captured photo row must link to its image" }
+        composeTestRule.onNodeWithTag("todayScreen")
+            .performScrollToNode(hasTestTag("streamItem_${streamItem.id}"))
+        composeTestRule.onNodeWithTag("streamItem_${streamItem.id}").performClick()
+
+        composeTestRule.onNodeWithTag("imageViewerScreen").assertExists()
+        composeTestRule.onNodeWithTag("imageViewerToolbar").assertExists()
+
+        composeTestRule.onNodeWithTag("viewerDelete").performClick()
+        composeTestRule.onNodeWithTag("viewerDeleteConfirm").performClick()
+
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+        composeTestRule.onNodeWithTag("streamItem_${streamItem.id}").assertDoesNotExist()
+    }
+
+    /** Pattern A: full-screen task flows hide the bottom navigation (Capture action included). */
     @Test
     fun patternA_quickIssue_hidesBottomNavigationAndFab() {
         composeTestRule.setContent {
@@ -391,11 +498,11 @@ class AppNavHostTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Capture").performClick()
-        composeTestRule.onNodeWithTag("captureIssue").performClick()
+        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
+        composeTestRule.onNodeWithTag("cameraQuickIssue").performClick()
 
         composeTestRule.onNodeWithText("New issue").assertExists()
-        composeTestRule.onNodeWithTag("captureFab").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("bottomNavCapture").assertDoesNotExist()
         bottomNavTabs.forEach { tab ->
             composeTestRule.onNodeWithTag("bottomNavTab_${tab.route}").assertDoesNotExist()
         }
@@ -410,8 +517,8 @@ class AppNavHostTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Capture").performClick()
-        composeTestRule.onNodeWithTag("captureIssue").performClick()
+        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
+        composeTestRule.onNodeWithTag("cameraQuickIssue").performClick()
         composeTestRule.onNodeWithText("New issue").assertExists()
 
         composeTestRule.onNodeWithTag("taskFlowClose").performClick()
@@ -429,8 +536,8 @@ class AppNavHostTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Capture").performClick()
-        composeTestRule.onNodeWithTag("captureIssue").performClick()
+        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
+        composeTestRule.onNodeWithTag("cameraQuickIssue").performClick()
         composeTestRule.onNodeWithText("Title").performTextInput("Missing guardrail")
 
         // Closing with edits warns rather than exiting.

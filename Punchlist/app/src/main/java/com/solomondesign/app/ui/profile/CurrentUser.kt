@@ -1,5 +1,7 @@
 package com.solomondesign.app.ui.profile
 
+import com.solomondesign.app.R
+
 /**
  * The field user signed in on this device — distinct from
  * [com.solomondesign.app.ui.demo.DemoProjectRepository.persona], which only controls which
@@ -13,5 +15,5 @@ package com.solomondesign.app.ui.profile
 object CurrentUser {
     const val NAME = "Alex Rivera"
     const val JOB_TITLE = "Foreman"
-    val photoRes: Int? = null
+    val photoRes: Int = R.drawable.persona_foreman
 }

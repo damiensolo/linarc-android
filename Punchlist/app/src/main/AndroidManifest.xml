@@ -2,8 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Real microphone capture for Voice-to-Log (Capture FAB → Voice daily log). -->
+    <!-- Real microphone capture for Voice-to-Log (Capture → Voice daily log). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- In-app CameraX capture (bottom-bar Capture). Camera hardware stays optional so the app
+         still installs on camera-less devices; the capture screen degrades to an explain state. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application

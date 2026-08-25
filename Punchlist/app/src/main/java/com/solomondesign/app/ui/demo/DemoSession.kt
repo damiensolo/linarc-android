@@ -2,6 +2,9 @@ package com.solomondesign.app.ui.demo
 
 import com.solomondesign.app.ui.collab.CollabRepository
 import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.records.RecordDraft
+import com.solomondesign.app.ui.records.RecordRepository
+import com.solomondesign.app.ui.video.VideoRepository
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.timecards.TimeCardRepository
 import com.solomondesign.app.ui.voicelog.DailyLogRepository
@@ -20,5 +23,8 @@ object DemoSession {
         TimeCardRepository.clear()
         CollabRepository.clear()
         ProjectImageRepository.clear()
+        VideoRepository.clear()
+        RecordRepository.clear()
+        RecordDraft.clear()
     }
 }

@@ -12,6 +12,7 @@ enum class StreamKind {
     BLOCKER,
     ISSUE,
     PHOTO,
+    VIDEO,
     DAILY_LOG,
     TASK,
 }
@@ -19,6 +20,7 @@ enum class StreamKind {
 enum class PinKind {
     ISSUE,
     PHOTO,
+    VIDEO,
     LOG,
 }
 
@@ -29,6 +31,18 @@ data class StreamItem(
     val subtitle: String,
     val timestampMillis: Long,
     val relatedRecordId: String? = null,
+    /**
+     * For [StreamKind.PHOTO] rows: the [com.solomondesign.app.ui.images.ProjectImage] id this
+     * entry was published from. Today renders a thumbnail and deep-links into the full-screen
+     * image viewer when set.
+     */
+    val relatedImageId: String? = null,
+    /**
+     * For [StreamKind.VIDEO] rows: the
+     * [com.solomondesign.app.ui.video.CapturedVideo] id this entry was published
+     * from. Today deep-links into the video playback screen when set.
+     */
+    val relatedVideoId: String? = null,
 )
 
 data class PlanPin(
@@ -45,6 +59,19 @@ data class OutboxItem(
     val id: String,
     val title: String,
     val subtitle: String,
+)
+
+/**
+ * One comment on a [PlanPin]'s thread in the sheet viewer. [published] flips when the thread is
+ * pushed to the team — publish queues an outbox entry, matching this prototype's offline-first
+ * story (nothing actually leaves the device).
+ */
+data class PinComment(
+    val id: String,
+    val authorName: String,
+    val text: String,
+    val timestampMillis: Long,
+    val published: Boolean = false,
 )
 
 /** A row in the startup Project List picker. See [DemoProjectRepository.projects]. */

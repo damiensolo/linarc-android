@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.MoreTime
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -14,4 +15,5 @@ fun ChromeIcon.asImageVector(): ImageVector = when (this) {
     ChromeIcon.ADD -> Icons.Filled.Add
     ChromeIcon.ADD_A_PHOTO -> Icons.Filled.AddAPhoto
     ChromeIcon.MORE_TIME -> Icons.Filled.MoreTime
+    ChromeIcon.PHOTO_CAMERA -> Icons.Filled.PhotoCamera
 }

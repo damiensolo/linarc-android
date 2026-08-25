@@ -22,11 +22,11 @@ Launch → Splash (brand) → Project List → Today. This sits above the three-
 
 ## Canonical chassis
 
-Three bottom destinations. Capture is **not** a tab.
+Three bottom destinations plus the Capture **action** in the bar (revised 2026-08-24; previously a FAB + sheet). Capture is still **not** a tab: it never shows a selected state, never owns a back stack, and simply opens the full-screen in-app camera.
 
 ```
 Content: Today | Plan | Tools (large in-content page titles)
-FAB (end): opens Capture sheet → Voice / Photo / Issue
+Bar: Today | Plans | Capture | Tools — Capture (camera icon, primary-tinted) opens the camera
 ```
 
 | Destination | Job |
@@ -35,17 +35,17 @@ FAB (end): opens Capture sheet → Voice / Photo / Issue
 | **Plan** | One sheet (Area B) with pins for issues, photos, and logs. Not a PDF engine. |
 | **Tools** | Platform modules (grid or list), then demo controls: view as, outbox, voice log history, Appearance (theme). |
 
-**Capture:** Material 3 `FloatingActionButton` → `ModalBottomSheet` with Voice, Photo, Issue. A center “+” in the navigation bar is not allowed (it reads as a fourth tab). Quick-create `+` on a Tools card is a module action, not a fourth tab.
+**Capture:** a `NavigationBarItem` action between Plans and Tools that opens the full-screen CameraX camera directly. A Photo | Video mode rail sits above the shutter: photo is the default; video records a clip (90-second cap, torch usable while recording, silent-video fallback if the mic permission is denied), then flows through a "Describe what you saw" dictation step (skippable — sequential with recording so the mic is never contended) and a video review with inline playback. Saving publishes the video to Today and as a Plan pin; the parsed description can preselect **File an issue**, which opens Quick issue prefilled (title/location/note) after saving. Voice daily log and Quick issue remain one tap away as quick chips on the camera screen — both usable even when camera permission is denied. Saved photos land on Today, as Plan pins, and in the Images grid. A generic center “+” tab remains disallowed; Capture must stay an action (no selected state, no stack). Quick-create `+` on a Tools card is a module action, not a fourth tab.
 
 **Profile:** an avatar in the upper-right of the Today/Plan/Tools header → `ModalBottomSheet` with the signed-in user's photo/name/job title and account actions (Switch project, Edit profile, Help & Support, Driving & Operating licenses, Reset password, Logout). This identity is fixed and independent of **Demo: view as** — it is not a persona chip and must not change when the demo persona changes. There is no backend/auth in this prototype, so every action except Switch project and Logout surfaces an explanatory message instead of a real flow. Switch project returns to the startup Project List (see Startup flow, above) without clearing demo data. Logout resets the local demo session (equivalent to a fresh app launch) and returns to Today.
 
 **Navigation patterns.** Every destination follows one of three patterns, resolved per route by `resolveChrome()` in `ui/navigation/AppChrome.kt`:
 
-- **Pattern A — full-screen task flow** (voice recording/review, photo, quick issue, playback, tool create, image viewer): hides the navigation bar and FAB. Close/Cancel top-left, Save/Done top-right. Warn before discard *only* when unsaved edits exist. Back from capture/voice returns to Today.
+- **Pattern A — full-screen task flow** (voice recording/review, camera + photo review, record create, playback, tool create, image viewer): hides the navigation bar and FAB. Close/Cancel top-left, Save/Done top-right (the camera viewfinder draws its own chrome). Warn before discard *only* when unsaved edits exist — a captured-but-unsaved photo counts. Back from capture/voice returns to the tab it was opened from.
 - **Pattern B — nested browsing stack** (the five built Tools areas, the remaining tool placeholders, voice log history, outbox): **keeps the navigation bar visible**. Back moves one level at a time, and reselecting the active tab returns that tab to its root screen. Each tab is a nested graph, so tab stacks are preserved independently.
-- **Pattern C — modal bottom sheet** for compact contextual actions or one-or-two parameter changes (Capture, Profile, new time entry, new topic, image source). Dismissible via scrim or swipe.
+- **Pattern C — modal bottom sheet** for compact contextual actions or one-or-two parameter changes (Profile, new time entry, new topic, image source). Dismissible via scrim or swipe.
 
-**FAB.** One shared component whose icon, description, and action are configured by the current screen: Capture on the three tab roots, New time entry in Time cards, New topic on the Collaboration list, Add image on the Images grid, and absent everywhere else.
+**FAB.** Contextual-only since Capture moved into the bar: New time entry in Time cards, New topic on the Collaboration list, Add image on the Images grid, and New issue / New incident / New punch item on their record tool lists — absent everywhere else. Never reintroduce a global Capture FAB or a capture bottom sheet.
 
 ## Non-goals (do not build)
 
@@ -85,22 +85,23 @@ Same three tabs for every persona. Only Today focus, capture CTAs, and Plan dens
 **Plan**
 
 - One static Area B sheet (Compose drawing, not a PDF).
-- Seed pins plus pins created from voice/photo/issue.
+- Seed pins plus pins created from voice/photo/video/issue.
 - Issue “near column 4” from the Hector script lands on the Column 4 pin.
-- Tap pin → `ModalBottomSheet` with title and snippet.
+- Tap pin → `ModalBottomSheet` with title, snippet, and — when the pin came from a capture — the photo itself (tap to open the full-screen viewer). Every pin carries a comment thread: add comments as the signed-in user, then **Publish to team** queues the unpublished batch to the Outbox (offline-first; nothing leaves the device).
 
-**Capture (FAB)**
+**Capture (bottom-bar action)**
 
-1. **Voice** — existing Voice-to-Log (record → parse → review → submit). After submit, labor/delays/issues appear on Today and issues are pinned on Plan.
-2. **Photo** — camera, gallery, or demo photo → suggested tags → save and optional “Create issue?”
-3. **Issue** — title, location, note → Today + Plan pin.
+1. **Photo** — in-app CameraX camera (rear/front flip, flashlight, tap-to-focus, pinch-zoom) → review with title, description, suggested tags → Save, or “Save & create…” which picks a record category (issue / incident / punch item) and continues into that record form with the photo already attached and the fields seeded. Photos land on Today, as Plan pins, and in Images. A **Markup** toggle chip on the viewfinder routes the shot through the annotation editor (select/move/resize, pen, line, arrow, double arrow, box, oval, cloud, text, six colors, undo/redo) before review; annotations are baked into the saved JPEG.
+2. **Voice** (quick chip on the camera) — existing Voice-to-Log (record → parse → review → submit). After submit, labor/delays/issues appear on Today and issues are pinned on Plan.
+3. **Issue** (quick chip on the camera) — opens the record create form (Issue category); the dictated-video flow prefills it via the parsed title/location/description.
 
 **Tools**
 
 - Grid/list catalog of platform modules, with a Material 3 segmented control to switch layout. Neutral icons and labels; no category color tiles.
 - Modules: Field task, Time card, Crew, Collaboration, Images, Plans, RFIs, Punch list, Incidents, Issues, T & M, Checklist, Drive, Toolbox Talks, Scan.
-- Quick create `+` on Collaboration, Images, RFIs, Punch list, Incidents, Issues, Toolbox Talks. Images `+` opens the existing photo capture flow; other `+` actions open a create placeholder.
-- **Five modules are built as real Pattern B stacks** backed by demo data: Field task (list → detail with status control, checklist, filters), Time card (crew list → member detail, contextual FAB → new-entry sheet), Crew (list → detail), Collaboration (topic list → conversation, contextual FAB → new-topic sheet), and Images (grid → full-screen Pattern A viewer with a Share / Markup / Delete / Create footer toolbar). Markup is an explicit placeholder — no drawing engine ships in this build. The remaining ten modules keep the generic list/detail placeholders.
+- Quick create `+` on Collaboration, Images, RFIs, Punch list, Incidents, Issues, Toolbox Talks. Images `+` opens the in-app camera; Issues / Incidents / Punch list `+` open their record create form; the remaining `+` actions open a create placeholder.
+- **Five modules are built as real Pattern B stacks** backed by demo data: Field task (list → detail with status control, checklist, filters), Time card (crew list → member detail, contextual FAB → new-entry sheet), Crew (list → detail), Collaboration (topic list → conversation, contextual FAB → new-topic sheet), and Images (a Grid / Timeline / Albums / Map segmented switcher over one photo set → full-screen Pattern A viewer with a Share / Markup / Album / Delete / Create footer toolbar). Grid keeps the tag filter chips; Timeline groups by day (Today/Yesterday/date); Albums groups by album with an Unfiled bucket at the end — the viewer's Album action files a photo into an existing or new album; Map shows captures pinned at their plan positions on the Level 2 sheet (tap a thumbnail to open it — deliberately the site drawing, since there's no GPS in this prototype). Markup opens the annotation editor for captured photos and saves either a copy (default — the copy fans out to Today/Plans/Images like any capture) or replaces the original in place (same id, pins and Today row survive); procedurally drawn demo tiles explain they can't be marked up. The viewer's Create action opens a category chooser (issue / incident / punch item) and continues into the record form with that photo attached.
+- **Records: Issues, Incidents, and Punch list are built as one system** — Pattern B lists (each with a contextual create FAB) → a read-only detail, plus one shared Pattern A create form with the full capture set: title, per-category type, description, attachments (Camera → the real in-app camera returns with the shot attached; Photos → pick from project images; Files → system document picker; thumbnails with per-item delete), location, event date (date picker), and crew assignees. Saving queues one Outbox entry; Issues and Incidents also land on Today's Blockers and as Plan pins, while Punch items pin on the Plan only. Photo attachments link back to their record. This form replaced the old quick-issue screen. The remaining seven modules keep the generic list/detail placeholders.
 - Scan is catalog-only in this build (no live scanner).
 - Below the catalog: Demo: view as — Foreman selected and live; other personas visible. Tapping a non-live persona explains that the view is next; it must not fake a broken UI.
 - Outbox — seeded queued items (badge/count only; no sync).
@@ -117,8 +118,8 @@ On **Submit**, write to `DailyLogRepository` **and** publish structured items in
 
 ## Android patterns (required)
 
-- `NavigationBar` with exactly three items (Today, Plan, Tools).
-- `FloatingActionButton` on `Scaffold` for capture; `ModalBottomSheet` for the action list and for Start My Day / pin detail / view-as / profile.
+- `NavigationBar` with three destinations (Today, Plans, Tools) plus the Capture action item between Plans and Tools (`selected` always false).
+- CameraX (`LifecycleCameraController` + `PreviewView`) for capture; contextual `FloatingActionButton`s on `Scaffold` for tool actions; `ModalBottomSheet` for Start My Day / pin detail / view-as / profile / image source.
 - Tools catalog: `Card` grid and `ListItem` rows, plus `SingleChoiceSegmentedButtonRow` for grid/list. Demo/appearance stay as `ListItem` / `Switch` below the catalog.
 - Full-screen voice flow; hide bottom chrome.
 - Prefer Material 3 over custom chrome. Custom is allowed only for the static sheet + pin overlay (no map/PDF SDK in this prototype).
@@ -126,7 +127,7 @@ On **Submit**, write to `DailyLogRepository` **and** publish structured items in
 ## Demo script (v1)
 
 1. Launch as Foreman → Splash → Project List → select Riverside Medical → Today shows crew + Start My Day. Confirm.
-2. FAB → Voice → Hector script → review → Submit.
+2. Capture (bottom bar) → Voice log chip → Hector script → review → Submit.
 3. Today shows delay + issue. Plan shows a pin near Column 4.
 4. Tools → Demo: view as → other personas visible, not live.
 

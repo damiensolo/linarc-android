@@ -36,18 +36,23 @@ import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -85,7 +90,11 @@ import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.PinKind
 import com.solomondesign.app.ui.demo.PlanPin
+import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.DesignTokens
+import com.solomondesign.app.ui.images.ImageThumbnail
+import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.images.imageIdOfPin
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -101,6 +110,7 @@ import kotlinx.coroutines.launch
 fun PlanViewerScreen(
     sheetId: String,
     onClose: () -> Unit,
+    onOpenImage: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sheets = PlanSheetRepository.sheets
@@ -183,18 +193,149 @@ fun PlanViewerScreen(
             onDismissRequest = { selectedPin = null },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.testTag("pinSheet"),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text(pin.label, style = MaterialTheme.typography.titleLarge)
-                Text(
-                    text = pin.snippet,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                Spacer(Modifier.height(32.dp))
+            PinSheetContent(
+                pin = pin,
+                onOpenImage = { imageId ->
+                    selectedPin = null
+                    onOpenImage(imageId)
+                },
+                onPublished = { count ->
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            "$count comment${if (count == 1) "" else "s"} queued for the team — see Outbox",
+                        )
+                    }
+                },
+            )
+        }
+    }
+}
+
+/**
+ * A pin's detail: what it marks (with the photo attached when the pin came from a capture),
+ * its comment thread, and Publish — which queues the unpublished comments to the Outbox, this
+ * prototype's stand-in for sending anything off-device.
+ */
+@Composable
+private fun PinSheetContent(
+    pin: PlanPin,
+    onOpenImage: (String) -> Unit,
+    onPublished: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val comments = DemoProjectRepository.pinCommentsFor(pin.id)
+    var draft by remember(pin.id) { mutableStateOf("") }
+    val linkedImage = if (pin.kind == PinKind.PHOTO || pin.kind == PinKind.VIDEO) {
+        ProjectImageRepository.find(imageIdOfPin(pin.id))
+    } else {
+        null
+    }
+
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 16.dp),
+    ) {
+        Text(pin.label, style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = pin.snippet,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+
+        linkedImage?.let { image ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClickLabel = "Open photo") { onOpenImage(image.id) }
+                    .padding(4.dp)
+                    .testTag("pinSheetPhoto"),
+            ) {
+                ImageThumbnail(image = image, size = 56.dp)
+                Column(modifier = Modifier.padding(start = 12.dp)) {
+                    Text(image.title, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = "Open photo",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        Text("Comments", style = MaterialTheme.typography.titleMedium)
+        if (comments.isEmpty()) {
+            Text(
+                text = "No comments yet — add context for the team.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        comments.forEach { comment ->
+            Column(modifier = Modifier.padding(top = 10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(comment.authorName, style = MaterialTheme.typography.labelMedium)
+                    if (!comment.published) {
+                        Text(
+                            text = "Not published",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                }
+                Text(comment.text, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                label = { Text("Add a comment") },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("pinCommentField"),
+            )
+            TextButton(
+                onClick = {
+                    if (DemoProjectRepository.addPinComment(pin.id, draft)) draft = ""
+                },
+                enabled = draft.isNotBlank(),
+                modifier = Modifier.testTag("pinCommentAdd"),
+            ) {
+                Text("Add")
+            }
+        }
+
+        AppButton(
+            text = "Publish to team",
+            enabled = comments.any { !it.published },
+            onClick = { onPublished(DemoProjectRepository.publishPinComments(pin.id)) },
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .testTag("pinPublish"),
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -424,7 +565,13 @@ private fun SheetPinsOverlay(
                     Icon(
                         imageVector = Icons.Filled.Place,
                         contentDescription = null,
-                        tint = if (pin.kind == PinKind.PHOTO) photoTint else pinTint,
+                        // Captures (photo and video) share the capture tint;
+                        // everything else reads as an issue/log callout.
+                        tint = if (pin.kind == PinKind.PHOTO || pin.kind == PinKind.VIDEO) {
+                            photoTint
+                        } else {
+                            pinTint
+                        },
                         modifier = Modifier.size(32.dp),
                     )
                 }

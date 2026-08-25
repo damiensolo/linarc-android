@@ -22,8 +22,37 @@ object ProjectImageRepository {
     fun filterByTag(tag: String?): List<ProjectImage> =
         if (tag == null) _images.toList() else _images.filter { tag in it.tags }
 
+    /** Distinct album names, sorted — drives the album picker and the Albums view. */
+    fun albums(): List<String> =
+        _images.mapNotNull { it.album?.takeIf(String::isNotBlank) }.distinct().sorted()
+
+    /** Files (or, with null/blank, un-files) a photo into an album. Missing ids are no-ops. */
+    fun setAlbum(id: String, album: String?) {
+        val index = _images.indexOfFirst { it.id == id }
+        if (index < 0) return
+        _images[index] = _images[index].copy(album = album?.trim()?.takeIf(String::isNotEmpty))
+    }
+
     fun add(image: ProjectImage) {
         _images.add(0, image)
+    }
+
+    /**
+     * Swaps the pixels behind an image in place — the markup editor's "replace the original",
+     * which is why the image is also flagged [ProjectImage.hasMarkup]. The id, title, Plan pin,
+     * and Today row all survive because they key on the id; only the source changes. Callers
+     * must pass a NEW file path rather than rewriting the old file ([FilePhoto] decode is keyed
+     * on the path, so a rewrite would leave stale bitmaps on screen); the old capture file is
+     * deleted here once the swap lands.
+     */
+    fun replaceSource(id: String, newSource: ImageSource) {
+        val index = _images.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val old = _images[index].source
+        _images[index] = _images[index].copy(source = newSource, hasMarkup = true)
+        if (old is ImageSource.CapturedFile && old != newSource) {
+            CapturedMediaStore.delete(old.absolutePath)
+        }
     }
 
     fun linkRecord(id: String, recordId: String) {
@@ -42,6 +71,7 @@ object ProjectImageRepository {
         DemoProjectRepository.pins.removeAll { it.id == "pin-$id" }
         DemoProjectRepository.streamItems.removeAll { it.id == "stream-$id" }
         (image.source as? ImageSource.Captured)?.let { CapturedBitmapStore.remove(it.captureKey) }
+        (image.source as? ImageSource.CapturedFile)?.let { CapturedMediaStore.delete(it.absolutePath) }
     }
 
     fun clear() {
@@ -63,6 +93,7 @@ object ProjectImageRepository {
                     capturedAtMillis = now - 2 * hour,
                     authorName = "Hector Ortiz",
                     source = ImageSource.Swatch(seed = 0),
+                    album = "Progress set",
                 ),
                 ProjectImage(
                     id = "img-col4-conflict",
@@ -72,6 +103,7 @@ object ProjectImageRepository {
                     capturedAtMillis = now - 3 * hour,
                     authorName = "Sam Reyes",
                     source = ImageSource.Swatch(seed = 1),
+                    album = "Deficiencies",
                 ),
                 ProjectImage(
                     id = "img-conduit-exam6",
@@ -99,6 +131,7 @@ object ProjectImageRepository {
                     capturedAtMillis = now - 28 * hour,
                     authorName = CurrentUser.NAME,
                     source = ImageSource.Drawable(R.drawable.crew_hector),
+                    album = "Crew",
                 ),
                 ProjectImage(
                     id = "img-crew-maria",
@@ -108,6 +141,7 @@ object ProjectImageRepository {
                     capturedAtMillis = now - 30 * hour,
                     authorName = CurrentUser.NAME,
                     source = ImageSource.Drawable(R.drawable.crew_maria),
+                    album = "Crew",
                 ),
                 ProjectImage(
                     id = "img-yesterday",
@@ -117,6 +151,7 @@ object ProjectImageRepository {
                     capturedAtMillis = now - 24 * hour,
                     authorName = "Hector Ortiz",
                     source = ImageSource.Swatch(seed = 4),
+                    album = "Progress set",
                 ),
                 ProjectImage(
                     id = "img-door-bucks",

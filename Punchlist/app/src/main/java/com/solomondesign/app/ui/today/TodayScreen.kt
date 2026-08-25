@@ -1,6 +1,7 @@
 package com.solomondesign.app.ui.today
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -8,11 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -22,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
@@ -36,6 +42,8 @@ import com.solomondesign.app.ui.designsystem.FieldPageHeader
 import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
 import com.solomondesign.app.ui.designsystem.AppButton
+import com.solomondesign.app.ui.images.ImageThumbnail
+import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.profile.ProfileAvatarButton
 import com.solomondesign.app.ui.theme.AvatarPalette
 import java.text.SimpleDateFormat
@@ -46,6 +54,8 @@ import java.util.Locale
 @Composable
 fun TodayScreen(
     onOpenVoiceLog: (String) -> Unit,
+    onOpenImage: (String) -> Unit,
+    onOpenVideo: (String) -> Unit,
     onOpenProfile: () -> Unit,
     onSwitchProject: () -> Unit,
     modifier: Modifier = Modifier,
@@ -59,7 +69,8 @@ fun TodayScreen(
 
     val blockers = streamItems.filter { it.kind == StreamKind.BLOCKER || it.kind == StreamKind.ISSUE }
     val captures = streamItems.filter {
-        it.kind == StreamKind.DAILY_LOG || it.kind == StreamKind.PHOTO || it.kind == StreamKind.TASK
+        it.kind == StreamKind.DAILY_LOG || it.kind == StreamKind.PHOTO ||
+            it.kind == StreamKind.VIDEO || it.kind == StreamKind.TASK
     }
 
     if (showStartMyDay) {
@@ -180,22 +191,66 @@ fun TodayScreen(
 
         item { FieldSectionLabel("Recent captures") }
         items(captures, key = { it.id }) { item ->
+            // Photo rows carry a live thumbnail and deep-link into the full-screen image viewer
+            // (share / markup / delete / create). Deleting there removes this row too, so a
+            // linked id never dangles. Video rows carry a camcorder glyph and deep-link into
+            // video playback.
+            val linkedImage = item.relatedImageId?.let { ProjectImageRepository.find(it) }
             FieldWorkRow(
                 title = item.title,
                 subtitle = item.subtitle + " · " + formatTimestamp(item.timestampMillis),
-                statusColor = if (item.kind == StreamKind.PHOTO) {
+                statusColor = if (item.kind == StreamKind.PHOTO || item.kind == StreamKind.VIDEO) {
                     MaterialTheme.colorScheme.outline
                 } else {
                     MaterialTheme.colorScheme.tertiary
                 },
-                enabled = item.kind == StreamKind.DAILY_LOG && item.relatedRecordId != null,
+                leading = when {
+                    linkedImage != null -> {
+                        { ImageThumbnail(image = linkedImage) }
+                    }
+
+                    item.kind == StreamKind.VIDEO -> {
+                        { VideoGlyph() }
+                    }
+
+                    else -> null
+                },
+                enabled = (item.kind == StreamKind.DAILY_LOG && item.relatedRecordId != null) ||
+                    item.relatedVideoId != null ||
+                    linkedImage != null,
                 onClick = {
-                    if (item.kind == StreamKind.DAILY_LOG) {
-                        item.relatedRecordId?.let(onOpenVoiceLog)
+                    when {
+                        item.kind == StreamKind.DAILY_LOG -> item.relatedRecordId?.let(onOpenVoiceLog)
+                        item.relatedVideoId != null ->
+                            onOpenVideo(item.relatedVideoId)
+                        linkedImage != null -> onOpenImage(linkedImage.id)
                     }
                 },
+                modifier = Modifier.testTag("streamItem_${item.id}"),
             )
         }
+    }
+}
+
+/**
+ * Videos have no still frame to thumbnail (decoding one per list row is wasted work), so the
+ * row leads with the same-size camcorder glyph instead — the playback screen shows the real
+ * footage. Decorative: the row's own title/semantics describe the item.
+ */
+@Composable
+private fun VideoGlyph(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Videocam,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

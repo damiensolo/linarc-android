@@ -18,6 +18,12 @@ sealed interface ImageSource {
 
     /** A real camera capture, held in [CapturedBitmapStore] for this process only. */
     data class Captured(val captureKey: String) : ImageSource
+
+    /**
+     * A full-resolution capture persisted as an app-private file by [CapturedMediaStore].
+     * A path string rather than a `java.io.File` keeps equality/copy semantics value-like.
+     */
+    data class CapturedFile(val absolutePath: String) : ImageSource
 }
 
 data class ProjectImage(
@@ -30,4 +36,8 @@ data class ProjectImage(
     val source: ImageSource,
     /** Set once Create turned this photo into an issue. */
     val linkedRecordId: String? = null,
+    /** True when annotations are baked into the pixels; tiles and thumbnails show a badge. */
+    val hasMarkup: Boolean = false,
+    /** Album this photo is filed under (Albums view); null/blank means unfiled. */
+    val album: String? = null,
 )

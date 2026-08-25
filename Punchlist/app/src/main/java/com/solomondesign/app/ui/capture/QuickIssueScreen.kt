@@ -30,9 +30,15 @@ private val locations = listOf("Area B", "Column 4", "Level 2")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickIssueScreen(onDone: () -> Unit, modifier: Modifier = Modifier) {
-    var title by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf(locations.first()) }
-    var note by remember { mutableStateOf("") }
+    // A captured video can arrive with a drafted issue (see IssueDraftHolder) — its fields
+    // seed the form and are then owned by the user like any typed value. take() clears the
+    // hand-off, so a plain visit to this screen still starts blank.
+    val draft = remember { IssueDraftHolder.take() }
+    var title by remember { mutableStateOf(draft?.title.orEmpty()) }
+    var location by remember {
+        mutableStateOf(draft?.location?.takeIf { it in locations } ?: locations.first())
+    }
+    var note by remember { mutableStateOf(draft?.note.orEmpty()) }
     var expanded by remember { mutableStateOf(false) }
 
     val submit = {

@@ -25,15 +25,13 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -105,13 +103,13 @@ fun ToolsScreen(
                     subtitle = "${persona.displayName} · ${DemoProjectRepository.PROJECT_NAME}",
                     projectName = DemoProjectRepository.PROJECT_NAME,
                     onSwitchProject = onSwitchProject,
+                    actions = {
+                        ToolsViewToggle(
+                            isGrid = isGrid,
+                            onChange = { isGrid = it },
+                        )
+                    },
                     trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
-                )
-            }
-            item {
-                ToolsViewToggle(
-                    isGrid = isGrid,
-                    onChange = { isGrid = it },
                 )
             }
             if (isGrid) {
@@ -314,41 +312,28 @@ fun ToolsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ToolsViewToggle(
     isGrid: Boolean,
     onChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(
+    FilledTonalIconButton(
+        onClick = { onChange(!isGrid) },
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .testTag("toolsViewToggle"),
+            .testTag("toolsViewToggle")
+            .semantics {
+                contentDescription = if (isGrid) "Show as list" else "Show as grid"
+            },
     ) {
-        SegmentedButton(
-            selected = isGrid,
-            onClick = { onChange(true) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-            icon = {
-                Icon(Icons.Filled.GridView, contentDescription = null)
+        Icon(
+            imageVector = if (isGrid) {
+                Icons.AutoMirrored.Filled.ViewList
+            } else {
+                Icons.Filled.GridView
             },
-            modifier = Modifier.testTag("toolsViewGrid"),
-        ) {
-            Text("Grid")
-        }
-        SegmentedButton(
-            selected = !isGrid,
-            onClick = { onChange(false) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            icon = {
-                Icon(Icons.AutoMirrored.Filled.ViewList, contentDescription = null)
-            },
-            modifier = Modifier.testTag("toolsViewList"),
-        ) {
-            Text("List")
-        }
+            contentDescription = null,
+        )
     }
 }
 

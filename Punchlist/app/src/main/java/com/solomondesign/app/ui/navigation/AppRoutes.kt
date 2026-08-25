@@ -30,9 +30,23 @@ object AppRoutes {
     const val DAILY_LOG_HISTORY = "daily_log_history"
     const val DAILY_LOG_DETAIL = "daily_log_detail/{recordId}"
 
-    const val PHOTO_CAPTURE = "photo_capture"
-    const val QUICK_ISSUE = "quick_issue"
+    /**
+     * Full-screen in-app camera (Pattern A / immersive), opened by the bottom bar's Capture
+     * action and by every "take photo" entry point. Replaced the old `photo_capture` system-
+     * camera stub.
+     */
+    const val CAMERA = "camera"
+
     const val OUTBOX = "outbox"
+
+    // Record tools (Issues / Incidents / Punch list): Pattern B lists inside the Tools tab,
+    // one shared Pattern A create form, and a Pattern B detail. Replaced the old quick_issue
+    // route — the Issue category of the record form is its successor.
+    const val RECORD_LIST_ISSUES = "records/issues"
+    const val RECORD_LIST_INCIDENTS = "records/incidents"
+    const val RECORD_LIST_PUNCH = "records/punch"
+    const val RECORD_CREATE = "records/create/{category}"
+    const val RECORD_DETAIL = "records/detail/{recordId}"
 
     const val TOOL_HOME = "tool/{toolId}"
     const val TOOL_CREATE = "tool/{toolId}/create"
@@ -59,6 +73,12 @@ object AppRoutes {
      */
     const val IMAGE_VIEWER = "images/viewer/{imageId}"
 
+    /** Markup editor over one captured image — immersive, like the camera it grew out of. */
+    const val IMAGE_MARKUP = "images/markup/{imageId}"
+
+    /** Playback of one captured video — immersive, like daily-log playback. */
+    const val VIDEO_PLAYBACK = "video/{videoId}"
+
     fun planViewer(sheetId: String) = "plan_viewer/${encode(sheetId)}"
 
     fun fieldTaskDetail(taskId: String) = "field_task/${encode(taskId)}"
@@ -70,6 +90,15 @@ object AppRoutes {
     fun collabTopic(topicId: String) = "collaboration/${encode(topicId)}"
 
     fun imageViewer(imageId: String) = "images/viewer/${encode(imageId)}"
+
+    fun imageMarkup(imageId: String) = "images/markup/${encode(imageId)}"
+
+    fun videoPlayback(videoId: String) = "video/${encode(videoId)}"
+
+    /** [categoryRouteId] comes from `RecordCategory.routeId` — already route-safe. */
+    fun recordCreate(categoryRouteId: String) = "records/create/$categoryRouteId"
+
+    fun recordDetail(recordId: String) = "records/detail/${encode(recordId)}"
 
     private fun encode(value: String) = URLEncoder.encode(value, "UTF-8")
 
@@ -97,9 +126,13 @@ object AppRoutes {
         VOICE_LOG,
         DAILY_LOG_HISTORY,
         DAILY_LOG_DETAIL,
-        PHOTO_CAPTURE,
-        QUICK_ISSUE,
+        CAMERA,
         OUTBOX,
+        RECORD_LIST_ISSUES,
+        RECORD_LIST_INCIDENTS,
+        RECORD_LIST_PUNCH,
+        RECORD_CREATE,
+        RECORD_DETAIL,
         TOOL_HOME,
         TOOL_CREATE,
         TOOL_DETAIL,
@@ -113,6 +146,8 @@ object AppRoutes {
         COLLAB_TOPIC_DETAIL,
         IMAGE_GRID,
         IMAGE_VIEWER,
+        IMAGE_MARKUP,
+        VIDEO_PLAYBACK,
     )
 }
 

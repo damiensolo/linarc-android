@@ -1,9 +1,17 @@
 package com.solomondesign.app.ui.demo
 
+import com.solomondesign.app.ui.capture.IssueDraft
+import com.solomondesign.app.ui.capture.IssueDraftHolder
 import com.solomondesign.app.ui.collab.CollabRepository
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.records.AttachmentKind
+import com.solomondesign.app.ui.records.FieldRecord
+import com.solomondesign.app.ui.records.RecordAttachment
+import com.solomondesign.app.ui.records.RecordCategory
+import com.solomondesign.app.ui.records.RecordRepository
+import com.solomondesign.app.ui.video.VideoRepository
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.tasks.TaskFilter
 import com.solomondesign.app.ui.tasks.TaskStatus
@@ -240,6 +248,244 @@ class FeatureAreaDataTest {
         val added = ProjectImageRepository.images.first()
         assertEquals(ImageSource.Captured("cap-1"), added.source)
         assertEquals(listOf("Framing"), added.tags)
+
+        // The Today row must link back to the image so Recent captures can render a thumbnail
+        // and deep-link into the viewer.
+        val streamItem = DemoProjectRepository.streamItems.first()
+        assertEquals("stream-${added.id}", streamItem.id)
+        assertEquals(added.id, streamItem.relatedImageId)
+    }
+
+    /**
+     * The seeded "Yesterday progress" trio (image, Today row, Plan pin) shares one identity —
+     * ids follow the same stream-/pin-<imageId> convention as live captures — so deleting the
+     * image from the viewer cleans all three, exactly like a photo captured in session.
+     */
+    @Test
+    fun seededYesterdayPhoto_todayRowLinksToTheImage_andDeleteCleansTheTrio() {
+        val row = DemoProjectRepository.streamItems.first { it.id == "stream-img-yesterday" }
+        assertEquals("img-yesterday", row.relatedImageId)
+        assertNotNull(ProjectImageRepository.find("img-yesterday"))
+        assertNotNull(DemoProjectRepository.pins.firstOrNull { it.id == "pin-img-yesterday" })
+
+        ProjectImageRepository.delete("img-yesterday")
+
+        assertNull(DemoProjectRepository.streamItems.firstOrNull { it.id == "stream-img-yesterday" })
+        assertNull(DemoProjectRepository.pins.firstOrNull { it.id == "pin-img-yesterday" })
+    }
+
+    /**
+     * "Replace the original" in the markup editor: the id keeps its pin and Today row, only the
+     * source swaps — and [DemoProjectRepository.addPhoto] returns the id the editor's
+     * "save as a copy" needs to open the copy's viewer.
+     */
+    @Test
+    fun replacingAnImageSourceKeepsItsIdentity() {
+        val id = DemoProjectRepository.addPhoto(
+            title = "Marked up",
+            subtitle = "Area B",
+            createIssue = false,
+        )
+        assertEquals(id, ProjectImageRepository.images.first().id)
+        assertFalse(ProjectImageRepository.find(id)!!.hasMarkup)
+
+        ProjectImageRepository.replaceSource(id, ImageSource.CapturedFile("/captures/new.jpg"))
+
+        assertEquals(
+            ImageSource.CapturedFile("/captures/new.jpg"),
+            ProjectImageRepository.find(id)?.source,
+        )
+        assertTrue(
+            "replace-the-original is markup's save; the badge flag must flip",
+            ProjectImageRepository.find(id)!!.hasMarkup,
+        )
+        assertNotNull(DemoProjectRepository.streamItems.firstOrNull { it.id == "stream-$id" })
+        assertNotNull(DemoProjectRepository.pins.firstOrNull { it.id == "pin-$id" })
+
+        val before = ProjectImageRepository.images.size
+        ProjectImageRepository.replaceSource("does-not-exist", ImageSource.Swatch(seed = 9))
+        assertEquals(before, ProjectImageRepository.images.size)
+    }
+
+    // ---- albums ----
+
+    @Test
+    fun albumFilingListsAssignsAndUnfiles() {
+        assertEquals(listOf("Crew", "Deficiencies", "Progress set"), ProjectImageRepository.albums())
+
+        ProjectImageRepository.setAlbum("img-door-bucks", "Punch walk")
+        assertEquals("Punch walk", ProjectImageRepository.find("img-door-bucks")?.album)
+        assertTrue("Punch walk" in ProjectImageRepository.albums())
+
+        // Blank means unfile, and a vanished album drops out of the list entirely.
+        ProjectImageRepository.setAlbum("img-door-bucks", "   ")
+        assertNull(ProjectImageRepository.find("img-door-bucks")?.album)
+        assertFalse("Punch walk" in ProjectImageRepository.albums())
+
+        val before = ProjectImageRepository.images
+        ProjectImageRepository.setAlbum("does-not-exist", "Nope")
+        assertEquals(before, ProjectImageRepository.images)
+    }
+
+    // ---- plan pin comments ----
+
+    @Test
+    fun pinCommentsRejectBlanksAndPublishQueuesOneOutboxBatch() {
+        val pinId = "pin-img-yesterday"
+        assertFalse(DemoProjectRepository.addPinComment(pinId, "   "))
+        assertEquals(emptyList<PinComment>(), DemoProjectRepository.pinCommentsFor(pinId))
+
+        assertTrue(DemoProjectRepository.addPinComment(pinId, "Formwork looks short here"))
+        assertTrue(DemoProjectRepository.addPinComment(pinId, "Flagging for the AM walk"))
+        val thread = DemoProjectRepository.pinCommentsFor(pinId)
+        assertEquals(2, thread.size)
+        assertEquals(CurrentUser.NAME, thread.first().authorName)
+        assertTrue("comments start unpublished", thread.none { it.published })
+
+        val outboxBefore = DemoProjectRepository.outboxItems.size
+        assertEquals(2, DemoProjectRepository.publishPinComments(pinId))
+        assertTrue(DemoProjectRepository.pinCommentsFor(pinId).all { it.published })
+        assertEquals(
+            "one outbox entry per publish batch, not per comment",
+            outboxBefore + 1,
+            DemoProjectRepository.outboxItems.size,
+        )
+        assertTrue(DemoProjectRepository.outboxItems.last().title.contains("Yesterday progress"))
+
+        // Nothing left to publish: a second publish is a no-op and queues nothing.
+        assertEquals(0, DemoProjectRepository.publishPinComments(pinId))
+        assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
+
+        // A new comment after publishing republishes just that one.
+        DemoProjectRepository.addPinComment(pinId, "Confirmed fixed")
+        assertEquals(1, DemoProjectRepository.publishPinComments(pinId))
+        assertEquals(outboxBefore + 2, DemoProjectRepository.outboxItems.size)
+    }
+
+    // ---- records (issues / incidents / punch items) ----
+
+    @Test
+    fun recordSeedsCoverEveryCategory() {
+        RecordCategory.entries.forEach { category ->
+            assertTrue(
+                "the ${category.pluralLabel} tool must not open empty",
+                RecordRepository.byCategory(category).isNotEmpty(),
+            )
+        }
+        val ids = RecordRepository.records.map { it.id }
+        assertEquals(ids.size, ids.toSet().size)
+    }
+
+    /**
+     * Issues and Incidents are blockers-grade: they land on Today and pin on the Plan, plus one
+     * queued Outbox entry — and their photo attachments link back to the record.
+     */
+    @Test
+    fun addRecord_issuePublishesToTodayPinOutbox_andLinksItsPhoto() {
+        val outboxBefore = DemoProjectRepository.outboxItems.size
+        val record = FieldRecord(
+            id = "rec-test-issue",
+            category = RecordCategory.ISSUE,
+            title = "Cracked slab at column 4",
+            type = "Quality",
+            description = "Hairline crack radiating from the base plate",
+            location = "Column 4",
+            eventDateMillis = 1_000L,
+            assigneeIds = listOf("maria-chen"),
+            attachments = listOf(
+                RecordAttachment("att-test", AttachmentKind.PHOTO, "img-yesterday"),
+            ),
+            createdAtMillis = 2_000L,
+            authorName = CurrentUser.NAME,
+        )
+
+        DemoProjectRepository.addRecord(record)
+
+        assertEquals(record, RecordRepository.find("rec-test-issue"))
+        assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
+        assertTrue(DemoProjectRepository.outboxItems.last().title.startsWith("Issue:"))
+        assertTrue(
+            "issues surface on Today's blockers",
+            DemoProjectRepository.streamItems.any {
+                it.kind == StreamKind.ISSUE && it.title == record.title
+            },
+        )
+        assertTrue(DemoProjectRepository.pins.any { it.label == record.title })
+        assertEquals(
+            "the attached photo must link back to the record",
+            "rec-test-issue",
+            ProjectImageRepository.find("img-yesterday")?.linkedRecordId,
+        )
+    }
+
+    @Test
+    fun addRecord_punchItemPinsWithoutShoutingOnToday() {
+        val streamBefore = DemoProjectRepository.streamItems.size
+        val outboxBefore = DemoProjectRepository.outboxItems.size
+
+        DemoProjectRepository.addRecord(
+            FieldRecord(
+                id = "rec-test-punch",
+                category = RecordCategory.PUNCH,
+                title = "Paint touch-up at exam 3",
+                type = "Touch-up",
+                description = "",
+                location = "Level 2",
+                eventDateMillis = 1_000L,
+                assigneeIds = emptyList(),
+                attachments = emptyList(),
+                createdAtMillis = 2_000L,
+                authorName = CurrentUser.NAME,
+            ),
+        )
+
+        assertTrue(DemoProjectRepository.pins.any { it.id == "pin-rec-test-punch" })
+        assertEquals(
+            "punch items are location work, not Today blockers",
+            streamBefore,
+            DemoProjectRepository.streamItems.size,
+        )
+        assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
+    }
+
+    // ---- captured video ----
+
+    /**
+     * The video counterpart of the photo fan-out rule: saving a clip must land it on
+     * Today (linked for playback) and as a Plan pin, plus in its own repository — never only in
+     * a private list.
+     */
+    @Test
+    fun savingACapturedVideoFansOutToStreamPinAndRepository() {
+        val id = DemoProjectRepository.addCapturedVideo(
+            title = "Crack — Column 4",
+            note = "Crack in the slab near column 4",
+            videoPath = "/captures/video-1.mp4",
+            transcript = "there's a crack in the slab near column 4",
+            durationSeconds = 95,
+        )
+
+        val video = VideoRepository.find(id)
+        assertNotNull(video)
+        assertEquals("/captures/video-1.mp4", video!!.videoPath)
+
+        val row = DemoProjectRepository.streamItems.first()
+        assertEquals("stream-$id", row.id)
+        assertEquals(StreamKind.VIDEO, row.kind)
+        assertEquals("Today must link back for playback", id, row.relatedVideoId)
+        assertTrue("subtitle carries the mm:ss duration", row.subtitle.contains("1:35"))
+
+        val pin = DemoProjectRepository.pins.first { it.id == "pin-$id" }
+        assertEquals(PinKind.VIDEO, pin.kind)
+        assertEquals("Crack — Column 4", pin.label)
+    }
+
+    @Test
+    fun issueDraftHandOffIsOneShot() {
+        IssueDraftHolder.set(IssueDraft(title = "Crack", location = "Column 4", note = "note"))
+
+        assertEquals("Crack", IssueDraftHolder.take()?.title)
+        assertNull("a second visit to Quick issue must start blank", IssueDraftHolder.take())
     }
 
     @Test

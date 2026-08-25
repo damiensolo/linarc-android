@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.filled.PhotoAlbum
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 fun ImageViewerToolbar(
     onShare: () -> Unit,
     onMarkup: () -> Unit,
+    onAlbum: () -> Unit,
     onDelete: () -> Unit,
     onCreate: () -> Unit,
     modifier: Modifier = Modifier,
@@ -52,6 +54,7 @@ fun ImageViewerToolbar(
         ) {
             ToolbarAction(Icons.Filled.Share, "Share", "viewerShare", onShare)
             ToolbarAction(Icons.Filled.Draw, "Markup", "viewerMarkup", onMarkup)
+            ToolbarAction(Icons.Filled.PhotoAlbum, "Album", "viewerAlbum", onAlbum)
             ToolbarAction(
                 icon = Icons.Filled.DeleteOutline,
                 label = "Delete",
