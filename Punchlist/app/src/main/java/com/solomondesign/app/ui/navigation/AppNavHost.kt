@@ -113,7 +113,7 @@ private fun isImmersiveRoute(route: String?): Boolean = !resolveChrome(route).sh
 
 /**
  * Field prototype shell: Today / Plans / Tools tabs plus the [CaptureNavAction] button between
- * Plans and Tools (an action in the bar, not a destination — it opens the full-screen camera and
+ * Today and Plans (an action in the bar, not a destination — it opens the full-screen camera and
  * never shows a selected state). The FAB slot is contextual-only (time entry, new topic, add
  * image), resolved per destination by [resolveChrome] — screens never touch the
  * [androidx.navigation.NavController] themselves. Tab-root page titles live in content
@@ -232,10 +232,10 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                             label = { Text(tab.label) },
                             colors = fieldNavigationBarItemColors(),
                         )
-                        // Capture sits to the right of Plans: an action in the bar, not a
+                        // Capture sits to the right of Today: an action in the bar, not a
                         // destination — never selected, no back stack of its own. Same unselected
                         // colors as Today/Plan/Tools; primary is reserved for the selected tab.
-                        if (index == 1) {
+                        if (index == 0) {
                             NavigationBarItem(
                                 modifier = Modifier.testTag(CaptureNavAction.testTag),
                                 selected = false,
@@ -314,6 +314,11 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         },
                         onOpenVideo = { videoId ->
                             navController.navigate(AppRoutes.videoPlayback(videoId))
+                        },
+                        // Blockers and record-backed rows open the record detail owned by its
+                        // tool (Issues / Incidents / Punch list) — same destination the lists use.
+                        onOpenRecord = { recordId ->
+                            navController.navigate(AppRoutes.recordDetail(recordId))
                         },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },

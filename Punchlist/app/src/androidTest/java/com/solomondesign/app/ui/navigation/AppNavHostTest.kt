@@ -173,7 +173,7 @@ class AppNavHostTest {
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TODAY_HOME}").assertExists()
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.PLAN_HOME}").assertExists()
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").assertExists()
-        // Plus the Capture action, between Plans and Tools.
+        // Plus the Capture action, between Today and Plans.
         composeTestRule.onNodeWithTag("bottomNavCapture").assertExists()
 
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.PLAN_HOME}").performClick()

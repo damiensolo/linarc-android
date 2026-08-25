@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -149,12 +150,17 @@ fun RecordListScreen(
                     ?.let { ProjectImageRepository.find(it.ref) }
                 FieldWorkRow(
                     title = record.title,
-                    subtitle = "${record.type} · ${record.location} · " +
+                    subtitle = listOfNotNull(
+                        "Blocks work".takeIf { record.blocksWork },
+                        record.type,
+                        record.location,
                         formatRecordDate(record.eventDateMillis),
-                    statusColor = when (category) {
-                        RecordCategory.ISSUE -> MaterialTheme.colorScheme.error
-                        RecordCategory.INCIDENT -> MaterialTheme.colorScheme.tertiary
-                        RecordCategory.PUNCH -> MaterialTheme.colorScheme.outline
+                    ).joinToString(" · "),
+                    // Red is reserved for actual work stoppages; a logged record stays calm.
+                    statusColor = when {
+                        record.blocksWork -> MaterialTheme.colorScheme.error
+                        category == RecordCategory.PUNCH -> MaterialTheme.colorScheme.outline
+                        else -> MaterialTheme.colorScheme.tertiary
                     },
                     leading = photo?.let { image -> { ImageThumbnail(image = image) } },
                     enabled = true,
@@ -209,10 +215,71 @@ fun RecordDetailScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
+                text = "${record.severity.label} severity · ${record.impact.label} impact",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 text = "Logged ${formatRecordDate(record.createdAtMillis)} by ${record.authorName}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (record.blocksWork) {
+                // The auditable stoppage: why, what's scoped, when it should clear, who can
+                // clear it. A record without this banner is logged-and-active, nothing more.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(12.dp)
+                        .testTag("recordBlockingBanner"),
+                ) {
+                    Text(
+                        text = "Blocks work",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    if (record.blockingReason.isNotBlank()) {
+                        Text(
+                            text = record.blockingReason,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                    val scope = listOf(record.affectedTrade, record.affectedTask, record.workPackage)
+                        .filter { it.isNotBlank() }
+                    if (scope.isNotEmpty()) {
+                        Text(
+                            text = "Scoped to: ${scope.joinToString(" · ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                    val resolution = listOfNotNull(
+                        record.expectedResolutionMillis?.let { "Resolve by ${formatRecordDate(it)}" },
+                        record.resolutionAuthority.takeIf { it.isNotBlank() }
+                            ?.let { "Cleared by: $it" },
+                        DemoProjectRepository.crewMember(record.escalationContactId)?.name
+                            ?.let { "Escalate to: $it" },
+                    )
+                    if (resolution.isNotEmpty()) {
+                        Text(
+                            text = resolution.joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                    if (record.acknowledgementRequired) {
+                        Text(
+                            text = "Crew acknowledgement required before starting scoped work.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
             if (record.description.isNotBlank()) {
                 Text("Description", style = MaterialTheme.typography.titleMedium)
                 Text(record.description, style = MaterialTheme.typography.bodyMedium)

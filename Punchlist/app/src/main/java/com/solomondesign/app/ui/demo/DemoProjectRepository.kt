@@ -46,6 +46,27 @@ object DemoProjectRepository {
     val pins = mutableStateListOf<PlanPin>()
     val outboxItems = mutableStateListOf<OutboxItem>()
 
+    val queuedOutboxCount: Int
+        get() = outboxItems.count { it.status == OutboxStatus.QUEUED }
+
+    /** Every publish-style action funnels here: it commits locally, then waits for signal. */
+    fun queueOutbox(id: String, title: String, detail: String = "") {
+        outboxItems.add(OutboxItem(id = id, title = title, detail = detail))
+    }
+
+    /**
+     * Flips the oldest queued entry to [OutboxStatus.SENT] and returns it, or null once the
+     * queue is drained. The Outbox screen's "send all" walks this one entry at a time so the
+     * demo shows the queue visibly draining when signal "returns" — no real sync happens.
+     */
+    fun sendNextQueuedOutboxItem(): OutboxItem? {
+        val index = outboxItems.indexOfFirst { it.status == OutboxStatus.QUEUED }
+        if (index == -1) return null
+        val sent = outboxItems[index].copy(status = OutboxStatus.SENT)
+        outboxItems[index] = sent
+        return sent
+    }
+
     /** Pin id -> its comment thread. A state map so the sheet viewer recomposes on new comments. */
     private val pinComments = mutableStateMapOf<String, List<PinComment>>()
 
@@ -98,6 +119,11 @@ object DemoProjectRepository {
         val published = VoiceLogPublisher.from(record)
         published.items.forEach { streamItems.add(0, it) }
         published.pins.forEach { pins.add(it) }
+        queueOutbox(
+            id = "outbox-log-${record.id}",
+            title = "Voice daily log",
+            detail = record.transcript.ifBlank { "Submitted from voice" }.take(60),
+        )
     }
 
     /**
@@ -163,6 +189,11 @@ object DemoProjectRepository {
                 yFraction = 0.52f,
             )
         }
+        queueOutbox(
+            id = "outbox-$photoId",
+            title = "Photo: ${title.ifBlank { "Site photo" }}",
+            detail = subtitle,
+        )
         return photoId
     }
 
@@ -216,15 +247,23 @@ object DemoProjectRepository {
                 yFraction = 0.44f,
             ),
         )
+        queueOutbox(id = "outbox-$videoId", title = "Video: $title", detail = subtitle)
         return videoId
     }
 
+    /**
+     * Raises a blocker: a blocking row on Today plus a Plan pin. Only call this for actual
+     * work stoppages — a merely logged issue publishes through [addRecord] without it.
+     * [recordId] is the [FieldRecord] behind the blocker, when there is one — it makes the
+     * Today row tappable through to the record detail.
+     */
     fun addIssue(
         title: String,
         location: String,
         note: String,
         xFraction: Float = 0.58f,
         yFraction: Float = 0.62f,
+        recordId: String? = null,
     ) {
         val now = System.currentTimeMillis()
         val issueId = "issue-$now"
@@ -236,6 +275,8 @@ object DemoProjectRepository {
                 title = title,
                 subtitle = listOf(location, note).filter { it.isNotBlank() }.joinToString(" · "),
                 timestampMillis = now,
+                relatedFieldRecordId = recordId,
+                blocking = true,
             ),
         )
         pins.add(
@@ -261,27 +302,27 @@ object DemoProjectRepository {
     /**
      * Publishes a created record (issue / incident / punch item) everywhere it belongs:
      * the [RecordRepository] behind its tool list, one queued Outbox entry (offline-first),
-     * and the shared surfaces — Issues and Incidents land on Today's Blockers and as a Plan
-     * pin; a Punch item is location work, so it pins on the Plan without shouting on Today.
+     * and a Plan pin at its location. Issued ≠ blocked: only a record explicitly marked
+     * [FieldRecord.blocksWork] (by the reporter or its type's configured default) also lands
+     * on Today's Blockers — and it blocks its scoped task/trade/work package, never the crew.
      * Photo attachments are linked back to the record so the viewer shows the association.
      */
     fun addRecord(record: FieldRecord) {
         RecordRepository.add(record)
-        outboxItems.add(
-            OutboxItem(
-                id = "outbox-${record.id}",
-                title = "${record.category.label}: ${record.title}",
-                subtitle = "Queued · waiting for signal",
-            ),
+        queueOutbox(
+            id = "outbox-${record.id}",
+            title = "${record.category.label}: ${record.title}",
+            detail = record.location,
         )
-        when (record.category) {
-            RecordCategory.ISSUE, RecordCategory.INCIDENT -> addIssue(
+        if (record.blocksWork) {
+            addIssue(
                 title = record.title,
                 location = record.location,
-                note = record.description,
+                note = record.blockingReason.ifBlank { record.description },
+                recordId = record.id,
             )
-
-            RecordCategory.PUNCH -> pins.add(
+        } else {
+            pins.add(
                 PlanPin(
                     id = "pin-${record.id}",
                     kind = PinKind.ISSUE,
@@ -326,14 +367,11 @@ object DemoProjectRepository {
         if (unpublishedCount == 0) return 0
         pinComments[pinId] = thread.map { it.copy(published = true) }
         val label = pins.firstOrNull { it.id == pinId }?.label ?: "Plan pin"
-        outboxItems.add(
-            OutboxItem(
-                // Size suffix keeps ids unique even for two publishes inside one millisecond.
-                id = "outbox-$pinId-${System.currentTimeMillis()}-${outboxItems.size}",
-                title = "Pin comments: $label",
-                subtitle = "$unpublishedCount comment${if (unpublishedCount == 1) "" else "s"} · " +
-                    "Queued · waiting for signal",
-            ),
+        queueOutbox(
+            // Size suffix keeps ids unique even for two publishes inside one millisecond.
+            id = "outbox-$pinId-${System.currentTimeMillis()}-${outboxItems.size}",
+            title = "Pin comments: $label",
+            detail = "$unpublishedCount comment${if (unpublishedCount == 1) "" else "s"}",
         )
         return unpublishedCount
     }
@@ -353,12 +391,28 @@ object DemoProjectRepository {
         val now = System.currentTimeMillis()
         streamItems.addAll(
             listOf(
+                // Today's face of RecordRepository's seeded "rec-seed-issue", which is marked
+                // blocksWork — so the seed mirrors what addRecord does live for a blocking
+                // record: a linked Blockers row plus a Column 4 pin. (The other record seeds
+                // are logged-not-blocking, so they stay off Today by design.)
+                StreamItem(
+                    id = "stream-rec-seed-issue",
+                    kind = StreamKind.ISSUE,
+                    title = "Med-gas conflict at Column 4",
+                    subtitle = "Column 4 · blocks close-in until re-route",
+                    timestampMillis = now - 4 * 3_600_000,
+                    relatedFieldRecordId = "rec-seed-issue",
+                    blocking = true,
+                ),
+                // Linked to RecordRepository's "rec-seed-inspection" punch item so the row
+                // opens a real record — nothing on Today should dead-end.
                 StreamItem(
                     id = "seed-task-1",
                     kind = StreamKind.TASK,
                     title = "Frame inspection",
                     subtitle = "Area B · gridline C",
                     timestampMillis = now - 3_600_000,
+                    relatedFieldRecordId = "rec-seed-inspection",
                 ),
                 // Ids follow the stream-/pin-<imageId> convention (not seed-*) on purpose: this
                 // row is the Today face of ProjectImageRepository's seeded "img-yesterday", so
@@ -383,10 +437,20 @@ object DemoProjectRepository {
                 yFraction = 0.58f,
             ),
         )
+        pins.add(
+            PlanPin(
+                id = "pin-rec-seed-issue",
+                kind = PinKind.ISSUE,
+                label = "Med-gas conflict at Column 4",
+                snippet = "Column 4",
+                xFraction = VoiceLogPublisher.COLUMN_4_X,
+                yFraction = VoiceLogPublisher.COLUMN_4_Y,
+            ),
+        )
         outboxItems.addAll(
             listOf(
-                OutboxItem("outbox-1", "Photo: Area B framing", "Queued · waiting for signal"),
-                OutboxItem("outbox-2", "Issue: Missing guardrail", "Queued · waiting for signal"),
+                OutboxItem("outbox-1", "Photo: Area B framing", "Area B"),
+                OutboxItem("outbox-2", "Issue: Missing guardrail", "Level 2"),
             ),
         )
     }

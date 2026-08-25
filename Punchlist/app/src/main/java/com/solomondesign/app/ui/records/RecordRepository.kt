@@ -38,6 +38,8 @@ object RecordRepository {
         val hour = 3_600_000L
         _records.addAll(
             listOf(
+                // The one seeded blocker: the reporter marked it blocks-work (a dependency that
+                // must resolve before close-in), so it also shows on Today's Blockers.
                 FieldRecord(
                     id = "rec-seed-issue",
                     category = RecordCategory.ISSUE,
@@ -52,7 +54,21 @@ object RecordRepository {
                     ),
                     createdAtMillis = now - 4 * hour,
                     authorName = "Sam Reyes",
+                    severity = RecordSeverity.HIGH,
+                    impact = RecordImpact.SCHEDULE,
+                    blocksWork = true,
+                    affectedTrade = "Electrical",
+                    // A real FieldTaskRepository task: the block scopes to this one task.
+                    affectedTask = "Rough-in branch circuits, exam 5–8",
+                    workPackage = "WP-04 MEP rough-in",
+                    blockingReason = "Close-in can't proceed until the branch line re-routes around the med-gas drop.",
+                    expectedResolutionMillis = now + 48 * hour,
+                    escalationContactId = "sam-reyes",
+                    resolutionAuthority = "Superintendent",
+                    acknowledgementRequired = true,
                 ),
+                // Logged, not blocking: the near miss is documented and the area is taped off,
+                // but no scheduled work is stopped — it stays off Today's Blockers.
                 FieldRecord(
                     id = "rec-seed-incident",
                     category = RecordCategory.INCIDENT,
@@ -65,6 +81,24 @@ object RecordRepository {
                     attachments = emptyList(),
                     createdAtMillis = now - 26 * hour,
                     authorName = "Dave Miller",
+                    severity = RecordSeverity.HIGH,
+                    impact = RecordImpact.SAFETY,
+                ),
+                // Today's seeded "Frame inspection" row deep-links to this record
+                // (DemoProjectRepository.seed sets relatedFieldRecordId = this id).
+                FieldRecord(
+                    id = "rec-seed-inspection",
+                    category = RecordCategory.PUNCH,
+                    title = "Frame inspection",
+                    type = "Incomplete work",
+                    description = "Gridline C walk: add blocking at the exam 4 header and " +
+                        "re-nail two shear panels before drywall.",
+                    location = "Area B",
+                    eventDateMillis = now - hour,
+                    assigneeIds = listOf("hector-ortiz"),
+                    attachments = emptyList(),
+                    createdAtMillis = now - hour,
+                    authorName = "Hector Ortiz",
                 ),
                 FieldRecord(
                     id = "rec-seed-punch",

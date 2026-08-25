@@ -64,7 +64,7 @@ val ScreenChrome.showBottomBar: Boolean
 /**
  * The Capture entry in the bottom navigation bar — an **action, not a destination** (decided
  * 2026-08-24, superseding the earlier "capture is a FAB, never in the bar" rule). It renders
- * between Plans and Tools, never shows a selected state, never owns a back stack, and opens the
+ * between Today and Plans, never shows a selected state, never owns a back stack, and opens the
  * full-screen in-app camera. The FAB slot below stays for *contextual* tool actions only.
  *
  * `contentDescription` and `testTag` are asserted by `AppNavHostTest` — do not rename them.

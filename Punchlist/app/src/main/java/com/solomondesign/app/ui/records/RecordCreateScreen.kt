@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
@@ -41,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -64,6 +66,7 @@ import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
 import com.solomondesign.app.ui.images.ImageThumbnail
 import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -106,6 +109,7 @@ fun RecordCreateScreen(
     var locationExpanded by remember { mutableStateOf(false) }
     var showPhotoPicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showResolutionPicker by remember { mutableStateOf(false) }
 
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -128,7 +132,7 @@ fun RecordCreateScreen(
         hasUnsavedChanges = RecordDraft.hasEdits,
         onConfirm = save,
         confirmLabel = "Save",
-        confirmEnabled = RecordDraft.title.isNotBlank(),
+        confirmEnabled = RecordDraft.canSubmit,
         discardTitle = "Discard ${category.label.lowercase()}?",
         discardMessage = "This ${category.label.lowercase()} hasn't been submitted and will be lost.",
     ) { padding ->
@@ -174,7 +178,8 @@ fun RecordCreateScreen(
                         DropdownMenuItem(
                             text = { Text(option) },
                             onClick = {
-                                RecordDraft.type = option
+                                // Applies the type's configured blocking default too.
+                                RecordDraft.selectType(option)
                                 typeExpanded = false
                             },
                             modifier = Modifier.testTag("recordType_$option"),
@@ -182,6 +187,26 @@ fun RecordCreateScreen(
                     }
                 }
             }
+
+            RecordChoiceChips(
+                label = "Severity",
+                options = RecordSeverity.entries.map { it.label },
+                selected = RecordDraft.severity.label,
+                onSelect = { picked ->
+                    RecordDraft.severity = RecordSeverity.entries.first { it.label == picked }
+                },
+                tagPrefix = "recordSeverity",
+            )
+
+            RecordChoiceChips(
+                label = "Impact",
+                options = RecordImpact.entries.map { it.label },
+                selected = RecordDraft.impact.label,
+                onSelect = { picked ->
+                    RecordDraft.impact = RecordImpact.entries.first { it.label == picked }
+                },
+                tagPrefix = "recordImpact",
+            )
 
             OutlinedTextField(
                 value = RecordDraft.description,
@@ -268,6 +293,137 @@ fun RecordCreateScreen(
                             },
                         )
                     }
+                }
+            }
+
+            // Issued ≠ blocked: logging a record never stops work by itself. Blocking is this
+            // explicit toggle (or a type's configured default), scoped to a task/trade/package.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Blocks work?", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = if (RecordDraft.blocksWork) {
+                            "Blocks only the scoped task, area, or work package — not the crew."
+                        } else {
+                            "Off by default — submitting logs the ${category.label.lowercase()} " +
+                                "without stopping work."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = RecordDraft.blocksWork,
+                    onCheckedChange = { RecordDraft.setBlocking(it) },
+                    modifier = Modifier.testTag("recordBlocksWork"),
+                )
+            }
+
+            if (RecordDraft.blocksWork) {
+                Text("Blocking details", style = MaterialTheme.typography.titleSmall)
+
+                OutlinedTextField(
+                    value = RecordDraft.blockingReason,
+                    onValueChange = { RecordDraft.blockingReason = it },
+                    label = { Text("Blocking reason") },
+                    supportingText = { Text("Required to submit a blocking record") },
+                    minLines = 2,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("recordBlockingReason"),
+                )
+
+                RecordDropdownField(
+                    label = "Affected trade",
+                    value = RecordDraft.affectedTrade,
+                    options = AFFECTED_TRADES,
+                    onSelect = { RecordDraft.affectedTrade = it },
+                    testTag = "recordTradeField",
+                )
+                RecordDropdownField(
+                    label = "Affected task",
+                    value = RecordDraft.affectedTask,
+                    options = FieldTaskRepository.tasks.map { it.title },
+                    onSelect = { RecordDraft.affectedTask = it },
+                    testTag = "recordTaskField",
+                )
+                RecordDropdownField(
+                    label = "Work package",
+                    value = RecordDraft.workPackage,
+                    options = WORK_PACKAGES,
+                    onSelect = { RecordDraft.workPackage = it },
+                    testTag = "recordWorkPackageField",
+                )
+
+                // Same disabled-field-plus-overlay construction as the event date below.
+                Box {
+                    OutlinedTextField(
+                        value = RecordDraft.expectedResolutionMillis
+                            ?.let(::formatEventDate) ?: "Not set",
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = false,
+                        label = { Text("Expected resolution") },
+                        trailingIcon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable(onClickLabel = "Pick expected resolution date") {
+                                showResolutionPicker = true
+                            }
+                            .testTag("recordExpectedResolution"),
+                    )
+                }
+
+                RecordDropdownField(
+                    label = "Escalation contact",
+                    value = DemoProjectRepository.crewMember(RecordDraft.escalationContactId)
+                        ?.name.orEmpty(),
+                    options = DemoProjectRepository.crew.map { it.name },
+                    onSelect = { picked ->
+                        RecordDraft.escalationContactId =
+                            DemoProjectRepository.crew.first { it.name == picked }.id
+                    },
+                    testTag = "recordEscalationField",
+                )
+                RecordDropdownField(
+                    label = "Resolution authority",
+                    value = RecordDraft.resolutionAuthority,
+                    options = RESOLUTION_AUTHORITIES,
+                    onSelect = { RecordDraft.resolutionAuthority = it },
+                    testTag = "recordAuthorityField",
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Acknowledgement required", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = "Affected crew must acknowledge before starting scoped work.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = RecordDraft.acknowledgementRequired,
+                        onCheckedChange = { RecordDraft.acknowledgementRequired = it },
+                        modifier = Modifier.testTag("recordAckRequired"),
+                    )
                 }
             }
 
@@ -387,7 +543,7 @@ fun RecordCreateScreen(
 
             AppButton(
                 text = "Submit ${category.label.lowercase()}",
-                enabled = RecordDraft.title.isNotBlank(),
+                enabled = RecordDraft.canSubmit,
                 onClick = save,
                 modifier = Modifier.testTag("recordSubmit"),
             )
@@ -452,6 +608,109 @@ fun RecordCreateScreen(
             },
         ) {
             DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showResolutionPicker) {
+        val resolutionState = rememberDatePickerState(
+            initialSelectedDateMillis = RecordDraft.expectedResolutionMillis
+                ?: System.currentTimeMillis(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showResolutionPicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        resolutionState.selectedDateMillis?.let {
+                            RecordDraft.expectedResolutionMillis = it
+                        }
+                        showResolutionPicker = false
+                    },
+                    modifier = Modifier.testTag("recordExpectedResolutionOk"),
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResolutionPicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = resolutionState)
+        }
+    }
+}
+
+/** Single-select chip row for short enumerations (severity, impact). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RecordChoiceChips(
+    label: String,
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    tagPrefix: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.titleSmall)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            options.forEach { option ->
+                FilterChip(
+                    selected = option == selected,
+                    onClick = { onSelect(option) },
+                    label = { Text(option) },
+                    modifier = Modifier.testTag("${tagPrefix}_$option"),
+                )
+            }
+        }
+    }
+}
+
+/** Read-only dropdown field; used by the blocking-scope pickers. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecordDropdownField(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    testTag: String,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier,
+    ) {
+        OutlinedTextField(
+            value = value.ifBlank { "Not set" },
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth()
+                .testTag(testTag),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    },
+                    modifier = Modifier.testTag("${testTag}_$option"),
+                )
+            }
         }
     }
 }

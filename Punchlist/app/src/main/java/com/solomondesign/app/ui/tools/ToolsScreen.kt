@@ -79,7 +79,7 @@ fun ToolsScreen(
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
-    val outboxCount = DemoProjectRepository.outboxItems.size
+    val queuedOutbox = DemoProjectRepository.queuedOutboxCount
     val darkTheme = DemoProjectRepository.darkTheme
     var isGrid by rememberSaveable { mutableStateOf(true) }
     var showViewAs by remember { mutableStateOf(false) }
@@ -213,7 +213,11 @@ fun ToolsScreen(
             item {
                 FieldWorkRow(
                     title = "Outbox",
-                    subtitle = "$outboxCount items queued",
+                    subtitle = if (queuedOutbox > 0) {
+                        "$queuedOutbox queued · waiting for signal"
+                    } else {
+                        "All caught up"
+                    },
                     statusColor = muted,
                     enabled = true,
                     onClick = onOpenOutbox,

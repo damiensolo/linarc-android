@@ -101,7 +101,7 @@ class RecordDraftTest {
     fun toRecord_copiesEveryFieldAndTrims() {
         RecordDraft.begin(RecordCategory.INCIDENT, nowMillis = 5L, seedPhotoImageIds = listOf("img-2"))
         RecordDraft.title = "  Near miss at gate 2  "
-        RecordDraft.type = "Near miss"
+        RecordDraft.selectType("Near miss")
         RecordDraft.description = " lift path blocked "
         RecordDraft.location = "Area B"
         RecordDraft.toggleAssignee("sam-reyes")
@@ -117,6 +117,61 @@ class RecordDraftTest {
         assertEquals(listOf("sam-reyes"), record.assigneeIds)
         assertEquals(listOf("img-2"), record.attachments.map { it.ref })
         assertEquals("Alex Kim", record.authorName)
+    }
+
+    @Test
+    fun selectType_appliesTheConfiguredBlockingDefault() {
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
+        assertFalse("a fresh form never starts blocking", RecordDraft.blocksWork)
+
+        RecordDraft.selectType("Safety hazard")
+        assertTrue("safety hazards block by default", RecordDraft.blocksWork)
+        assertTrue("blocking turns acknowledgement on", RecordDraft.acknowledgementRequired)
+
+        RecordDraft.selectType("Observation")
+        assertFalse("observations are logged, not blocking", RecordDraft.blocksWork)
+
+        // The reporter's explicit choice still wins over the default.
+        RecordDraft.setBlocking(true)
+        assertTrue(RecordDraft.blocksWork)
+    }
+
+    @Test
+    fun canSubmit_requiresABlockingReasonWhenBlocking() {
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
+        RecordDraft.title = "Med-gas clash"
+        assertTrue(RecordDraft.canSubmit)
+
+        RecordDraft.setBlocking(true)
+        assertFalse("a block without a reason isn't auditable", RecordDraft.canSubmit)
+
+        RecordDraft.blockingReason = "Re-route required before close-in"
+        assertTrue(RecordDraft.canSubmit)
+    }
+
+    @Test
+    fun toRecord_carriesBlockingScope_butStripsItWhenToggledOff() {
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L)
+        RecordDraft.title = "Med-gas clash"
+        RecordDraft.setBlocking(true)
+        RecordDraft.blockingReason = "  Re-route required  "
+        RecordDraft.affectedTrade = "Electrical"
+        RecordDraft.expectedResolutionMillis = 99L
+
+        val blocking = RecordDraft.toRecord(id = "rec-b", nowMillis = 2L, authorName = "A")
+        assertTrue(blocking.blocksWork)
+        assertEquals("Re-route required", blocking.blockingReason)
+        assertEquals("Electrical", blocking.affectedTrade)
+        assertEquals(99L, blocking.expectedResolutionMillis!!)
+        assertTrue(blocking.acknowledgementRequired)
+
+        RecordDraft.setBlocking(false)
+        val logged = RecordDraft.toRecord(id = "rec-l", nowMillis = 2L, authorName = "A")
+        assertFalse(logged.blocksWork)
+        assertEquals("a non-blocking record carries no blocking scope", "", logged.blockingReason)
+        assertEquals("", logged.affectedTrade)
+        assertNull(logged.expectedResolutionMillis)
+        assertFalse(logged.acknowledgementRequired)
     }
 
     @Test

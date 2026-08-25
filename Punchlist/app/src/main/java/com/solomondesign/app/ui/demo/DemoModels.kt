@@ -43,6 +43,18 @@ data class StreamItem(
      * from. Today deep-links into the video playback screen when set.
      */
     val relatedVideoId: String? = null,
+    /**
+     * For rows published from a [com.solomondesign.app.ui.records.FieldRecord] (issue,
+     * incident, or punch item): the record id. Today deep-links into that tool's record
+     * detail when set. Distinct from [relatedRecordId], which is a voice daily-log id.
+     */
+    val relatedFieldRecordId: String? = null,
+    /**
+     * True only for rows that represent an active work stoppage — records explicitly marked
+     * "blocks work" and dictated delays. Today's Blockers section shows exactly these; a
+     * logged-but-not-blocking issue stays off it (issued ≠ blocked).
+     */
+    val blocking: Boolean = false,
 )
 
 data class PlanPin(
@@ -55,11 +67,33 @@ data class PlanPin(
     val relatedRecordId: String? = null,
 )
 
+enum class OutboxStatus {
+    QUEUED,
+    SENT,
+}
+
+/**
+ * One publish-style action waiting for signal. Everything a user "sends" (records, time cards,
+ * messages, photos, videos, daily logs, pin-comment batches) commits on-device first and queues
+ * here; the Outbox screen's "send all" flips entries to [OutboxStatus.SENT] to demo signal
+ * returning. There is still no real sync engine — that is an explicit prototype non-goal.
+ */
 data class OutboxItem(
     val id: String,
     val title: String,
-    val subtitle: String,
+    /** What is inside the entry (e.g. "2 comments", "Column 4"), not its queue state. */
+    val detail: String = "",
+    val status: OutboxStatus = OutboxStatus.QUEUED,
 )
+
+/** Row subtitle combining [OutboxItem.detail] with queue state. Pure so the wording is testable. */
+fun OutboxItem.statusLine(): String {
+    val state = when (status) {
+        OutboxStatus.QUEUED -> "Queued · waiting for signal"
+        OutboxStatus.SENT -> "Sent to project"
+    }
+    return if (detail.isBlank()) state else "$detail · $state"
+}
 
 /**
  * One comment on a [PlanPin]'s thread in the sheet viewer. [published] flips when the thread is

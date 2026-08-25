@@ -56,6 +56,7 @@ fun TodayScreen(
     onOpenVoiceLog: (String) -> Unit,
     onOpenImage: (String) -> Unit,
     onOpenVideo: (String) -> Unit,
+    onOpenRecord: (String) -> Unit,
     onOpenProfile: () -> Unit,
     onSwitchProject: () -> Unit,
     modifier: Modifier = Modifier,
@@ -67,11 +68,11 @@ fun TodayScreen(
     var showStartMyDay by remember { mutableStateOf(false) }
     var crewExpanded by remember { mutableStateOf(true) }
 
-    val blockers = streamItems.filter { it.kind == StreamKind.BLOCKER || it.kind == StreamKind.ISSUE }
-    val captures = streamItems.filter {
-        it.kind == StreamKind.DAILY_LOG || it.kind == StreamKind.PHOTO ||
-            it.kind == StreamKind.VIDEO || it.kind == StreamKind.TASK
-    }
+    // Issued ≠ blocked: Blockers shows only rows explicitly marked blocking (records with the
+    // Blocks work toggle, dictated delays). Everything else — including logged-not-blocking
+    // issues — is activity, not a stoppage.
+    val blockers = streamItems.filter { it.blocking }
+    val captures = streamItems.filterNot { it.blocking }
 
     if (showStartMyDay) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -167,7 +168,7 @@ fun TodayScreen(
         if (blockers.isEmpty()) {
             item {
                 Text(
-                    text = "No blockers yet. Dictate a voice log if something is in the way.",
+                    text = "No blockers. Issues land here only when marked as blocking work.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -175,6 +176,8 @@ fun TodayScreen(
             }
         } else {
             items(blockers, key = { it.id }) { item ->
+                // Every blocker opens the thing behind it: record-backed rows open the record
+                // detail in its tool; voice-log rows open the daily log they came from.
                 FieldWorkRow(
                     title = item.title,
                     subtitle = item.subtitle + " · " + formatTimestamp(item.timestampMillis),
@@ -183,8 +186,14 @@ fun TodayScreen(
                     } else {
                         MaterialTheme.colorScheme.tertiary
                     },
-                    enabled = item.relatedRecordId != null && item.kind == StreamKind.DAILY_LOG,
-                    onClick = { item.relatedRecordId?.let(onOpenVoiceLog) },
+                    enabled = item.relatedFieldRecordId != null || item.relatedRecordId != null,
+                    onClick = {
+                        when {
+                            item.relatedFieldRecordId != null -> onOpenRecord(item.relatedFieldRecordId)
+                            item.relatedRecordId != null -> onOpenVoiceLog(item.relatedRecordId)
+                        }
+                    },
+                    modifier = Modifier.testTag("streamItem_${item.id}"),
                 )
             }
         }
@@ -194,7 +203,8 @@ fun TodayScreen(
             // Photo rows carry a live thumbnail and deep-link into the full-screen image viewer
             // (share / markup / delete / create). Deleting there removes this row too, so a
             // linked id never dangles. Video rows carry a camcorder glyph and deep-link into
-            // video playback.
+            // video playback; record-backed rows (e.g. the seeded Frame inspection punch item)
+            // deep-link into their tool's record detail.
             val linkedImage = item.relatedImageId?.let { ProjectImageRepository.find(it) }
             FieldWorkRow(
                 title = item.title,
@@ -215,15 +225,17 @@ fun TodayScreen(
 
                     else -> null
                 },
-                enabled = (item.kind == StreamKind.DAILY_LOG && item.relatedRecordId != null) ||
+                enabled = item.relatedFieldRecordId != null ||
                     item.relatedVideoId != null ||
-                    linkedImage != null,
+                    linkedImage != null ||
+                    item.relatedRecordId != null,
                 onClick = {
                     when {
-                        item.kind == StreamKind.DAILY_LOG -> item.relatedRecordId?.let(onOpenVoiceLog)
-                        item.relatedVideoId != null ->
-                            onOpenVideo(item.relatedVideoId)
+                        item.relatedFieldRecordId != null -> onOpenRecord(item.relatedFieldRecordId)
+                        item.relatedVideoId != null -> onOpenVideo(item.relatedVideoId)
                         linkedImage != null -> onOpenImage(linkedImage.id)
+                        // Daily logs and voice-dictated (non-blocking) issues open their log.
+                        item.relatedRecordId != null -> onOpenVoiceLog(item.relatedRecordId)
                     }
                 },
                 modifier = Modifier.testTag("streamItem_${item.id}"),

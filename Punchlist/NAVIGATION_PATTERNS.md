@@ -35,7 +35,7 @@ Recommended behavior this prototype follows:
 3. **Tapping a different destination restores that destination’s hierarchy** (multiple back stacks), so returning to Tools restores Field task / Time cards / etc.
 4. **Tapping the already-selected destination returns to the top of that destination’s hierarchy.** That is the second press: Tools → catalog.
 
-Capture lives in the bar (between Plans and Tools, revised 2026-08-24) but is an **action, not a destination**: `selected` is always false, it owns no back stack, and tapping it pushes the full-screen camera (an immersive route, so the whole bar disappears). A capture *tab* — one that stays lit or restores a stack — remains disallowed.
+Capture lives in the bar (between Today and Plans, revised 2026-08-25) but is an **action, not a destination**: `selected` is always false, it owns no back stack, and tapping it pushes the full-screen camera (an immersive route, so the whole bar disappears). A capture *tab* — one that stays lit or restores a stack — remains disallowed.
 
 iOS `UITabBarController` matches this: switching tabs preserves each tab’s stack; tapping the selected tab pops to root. Field users coming from either platform should feel the same orientation model.
 
@@ -82,7 +82,7 @@ Layout rule in `AppNavHost.kt`: Pattern B destinations live inside their tab’s
 
 - **Not** “Tools always opens the last tool.” Only returning from another tab restores. Reselecting Tools while it is current goes home.
 - **Not** a global “last screen” across the whole app. Stacks are per tab.
-- **Not** an invitation to add tabs. The bar stays Today / Plans / Capture / Tools, and Capture is an action (never selected, no stack) — not a fourth tab.
+- **Not** an invitation to add tabs. The bar stays Today / Capture / Plans / Tools, and Capture is an action (never selected, no stack) — not a fourth tab.
 - **Not** a substitute for the Back arrow. Back still walks the current tab one level at a time. Reselect is the fast path to the tab root.
 
 ## Tests (do not drop)

@@ -22,6 +22,7 @@ object RecordDraft {
         private set
     var title by mutableStateOf("")
     var type by mutableStateOf(RecordCategory.ISSUE.typeOptions.first())
+        private set
     var description by mutableStateOf("")
     var location by mutableStateOf(RECORD_LOCATIONS.first())
     var eventDateMillis by mutableStateOf(0L)
@@ -30,11 +31,50 @@ object RecordDraft {
     var attachments by mutableStateOf(listOf<RecordAttachment>())
         private set
 
+    var severity by mutableStateOf(RecordSeverity.MEDIUM)
+    var impact by mutableStateOf(RecordImpact.INFORMATIONAL)
+    var blocksWork by mutableStateOf(false)
+        private set
+    var affectedTrade by mutableStateOf("")
+    var affectedTask by mutableStateOf("")
+    var workPackage by mutableStateOf("")
+    var blockingReason by mutableStateOf("")
+    var expectedResolutionMillis by mutableStateOf<Long?>(null)
+    var escalationContactId by mutableStateOf("")
+    var resolutionAuthority by mutableStateOf(RESOLUTION_AUTHORITIES.first())
+    var acknowledgementRequired by mutableStateOf(false)
+
     private var staged = false
 
     /** Drives the discard warning: a photo already attached counts as an edit. */
     val hasEdits: Boolean
-        get() = title.isNotBlank() || description.isNotBlank() || attachments.isNotEmpty()
+        get() = title.isNotBlank() || description.isNotBlank() || attachments.isNotEmpty() ||
+            blocksWork
+
+    /**
+     * Blocking must be auditable, so a record marked "blocks work" cannot be submitted without
+     * saying why. Everything else about blocking (dates, scope) is optional in the prototype.
+     */
+    val canSubmit: Boolean
+        get() = title.isNotBlank() && (!blocksWork || blockingReason.isNotBlank())
+
+    /**
+     * Selecting a type re-applies the configured per-type default (the admin policy): picking
+     * "Safety hazard" turns blocking on, switching back to "Observation" turns it off again.
+     * The reporter can still flip the toggle afterwards — the default is a starting point,
+     * not a lock.
+     */
+    fun selectType(next: String) {
+        type = next
+        setBlocking(category.blocksByDefault(next))
+    }
+
+    /** Turning blocking on also requires acknowledgement by default; off clears the flag.
+     * (Named to avoid a JVM clash with [blocksWork]'s generated private setter.) */
+    fun setBlocking(next: Boolean) {
+        blocksWork = next
+        acknowledgementRequired = next
+    }
 
     /**
      * Resets the draft for [newCategory] and applies any seeds. For [RecordCategory.ISSUE] the
@@ -52,7 +92,6 @@ object RecordDraft {
         val dictated = if (newCategory == RecordCategory.ISSUE) IssueDraftHolder.take() else null
         category = newCategory
         title = seedTitle.ifBlank { dictated?.title.orEmpty() }
-        type = newCategory.typeOptions.first()
         description = seedDescription.ifBlank { dictated?.note.orEmpty() }
         location = (seedLocation ?: dictated?.location)
             ?.takeIf { it in RECORD_LOCATIONS }
@@ -62,6 +101,18 @@ object RecordDraft {
         attachments = seedPhotoImageIds.map { imageId ->
             RecordAttachment(id = "att-$imageId", kind = AttachmentKind.PHOTO, ref = imageId)
         }
+        severity = RecordSeverity.MEDIUM
+        impact = RecordImpact.INFORMATIONAL
+        affectedTrade = ""
+        affectedTask = ""
+        workPackage = ""
+        blockingReason = ""
+        expectedResolutionMillis = null
+        escalationContactId = ""
+        resolutionAuthority = RESOLUTION_AUTHORITIES.first()
+        // Last: applies the type's configured blocking default (first option is never blocking,
+        // so a fresh form always starts with the toggle off).
+        selectType(newCategory.typeOptions.first())
         staged = true
         CameraAttachmentInbox.reset()
     }
@@ -111,6 +162,19 @@ object RecordDraft {
         attachments = attachments,
         createdAtMillis = nowMillis,
         authorName = authorName,
+        severity = severity,
+        impact = impact,
+        blocksWork = blocksWork,
+        // Blocking scope only travels with an actual block — a toggled-off record stays clean
+        // even if the reporter filled these in before changing their mind.
+        affectedTrade = if (blocksWork) affectedTrade else "",
+        affectedTask = if (blocksWork) affectedTask else "",
+        workPackage = if (blocksWork) workPackage else "",
+        blockingReason = if (blocksWork) blockingReason.trim() else "",
+        expectedResolutionMillis = if (blocksWork) expectedResolutionMillis else null,
+        escalationContactId = if (blocksWork) escalationContactId else "",
+        resolutionAuthority = if (blocksWork) resolutionAuthority else "",
+        acknowledgementRequired = blocksWork && acknowledgementRequired,
     )
 
     /**
@@ -126,6 +190,17 @@ object RecordDraft {
         eventDateMillis = 0L
         assigneeIds = emptyList()
         attachments = emptyList()
+        severity = RecordSeverity.MEDIUM
+        impact = RecordImpact.INFORMATIONAL
+        blocksWork = false
+        affectedTrade = ""
+        affectedTask = ""
+        workPackage = ""
+        blockingReason = ""
+        expectedResolutionMillis = null
+        escalationContactId = ""
+        resolutionAuthority = RESOLUTION_AUTHORITIES.first()
+        acknowledgementRequired = false
         staged = false
         CameraAttachmentInbox.reset()
     }

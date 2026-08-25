@@ -12,6 +12,7 @@ import com.solomondesign.app.ui.records.RecordAttachment
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.video.VideoRepository
+import com.solomondesign.app.ui.voicelog.DailyLogRecord
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.tasks.TaskFilter
 import com.solomondesign.app.ui.tasks.TaskStatus
@@ -362,6 +363,71 @@ class FeatureAreaDataTest {
         assertEquals(outboxBefore + 2, DemoProjectRepository.outboxItems.size)
     }
 
+    // ---- outbox ----
+
+    @Test
+    fun outboxSendAllDrainsOldestFirstThenReportsNothingLeft() {
+        val seededQueued = DemoProjectRepository.queuedOutboxCount
+        assertTrue("seeds keep the outbox demoable from first launch", seededQueued >= 2)
+        assertTrue(DemoProjectRepository.outboxItems.all { it.status == OutboxStatus.QUEUED })
+
+        val first = DemoProjectRepository.sendNextQueuedOutboxItem()
+        assertEquals("oldest entry sends first", "outbox-1", first?.id)
+        assertEquals(OutboxStatus.SENT, first?.status)
+        assertEquals(seededQueued - 1, DemoProjectRepository.queuedOutboxCount)
+
+        while (DemoProjectRepository.sendNextQueuedOutboxItem() != null) {
+            // The Outbox screen walks this same loop with a delay between beats.
+        }
+        assertEquals(0, DemoProjectRepository.queuedOutboxCount)
+        assertTrue(DemoProjectRepository.outboxItems.all { it.status == OutboxStatus.SENT })
+        assertNull("a drained queue sends nothing", DemoProjectRepository.sendNextQueuedOutboxItem())
+    }
+
+    @Test
+    fun outboxStatusLineCombinesDetailWithQueueState() {
+        val queued = OutboxItem("x", "Photo: strap", "Area B")
+        assertEquals("Area B · Queued · waiting for signal", queued.statusLine())
+        assertEquals("Area B · Sent to project", queued.copy(status = OutboxStatus.SENT).statusLine())
+        assertEquals("Queued · waiting for signal", OutboxItem("y", "Message").statusLine())
+    }
+
+    /** Photos, videos, and voice logs queue too — the offline story covers every capture type. */
+    @Test
+    fun everyCaptureTypeQueuesOneOutboxEntry() {
+        val before = DemoProjectRepository.queuedOutboxCount
+
+        DemoProjectRepository.addPhoto(title = "Header strap", subtitle = "Area B", createIssue = false)
+        assertEquals(before + 1, DemoProjectRepository.queuedOutboxCount)
+        assertTrue(DemoProjectRepository.outboxItems.last().title.startsWith("Photo:"))
+
+        DemoProjectRepository.addCapturedVideo(
+            title = "Slab pour walk",
+            note = "",
+            videoPath = "video/test.mp4",
+            transcript = "",
+            durationSeconds = 12,
+        )
+        assertEquals(before + 2, DemoProjectRepository.queuedOutboxCount)
+        assertTrue(DemoProjectRepository.outboxItems.last().title.startsWith("Video:"))
+
+        DemoProjectRepository.publishVoiceLog(
+            DailyLogRecord(
+                id = "log-test",
+                timestampMillis = 0L,
+                projectName = DemoProjectRepository.PROJECT_NAME,
+                audioFilePath = "",
+                transcript = "Poured slab, two hour pump delay",
+                laborCards = emptyList(),
+                materialCards = emptyList(),
+                delayCards = emptyList(),
+                issueCards = emptyList(),
+            ),
+        )
+        assertEquals(before + 3, DemoProjectRepository.queuedOutboxCount)
+        assertEquals("Voice daily log", DemoProjectRepository.outboxItems.last().title)
+    }
+
     // ---- records (issues / incidents / punch items) ----
 
     @Test
@@ -376,12 +442,37 @@ class FeatureAreaDataTest {
         assertEquals(ids.size, ids.toSet().size)
     }
 
+    /** Nothing on Today may dead-end: every record-linked seed row resolves to a real record. */
+    @Test
+    fun seededTodayRowsResolveToRealRecords() {
+        val linked = DemoProjectRepository.streamItems.filter { it.relatedFieldRecordId != null }
+        assertTrue("seeds must demo the blocker → record link", linked.isNotEmpty())
+        linked.forEach { row ->
+            assertNotNull(
+                "Today row '${row.title}' links to a missing record",
+                RecordRepository.find(row.relatedFieldRecordId!!),
+            )
+        }
+        assertEquals(
+            "rec-seed-inspection",
+            DemoProjectRepository.streamItems
+                .first { it.title == "Frame inspection" }
+                .relatedFieldRecordId,
+        )
+        assertEquals(
+            "rec-seed-issue",
+            DemoProjectRepository.streamItems
+                .first { it.title == "Med-gas conflict at Column 4" }
+                .relatedFieldRecordId,
+        )
+    }
+
     /**
-     * Issues and Incidents are blockers-grade: they land on Today and pin on the Plan, plus one
-     * queued Outbox entry — and their photo attachments link back to the record.
+     * Issued ≠ blocked: a default issue is logged (tool + outbox + pin, photo linked back) but
+     * does NOT land on Today's Blockers — creating a record never stops work by itself.
      */
     @Test
-    fun addRecord_issuePublishesToTodayPinOutbox_andLinksItsPhoto() {
+    fun addRecord_defaultIssueLogsAndPinsWithoutBlockingToday() {
         val outboxBefore = DemoProjectRepository.outboxItems.size
         val record = FieldRecord(
             id = "rec-test-issue",
@@ -405,17 +496,50 @@ class FeatureAreaDataTest {
         assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
         assertTrue(DemoProjectRepository.outboxItems.last().title.startsWith("Issue:"))
         assertTrue(
-            "issues surface on Today's blockers",
-            DemoProjectRepository.streamItems.any {
-                it.kind == StreamKind.ISSUE && it.title == record.title
-            },
+            "a non-blocking issue must stay off Today",
+            DemoProjectRepository.streamItems.none { it.title == record.title },
         )
-        assertTrue(DemoProjectRepository.pins.any { it.label == record.title })
+        assertTrue(DemoProjectRepository.pins.any { it.id == "pin-rec-test-issue" })
         assertEquals(
             "the attached photo must link back to the record",
             "rec-test-issue",
             ProjectImageRepository.find("img-yesterday")?.linkedRecordId,
         )
+    }
+
+    /**
+     * The explicit blocking status is what shouts: a record marked blocks-work lands on Today's
+     * Blockers as a blocking row linked back to its record, with the reason as the note.
+     */
+    @Test
+    fun addRecord_blockingIssueLandsOnTodayBlockers() {
+        DemoProjectRepository.addRecord(
+            FieldRecord(
+                id = "rec-test-blocking",
+                category = RecordCategory.ISSUE,
+                title = "Failed rough-in inspection, exam 5",
+                type = "Failed inspection",
+                description = "",
+                location = "Level 2",
+                eventDateMillis = 1_000L,
+                assigneeIds = emptyList(),
+                attachments = emptyList(),
+                createdAtMillis = 2_000L,
+                authorName = CurrentUser.NAME,
+                blocksWork = true,
+                blockingReason = "No cover until re-inspection passes",
+            ),
+        )
+
+        val row = DemoProjectRepository.streamItems
+            .first { it.title == "Failed rough-in inspection, exam 5" }
+        assertTrue("the Today row is a blocker", row.blocking)
+        assertEquals("rec-test-blocking", row.relatedFieldRecordId)
+        assertTrue(
+            "the blocking reason travels to the row",
+            row.subtitle.contains("No cover until re-inspection passes"),
+        )
+        assertTrue(DemoProjectRepository.pins.any { it.label == "Failed rough-in inspection, exam 5" })
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.solomondesign.app.ui.collab
 
 import androidx.compose.runtime.mutableStateListOf
 import com.solomondesign.app.ui.demo.DemoProjectRepository
-import com.solomondesign.app.ui.demo.OutboxItem
 
 /** In-memory demo store for collaboration topics and messages. Snapshot state, no ViewModel. */
 object CollabRepository {
@@ -61,12 +60,9 @@ object CollabRepository {
             ),
         )
         _topics[index] = _topics[index].copy(lastActivityMillis = now)
-        DemoProjectRepository.outboxItems.add(
-            OutboxItem(
-                id = "outbox-msg-$nextId",
-                title = "Message: ${_topics[index].title}",
-                subtitle = "Queued · waiting for signal",
-            ),
+        DemoProjectRepository.queueOutbox(
+            id = "outbox-msg-$nextId",
+            title = "Message: ${_topics[index].title}",
         )
     }
 

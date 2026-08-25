@@ -2,7 +2,6 @@ package com.solomondesign.app.ui.timecards
 
 import androidx.compose.runtime.mutableStateListOf
 import com.solomondesign.app.ui.demo.DemoProjectRepository
-import com.solomondesign.app.ui.demo.OutboxItem
 
 /** In-memory demo store for time entries. Snapshot state, no ViewModel. */
 object TimeCardRepository {
@@ -22,12 +21,10 @@ object TimeCardRepository {
     fun addEntry(entry: TimeEntry) {
         _entries.add(0, entry)
         // New entries are queued, matching the prototype's offline story.
-        DemoProjectRepository.outboxItems.add(
-            OutboxItem(
-                id = "outbox-${entry.id}",
-                title = "Time card: ${formatHours(entry.hours + entry.overtimeHours)}",
-                subtitle = "Queued · waiting for signal",
-            ),
+        DemoProjectRepository.queueOutbox(
+            id = "outbox-${entry.id}",
+            title = "Time card: ${formatHours(entry.hours + entry.overtimeHours)}",
+            detail = entry.dateLabel,
         )
     }
 

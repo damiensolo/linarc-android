@@ -41,6 +41,8 @@ object VoiceLogPublisher {
                     subtitle = "${delay.hours} hrs · from voice log",
                     timestampMillis = record.timestampMillis,
                     relatedRecordId = record.id,
+                    // A dictated delay IS a reported work stoppage — it belongs on Blockers.
+                    blocking = true,
                 ),
             )
         }
@@ -54,6 +56,9 @@ object VoiceLogPublisher {
                     subtitle = issue.location,
                     timestampMillis = record.timestampMillis,
                     relatedRecordId = record.id,
+                    // Issued ≠ blocked: a dictated issue is logged and pinned but doesn't stop
+                    // work — blocking needs the explicit toggle on a record (or a type rule).
+                    blocking = false,
                 ),
             )
             pins.add(pinForIssue(issue, record.id))
