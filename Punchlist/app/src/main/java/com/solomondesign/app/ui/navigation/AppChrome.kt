@@ -162,6 +162,7 @@ private val chromeByRoute: Map<String, ScreenChrome> = mapOf(
     // were immersive before the graphs were nested.
     AppRoutes.DAILY_LOG_HISTORY to ScreenChrome(NavPattern.BROWSE),
     AppRoutes.OUTBOX to ScreenChrome(NavPattern.BROWSE),
+    AppRoutes.SETTINGS to ScreenChrome(NavPattern.BROWSE),
     AppRoutes.TOOL_HOME to ScreenChrome(NavPattern.BROWSE),
     AppRoutes.TOOL_DETAIL to ScreenChrome(NavPattern.BROWSE),
 

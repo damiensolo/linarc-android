@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -299,17 +300,19 @@ class AppNavHostTest {
     }
 
     @Test
-    fun tools_showsDemoViewAs_withForemanLiveAndOthersListed() {
+    fun settings_showsDemoViewAs_withForemanLiveAndOthersListed() {
         composeTestRule.setContent {
             AppTheme {
                 AppNavHost()
             }
         }
 
+        // Demo controls moved off the Tools catalog: they live on Settings, reached from the
+        // Tools header's overflow menu.
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
-        // Tools is a LazyColumn: the demo controls sit below the catalog and aren't composed
-        // until scrolled into view.
-        composeTestRule.onNodeWithTag("toolsScreen")
+        composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
+        composeTestRule.onNodeWithTag("headerSettingsMenuItem").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen")
             .performScrollToNode(hasTestTag("demoViewAsRow"))
         composeTestRule.onNodeWithTag("demoViewAsRow").performClick()
         composeTestRule.onNodeWithTag("persona_FOREMAN").assertExists()
@@ -320,7 +323,7 @@ class AppNavHostTest {
     }
 
     @Test
-    fun tools_showsThemeToggle_andHidesDesignSystem() {
+    fun settings_showsThemeToggle_andToolsShowsActivityCenter() {
         composeTestRule.setContent {
             AppTheme {
                 AppNavHost()
@@ -328,7 +331,18 @@ class AppNavHostTest {
         }
 
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        // Product activity stays on Tools…
         composeTestRule.onNodeWithTag("toolsScreen")
+            .performScrollToNode(hasText("Voice logs"))
+        composeTestRule.onNodeWithText("Activity Center").assertExists()
+        composeTestRule.onNodeWithText("Outbox").assertExists()
+        composeTestRule.onNodeWithText("Voice logs").assertExists()
+        composeTestRule.onNodeWithText("Dark theme").assertDoesNotExist()
+
+        // …while appearance settings live behind the overflow's Settings item.
+        composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
+        composeTestRule.onNodeWithTag("headerSettingsMenuItem").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen")
             .performScrollToNode(hasTestTag("themeToggle"))
         composeTestRule.onNodeWithTag("themeToggle").assertExists()
         composeTestRule.onNodeWithText("Dark theme").assertExists()

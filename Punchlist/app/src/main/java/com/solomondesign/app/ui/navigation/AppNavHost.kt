@@ -91,6 +91,7 @@ import com.solomondesign.app.ui.timecards.TimeCardCrewListScreen
 import com.solomondesign.app.ui.timecards.TimeCardDetailScreen
 import com.solomondesign.app.ui.today.TodayScreen
 import com.solomondesign.app.ui.tools.PlatformTools
+import com.solomondesign.app.ui.tools.SettingsScreen
 import com.solomondesign.app.ui.tools.ToolsScreen
 import com.solomondesign.app.ui.voicelog.DailyLogHomeScreen
 import com.solomondesign.app.ui.video.VideoPlaybackScreen
@@ -322,6 +323,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
+                        onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) },
                     )
                 }
             }
@@ -334,6 +336,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
+                        onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) },
                     )
                 }
             }
@@ -345,7 +348,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         onOpenVoiceLogs = { navController.navigate(AppRoutes.DAILY_LOG_HISTORY) },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
-                        onPreviewSplash = { previewSplash() },
+                        onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) },
                         // Tools with a real screen route there; the rest keep the placeholder.
                         onOpenTool = { tool ->
                             navController.navigate(tool.homeRoute ?: AppRoutes.toolHome(tool.id))
@@ -358,6 +361,12 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                                 else -> navController.navigate(AppRoutes.toolCreate(tool.id))
                             }
                         },
+                    )
+                }
+                composable(AppRoutes.SETTINGS) {
+                    SettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onPreviewSplash = { previewSplash() },
                     )
                 }
                 composable(

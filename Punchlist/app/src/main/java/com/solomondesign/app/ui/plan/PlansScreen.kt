@@ -68,6 +68,7 @@ fun PlansScreen(
     onOpenSheet: (String) -> Unit,
     onOpenProfile: () -> Unit,
     onSwitchProject: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -96,6 +97,7 @@ fun PlansScreen(
             subtitle = "${DemoProjectRepository.PROJECT_NAME} · ${PlanSheetRepository.sheets.size} sheets",
             projectName = DemoProjectRepository.PROJECT_NAME,
             onSwitchProject = onSwitchProject,
+            onOpenSettings = onOpenSettings,
             trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
         )
         OutlinedTextField(

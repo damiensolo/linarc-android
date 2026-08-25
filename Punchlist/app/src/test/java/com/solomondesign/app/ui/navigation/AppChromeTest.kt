@@ -156,6 +156,7 @@ class AppChromeTest {
             // Pattern B: bottom nav stays visible while browsing inside the Tools tab.
             AppRoutes.DAILY_LOG_HISTORY to true,
             AppRoutes.OUTBOX to true,
+            AppRoutes.SETTINGS to true,
             AppRoutes.TOOL_HOME to true,
             AppRoutes.TOOL_DETAIL to true,
             AppRoutes.FIELD_TASK_LIST to true,

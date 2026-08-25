@@ -39,6 +39,9 @@ object AppRoutes {
 
     const val OUTBOX = "outbox"
 
+    /** App settings (Appearance + demo controls), reached from the Tools header overflow. */
+    const val SETTINGS = "settings"
+
     // Record tools (Issues / Incidents / Punch list): Pattern B lists inside the Tools tab,
     // one shared Pattern A create form, and a Pattern B detail. Replaced the old quick_issue
     // route — the Issue category of the record form is its successor.
@@ -128,6 +131,7 @@ object AppRoutes {
         DAILY_LOG_DETAIL,
         CAMERA,
         OUTBOX,
+        SETTINGS,
         RECORD_LIST_ISSUES,
         RECORD_LIST_INCIDENTS,
         RECORD_LIST_PUNCH,

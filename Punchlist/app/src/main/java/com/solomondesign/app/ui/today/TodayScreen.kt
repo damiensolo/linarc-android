@@ -59,6 +59,7 @@ fun TodayScreen(
     onOpenRecord: (String) -> Unit,
     onOpenProfile: () -> Unit,
     onSwitchProject: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
@@ -103,6 +104,7 @@ fun TodayScreen(
                 subtitle = "${persona.displayName} · ${DemoProjectRepository.AREA}",
                 projectName = DemoProjectRepository.PROJECT_NAME,
                 onSwitchProject = onSwitchProject,
+                onOpenSettings = onOpenSettings,
                 trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
             )
         }

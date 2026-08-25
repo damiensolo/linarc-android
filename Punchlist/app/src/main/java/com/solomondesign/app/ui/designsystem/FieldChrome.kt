@@ -68,6 +68,8 @@ import com.solomondesign.app.ui.theme.OnDark
  * "Startup flow" in Mobile Structure Validated v1.md.
  *
  * [actions] sits immediately before the overflow menu (Tools uses this for the grid/list toggle).
+ * [onOpenSettings] adds a "Settings" item to the overflow menu (Tools uses this to reach the
+ * Appearance/demo controls screen).
  */
 @Composable
 fun FieldPageHeader(
@@ -76,6 +78,7 @@ fun FieldPageHeader(
     subtitle: String? = null,
     projectName: String? = null,
     onSwitchProject: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -103,7 +106,10 @@ fun FieldPageHeader(
         }
         actions?.invoke()
         if (onSwitchProject != null) {
-            HeaderOverflowMenu(onSwitchProject = onSwitchProject)
+            HeaderOverflowMenu(
+                onSwitchProject = onSwitchProject,
+                onOpenSettings = onOpenSettings,
+            )
         }
         trailing?.invoke()
     }
@@ -142,6 +148,7 @@ private fun ProjectSwitcherChip(
 private fun HeaderOverflowMenu(
     onSwitchProject: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier) {
@@ -160,6 +167,16 @@ private fun HeaderOverflowMenu(
                 },
                 modifier = Modifier.testTag("headerSwitchProjectMenuItem"),
             )
+            if (onOpenSettings != null) {
+                DropdownMenuItem(
+                    text = { Text("Settings") },
+                    onClick = {
+                        expanded = false
+                        onOpenSettings()
+                    },
+                    modifier = Modifier.testTag("headerSettingsMenuItem"),
+                )
+            }
         }
     }
 }
