@@ -682,7 +682,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         } else {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    "Demo tiles can't be marked up — capture a photo to try it.",
+                                    "Demo photos can't be marked up — capture a photo to try it.",
                                 )
                             }
                         }
@@ -789,7 +789,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         tags = listOf(DemoProjectRepository.AREA, "Progress"),
                         capturedAtMillis = now,
                         authorName = CurrentUser.NAME,
-                        source = ImageSource.Swatch(seed = now.toInt()),
+                        source = ProjectImageRepository.demoPhotoSource(seed = now.toInt()),
                     ),
                 )
             },

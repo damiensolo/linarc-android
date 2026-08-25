@@ -16,6 +16,21 @@ object ProjectImageRepository {
 
     fun find(id: String): ProjectImage? = _images.firstOrNull { it.id == id }
 
+    /**
+     * Bundled site photos for images created at runtime without real pixels (the "Use demo
+     * image" source and `addPhoto` fallbacks) — kept distinct from the seeded photos so a
+     * demo-added image doesn't visually duplicate a grid neighbour. Credits: PHOTO_CREDITS.md.
+     */
+    private val demoPhotoPool = listOf(
+        R.drawable.site_concrete_pour,
+        R.drawable.site_rebar_inspection,
+        R.drawable.site_crew_panels,
+    )
+
+    /** A real bundled photo for a runtime-added demo image; any [seed] picks deterministically. */
+    fun demoPhotoSource(seed: Int): ImageSource =
+        ImageSource.Drawable(demoPhotoPool[((seed % demoPhotoPool.size) + demoPhotoPool.size) % demoPhotoPool.size])
+
     /** Distinct tags across all images, sorted — drives the filter chips. */
     fun visibleTags(): List<String> = _images.flatMap { it.tags }.distinct().sorted()
 
@@ -92,7 +107,7 @@ object ProjectImageRepository {
                     tags = listOf("Area B", "Framing", "Progress"),
                     capturedAtMillis = now - 2 * hour,
                     authorName = "Hector Ortiz",
-                    source = ImageSource.Swatch(seed = 0),
+                    source = ImageSource.Drawable(R.drawable.site_corridor_framing),
                     album = "Progress set",
                 ),
                 ProjectImage(
@@ -102,7 +117,7 @@ object ProjectImageRepository {
                     tags = listOf("Column 4", "Issue"),
                     capturedAtMillis = now - 3 * hour,
                     authorName = "Sam Reyes",
-                    source = ImageSource.Swatch(seed = 1),
+                    source = ImageSource.Drawable(R.drawable.site_medgas_overhead),
                     album = "Deficiencies",
                 ),
                 ProjectImage(
@@ -112,7 +127,7 @@ object ProjectImageRepository {
                     tags = listOf("Area B", "Electrical"),
                     capturedAtMillis = now - 5 * hour,
                     authorName = "Maria Chen",
-                    source = ImageSource.Swatch(seed = 2),
+                    source = ImageSource.Drawable(R.drawable.site_conduit_roughin),
                 ),
                 ProjectImage(
                     id = "img-firecaulk",
@@ -121,7 +136,7 @@ object ProjectImageRepository {
                     tags = listOf("Complete", "Firestopping"),
                     capturedAtMillis = now - 26 * hour,
                     authorName = "Dave Miller",
-                    source = ImageSource.Swatch(seed = 3),
+                    source = ImageSource.Drawable(R.drawable.site_firecaulk),
                 ),
                 ProjectImage(
                     id = "img-crew-hector",
@@ -150,17 +165,17 @@ object ProjectImageRepository {
                     tags = listOf("Area B", "Progress"),
                     capturedAtMillis = now - 24 * hour,
                     authorName = "Hector Ortiz",
-                    source = ImageSource.Swatch(seed = 4),
+                    source = ImageSource.Drawable(R.drawable.site_framing_progress),
                     album = "Progress set",
                 ),
                 ProjectImage(
                     id = "img-door-bucks",
-                    title = "Door bucks staged, level 2",
+                    title = "Doors and panels staged, level 2",
                     area = "Area B · Level 2",
                     tags = listOf("Area B", "Materials"),
                     capturedAtMillis = now - 32 * hour,
                     authorName = "Dave Miller",
-                    source = ImageSource.Swatch(seed = 5),
+                    source = ImageSource.Drawable(R.drawable.site_doors_staged),
                 ),
             ),
         )

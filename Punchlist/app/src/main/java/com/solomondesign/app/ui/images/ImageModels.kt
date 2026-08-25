@@ -10,7 +10,10 @@ import androidx.annotation.DrawableRes
  * `android.graphics.Bitmap`, which keeps [ProjectImage] and its repository JVM-unit-testable.
  */
 sealed interface ImageSource {
-    /** Procedurally drawn demo tile — same technique as PlanScreen's site plan canvas. */
+    /**
+     * Procedurally drawn tile — no longer used by seeds or demo adds (those bundle real photos
+     * now); kept as the last-resort fallback when a captured bitmap is gone from its store.
+     */
     data class Swatch(val seed: Int) : ImageSource
 
     /** A drawable already shipped with the app. */

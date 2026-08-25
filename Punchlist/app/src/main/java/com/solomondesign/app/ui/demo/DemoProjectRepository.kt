@@ -155,7 +155,7 @@ object DemoProjectRepository {
                 authorName = CurrentUser.NAME,
                 source = filePath?.let(ImageSource::CapturedFile)
                     ?: captureKey?.let(ImageSource::Captured)
-                    ?: ImageSource.Swatch(seed = pins.size),
+                    ?: ProjectImageRepository.demoPhotoSource(seed = pins.size),
                 hasMarkup = hasMarkup,
             ),
         )
