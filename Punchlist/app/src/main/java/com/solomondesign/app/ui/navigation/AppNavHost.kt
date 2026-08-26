@@ -558,9 +558,9 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
             composable(AppRoutes.VOICE_NOTE) {
                 VoiceNoteScreen(
                     onExit = { navController.popBackStack() },
-                    // The chooser picked a category; stage the form with the note's transcript
-                    // (bilingual when translated) seeded, then stack the form so Back returns
-                    // to the note — same shape as creating from a photo.
+                    // The chooser picked a category; stage the form with the note text that was
+                    // showing when Create was tapped (original or translation, never both), then
+                    // stack the form so Back returns to the note — same shape as a photo create.
                     onCreateRecord = { category, seeds ->
                         RecordDraft.begin(
                             category,

@@ -80,7 +80,8 @@ private enum class VoiceNoteStage { RECORDING, REVIEW }
  * chip, which now demos from Settings → Demo). Live on-device dictation in English or Español
  * with a one-tap toggle plus best-effort auto-detection; the finished note gets the same floating
  * toolbar treatment as the photo viewer (share / translate / re-record / delete / create), and
- * Create prefills an Issue, Incident, or Punch item with a bilingual description.
+ * Create prefills an Issue, Incident, or Punch item with the note text in whichever language is
+ * showing at that moment (original or translation — never both merged).
  *
  * The note itself is ephemeral by design (decided 2026-08-25): the records made from it are the
  * durable artifacts. No audio file is recorded — transcription-only sidesteps the known
@@ -238,7 +239,15 @@ private fun VoiceNoteFlow(
                     putExtra(
                         Intent.EXTRA_TEXT,
                         buildString {
-                            append(buildVoiceNoteSeeds(noteText, translation, spokenLanguage).description)
+                            // What you see is what you share: the currently displayed language.
+                            append(
+                                buildVoiceNoteSeeds(
+                                    noteText,
+                                    translation,
+                                    spokenLanguage,
+                                    displayLanguage,
+                                ).description,
+                            )
                             append("\n\nVoice note · ")
                             append(DemoProjectRepository.PROJECT_NAME)
                         },
@@ -262,7 +271,10 @@ private fun VoiceNoteFlow(
             },
             onDelete = onExit,
             onCreateRecord = { category ->
-                onCreateRecord(category, buildVoiceNoteSeeds(noteText, translation, spokenLanguage))
+                onCreateRecord(
+                    category,
+                    buildVoiceNoteSeeds(noteText, translation, spokenLanguage, displayLanguage),
+                )
             },
             onClose = onExit,
             modifier = modifier,

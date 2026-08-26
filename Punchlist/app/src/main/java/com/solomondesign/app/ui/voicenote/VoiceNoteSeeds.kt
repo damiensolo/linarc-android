@@ -13,39 +13,30 @@ private const val TITLE_MAX_WORDS = 8
 private const val TITLE_MAX_CHARS = 56
 
 /**
- * Turns a captured note into record-form seeds. The description is bilingual on purpose
- * (decided 2026-08-25): a Spanish-speaking crew member's issue stays readable to
- * English-speaking reviewers and vice versa, so the translation is appended under a label in
- * the *other* language's reader's terms. The title derives from the English text (records are
- * office-facing), falling back to the original when no translation is available.
+ * Turns a captured note into record-form seeds. The description carries exactly the text the
+ * user had showing when they tapped Create — the original or the translation, never both
+ * (simplified 2026-08-25: an earlier dual-language block meant extra editing before every
+ * save). If the translation view is showing but the translation isn't available yet, the
+ * original fills in — a create is never blocked on translation. The title derives from the
+ * same selected text; the location is matched against both languages since either may name it.
  */
 fun buildVoiceNoteSeeds(
     original: String,
     translation: String?,
     spokenLanguage: VoiceNoteLanguage,
+    displayLanguage: VoiceNoteLanguage,
     locations: List<String> = RECORD_LOCATIONS,
 ): VoiceNoteSeeds {
     val note = original.trim()
     val translated = translation?.trim()?.takeIf { it.isNotBlank() }
 
-    val englishText = if (spokenLanguage == VoiceNoteLanguage.ENGLISH) note else translated ?: note
-
-    val description = if (translated == null) {
-        note
-    } else {
-        val label = if (spokenLanguage == VoiceNoteLanguage.SPANISH) {
-            "English translation:"
-        } else {
-            "Traducción al español:"
-        }
-        "$note\n\n$label\n$translated"
-    }
+    val selected = if (displayLanguage == spokenLanguage) note else translated ?: note
 
     val location = locations.firstOrNull { loc ->
         note.contains(loc, ignoreCase = true) || translated?.contains(loc, ignoreCase = true) == true
     }
 
-    return VoiceNoteSeeds(title = deriveTitle(englishText), description = description, location = location)
+    return VoiceNoteSeeds(title = deriveTitle(selected), description = selected, location = location)
 }
 
 /** First few words of the note, capped so it reads as a list-row title, never a paragraph. */
