@@ -18,6 +18,17 @@ fun formatHours(hours: Double): String {
     return "$text h"
 }
 
+/**
+ * Hours for a shift clocked between two instants, rounded UP to the nearest quarter hour
+ * (crews are never shorted for a partial quarter) with a 0.25 h floor so even a demo-length
+ * shift produces a visible entry, capped at [MAX_DAILY_HOURS]. Pure so it is JVM-unit-testable.
+ */
+fun shiftHoursBetween(startMillis: Long, endMillis: Long): Double {
+    val elapsedMillis = (endMillis - startMillis).coerceAtLeast(0L)
+    val quarterHours = kotlin.math.ceil(elapsedMillis / (15.0 * 60.0 * 1000.0)).toLong()
+    return (quarterHours * 0.25).coerceIn(0.25, MAX_DAILY_HOURS)
+}
+
 val COST_CODES = listOf(
     "09-2216 Non-structural metal framing",
     "08-1113 Hollow metal doors & frames",

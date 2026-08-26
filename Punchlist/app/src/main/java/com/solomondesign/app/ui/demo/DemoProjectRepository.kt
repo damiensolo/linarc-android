@@ -20,7 +20,13 @@ import com.solomondesign.app.ui.records.FieldRecord
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.splash.SplashVariant
+import com.solomondesign.app.ui.tasks.FieldTask
 import com.solomondesign.app.ui.theme.AvatarPalette
+import com.solomondesign.app.ui.timecards.COST_CODES
+import com.solomondesign.app.ui.timecards.TimeCardRepository
+import com.solomondesign.app.ui.timecards.TimeEntry
+import com.solomondesign.app.ui.timecards.shiftHoursBetween
+import com.solomondesign.app.ui.today.OwnerTodayVariant
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
 
 /**
@@ -39,7 +45,50 @@ object DemoProjectRepository {
     /** Launch-brand treatment. Kept across [clear] so A/B picks survive logout. */
     var splashVariant by mutableStateOf(SplashVariant.DEPTH)
 
+    /**
+     * Which Owner Today layout renders — both versions stay demoable side-by-side
+     * (Settings → Demo → "Owner Today layout"). Resets to the dashboard on [clear]:
+     * unlike [splashVariant] this is a per-demo comparison pick, not a brand choice.
+     */
+    var ownerTodayVariant by mutableStateOf(OwnerTodayVariant.DASHBOARD)
+
     var dayStarted by mutableStateOf(false)
+        private set
+
+    /**
+     * The crew member the Crew persona views the day through. Demo: view as is a strategy
+     * lens, not a login — the signed-in profile identity stays fixed (see
+     * [com.solomondesign.app.ui.profile.CurrentUser]) — so the Crew view borrows Hector
+     * Ortiz, who carries a real assignment, checklist, and time entries in the seed data.
+     * Null for every other persona.
+     */
+    val crewViewMember: CrewMember?
+        get() = if (persona == FieldPersona.CREW) crewMember(CREW_VIEW_MEMBER_ID) else null
+
+    private const val CREW_VIEW_MEMBER_ID = "hector-ortiz"
+
+    /**
+     * The crew member the Subcontractor persona views the project through — same borrowed-lens
+     * pattern as [crewViewMember]. Sam Reyes carries the plumbing trade, whose med-gas task is
+     * blocked on RFI-118 in the seed data — the strongest "assigned work" demo. The sub's
+     * scope is the whole trade (see `forTrade`), not just this one member's assignments.
+     * Null for every other persona.
+     */
+    val subcontractorMember: CrewMember?
+        get() = if (persona == FieldPersona.SUBCONTRACTOR) crewMember(SUB_VIEW_MEMBER_ID) else null
+
+    private const val SUB_VIEW_MEMBER_ID = "sam-reyes"
+
+    /** Title of the most recent inspection request this session — the card's receipt line. */
+    var lastInspectionRequestTitle by mutableStateOf<String?>(null)
+        private set
+
+    /** When the Crew view's running shift started, or null while off shift. */
+    var shiftStartedAtMillis by mutableStateOf<Long?>(null)
+        private set
+
+    /** Hours of the most recently ended shift this session — the My shift card's receipt. */
+    var lastShiftHours by mutableStateOf<Double?>(null)
         private set
 
     val streamItems = mutableStateListOf<StreamItem>()
@@ -113,6 +162,36 @@ object DemoProjectRepository {
 
     fun confirmStartMyDay() {
         dayStarted = true
+    }
+
+    fun startShift(nowMillis: Long = System.currentTimeMillis()) {
+        if (shiftStartedAtMillis == null) shiftStartedAtMillis = nowMillis
+    }
+
+    /**
+     * Ends the running shift: logs a real [TimeEntry] on the crew-view member's time card —
+     * which queues one Outbox entry through [TimeCardRepository.addEntry], like any publish —
+     * and returns the logged hours. Null (a no-op) when no shift is running or no crew member
+     * is in view, so a stale End tap can never fabricate an entry.
+     */
+    fun endShift(nowMillis: Long = System.currentTimeMillis()): Double? {
+        val started = shiftStartedAtMillis ?: return null
+        val member = crewViewMember ?: return null
+        val hours = shiftHoursBetween(started, nowMillis)
+        TimeCardRepository.addEntry(
+            TimeEntry(
+                id = "te-shift-$nowMillis",
+                crewMemberId = member.id,
+                dateLabel = "Today",
+                costCode = COST_CODES[0],
+                hours = hours,
+                note = "Logged from Today's shift clock",
+                queued = true,
+            ),
+        )
+        shiftStartedAtMillis = null
+        lastShiftHours = hours
+        return hours
     }
 
     fun publishVoiceLog(record: DailyLogRecord) {
@@ -340,6 +419,33 @@ object DemoProjectRepository {
             .forEach { ProjectImageRepository.linkRecord(it.ref, record.id) }
     }
 
+    /**
+     * The Subcontractor's Request Inspection: publishes a request row on Today (linked back
+     * to the task, so it never dead-ends) and queues ONE Outbox entry — offline-first, like
+     * every publish. No record is created: in this prototype the request is a message to the
+     * GC, not a QC artifact; the inspector's punch item is what comes back.
+     */
+    fun requestInspection(task: FieldTask) {
+        val now = System.currentTimeMillis()
+        streamItems.add(
+            0,
+            StreamItem(
+                id = "inspect-$now",
+                kind = StreamKind.TASK,
+                title = "Inspection requested: ${task.title}",
+                subtitle = task.location,
+                timestampMillis = now,
+                relatedTaskId = task.id,
+            ),
+        )
+        queueOutbox(
+            id = "outbox-inspect-$now",
+            title = "Inspection request: ${task.title}",
+            detail = task.location,
+        )
+        lastInspectionRequestTitle = task.title
+    }
+
     fun pinCommentsFor(pinId: String): List<PinComment> = pinComments[pinId].orEmpty()
 
     /** Adds a comment (as the signed-in user) to a pin's thread; blank text is rejected. */
@@ -379,7 +485,11 @@ object DemoProjectRepository {
     fun clear() {
         persona = FieldPersona.FOREMAN
         darkTheme = true
+        ownerTodayVariant = OwnerTodayVariant.DASHBOARD
         dayStarted = false
+        shiftStartedAtMillis = null
+        lastShiftHours = null
+        lastInspectionRequestTitle = null
         streamItems.clear()
         pins.clear()
         outboxItems.clear()

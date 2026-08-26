@@ -37,7 +37,7 @@ enum class RecordCategory(
             "Coordination",
             "Safety hazard",
             "Failed inspection",
-            "RFI / design clarification",
+            RFI_ISSUE_TYPE,
             "Damage",
         ),
         // RFIs stay off by default: they block only when the reporter ties them to a
@@ -68,6 +68,12 @@ enum class RecordCategory(
             entries.firstOrNull { it.routeId == routeId }
     }
 }
+
+/**
+ * The Issue type that represents an RFI in this prototype — there is no separate RFI tool
+ * data model, so "aging RFIs" (the Project manager's lead section) are Issues of this type.
+ */
+const val RFI_ISSUE_TYPE = "RFI / design clarification"
 
 enum class RecordSeverity(val label: String) {
     LOW("Low"),
@@ -134,6 +140,38 @@ data class FieldRecord(
     /** Whether affected crew must acknowledge the block before starting nearby work. */
     val acknowledgementRequired: Boolean = false,
 )
+
+/**
+ * The Superintendent's Today ordering for open records: blocking records first (they hold
+ * work and usually name the Superintendent as resolution authority), then by severity, then
+ * newest. Every record in this prototype is open — there is no closed/resolved status yet —
+ * so this orders rather than filters. Pure so it is JVM-unit-testable.
+ */
+fun List<FieldRecord>.attentionOrder(): List<FieldRecord> =
+    sortedWith(
+        compareByDescending<FieldRecord> { it.blocksWork }
+            .thenByDescending { it.severity.ordinal }
+            .thenByDescending { it.createdAtMillis },
+    )
+
+/**
+ * The Project manager's lead section: RFI-type issues, OLDEST first — an RFI gets more
+ * urgent the longer it sits unanswered, the opposite of every newest-first capture list.
+ * Pure so it is JVM-unit-testable.
+ */
+fun List<FieldRecord>.agingRfis(): List<FieldRecord> =
+    filter { it.category == RecordCategory.ISSUE && it.type == RFI_ISSUE_TYPE }
+        .sortedBy { it.createdAtMillis }
+
+/** "Opened today", "1 day open", "6 days open". Pure so it is JVM-unit-testable. */
+fun rfiAgeLabel(createdAtMillis: Long, nowMillis: Long): String {
+    val days = ((nowMillis - createdAtMillis).coerceAtLeast(0L)) / 86_400_000L
+    return when (days) {
+        0L -> "Opened today"
+        1L -> "1 day open"
+        else -> "$days days open"
+    }
+}
 
 /** The demo project's known locations — same options the old quick-issue form offered. */
 val RECORD_LOCATIONS = listOf("Area B", "Column 4", "Level 2")

@@ -6,7 +6,6 @@ import com.solomondesign.app.ui.voicelog.DelayCard
 import com.solomondesign.app.ui.voicelog.IssueCard
 import com.solomondesign.app.ui.voicelog.LaborCard
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,10 +44,9 @@ class VoiceLogPublisherTest {
     }
 
     @Test
-    fun onlyForemanIsLiveForThisBuild() {
-        assertTrue(FieldPersona.FOREMAN.isLive)
-        FieldPersona.entries.filterNot { it == FieldPersona.FOREMAN }.forEach { persona ->
-            assertFalse(persona.displayName, persona.isLive)
-        }
+    fun everyPersonaIsLiveForThisBuild() {
+        // All six personas went live 2026-08-25 (iteration-2 view-as) — Subcontractor was
+        // the last. If a new persona is added, it starts as a placeholder again.
+        assertTrue(FieldPersona.entries.all { it.isLive })
     }
 }

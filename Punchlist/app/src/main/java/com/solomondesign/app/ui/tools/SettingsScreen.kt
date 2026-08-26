@@ -37,6 +37,7 @@ import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
 import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.splash.SplashVariant
+import com.solomondesign.app.ui.today.OwnerTodayVariant
 import kotlinx.coroutines.launch
 
 /**
@@ -60,6 +61,7 @@ fun SettingsScreen(
     val darkTheme = DemoProjectRepository.darkTheme
     var showViewAs by remember { mutableStateOf(false) }
     var showSplashPicker by remember { mutableStateOf(false) }
+    var showOwnerLayoutPicker by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -123,13 +125,27 @@ fun SettingsScreen(
                 }
                 item { FieldSectionLabel("Demo") }
                 item {
+                    val liveCount = FieldPersona.entries.count { it.isLive }
                     FieldWorkRow(
                         title = "Demo: view as",
-                        subtitle = "${persona.displayName} · Foreman is live",
+                        subtitle = "${persona.displayName} · $liveCount personas live",
                         statusColor = progress,
                         enabled = true,
                         onClick = { showViewAs = true },
                         modifier = Modifier.testTag("demoViewAsRow"),
+                    )
+                }
+                item {
+                    // Both Owner Today layouts (the original v1 and the decision dashboard)
+                    // stay demoable for side-by-side comparison — same picker pattern as the
+                    // splash A/B below.
+                    FieldWorkRow(
+                        title = "Owner Today layout",
+                        subtitle = DemoProjectRepository.ownerTodayVariant.title,
+                        statusColor = progress,
+                        enabled = true,
+                        onClick = { showOwnerLayoutPicker = true },
+                        modifier = Modifier.testTag("demoOwnerLayoutRow"),
                     )
                 }
                 item {
@@ -174,7 +190,10 @@ fun SettingsScreen(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
             Text(
-                text = "Same tabs for every persona. Only Foreman is live in this build.",
+                text = "Same tabs for every persona; only Today focus, tool order, and Plan " +
+                    "emphasis change. Live: " +
+                    FieldPersona.entries.filter { it.isLive }
+                        .joinToString(", ") { it.displayName } + ".",
                 style = MaterialTheme.typography.bodyMedium,
                 color = muted,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
@@ -182,7 +201,11 @@ fun SettingsScreen(
             FieldPersona.entries.forEach { option ->
                 FieldWorkRow(
                     title = option.displayName,
-                    subtitle = if (option.isLive) "Live" else "Next — same tabs, different Today",
+                    subtitle = when {
+                        option == persona -> "Live · viewing now"
+                        option.isLive -> "Live · tap to view"
+                        else -> "Next — same tabs, different Today"
+                    },
                     statusColor = if (option.isLive) progress else muted,
                     enabled = true,
                     onClick = {
@@ -199,6 +222,43 @@ fun SettingsScreen(
                         }
                     },
                     modifier = Modifier.testTag("persona_${option.name}"),
+                )
+            }
+            Column(modifier = Modifier.padding(24.dp)) { }
+        }
+    }
+
+    if (showOwnerLayoutPicker) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showOwnerLayoutPicker = false },
+            sheetState = sheetState,
+            containerColor = raised,
+        ) {
+            Text(
+                text = "Owner Today layout",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            Text(
+                text = "Applies when viewing as Owner. Both versions stay demoable — " +
+                    "pick one, then Demo: view as → Owner to see it.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = muted,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+            )
+            OwnerTodayVariant.entries.forEach { option ->
+                val selected = option == DemoProjectRepository.ownerTodayVariant
+                FieldWorkRow(
+                    title = option.title,
+                    subtitle = if (selected) "${option.subtitle} · showing now" else option.subtitle,
+                    statusColor = if (selected) progress else muted,
+                    enabled = true,
+                    onClick = {
+                        DemoProjectRepository.ownerTodayVariant = option
+                        showOwnerLayoutPicker = false
+                    },
+                    modifier = Modifier.testTag("ownerTodayVariant_${option.name}"),
                 )
             }
             Column(modifier = Modifier.padding(24.dp)) { }

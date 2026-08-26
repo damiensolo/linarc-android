@@ -39,8 +39,16 @@ fun FieldTaskListScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var filter by rememberSaveable { mutableStateOf(TaskFilter.ALL) }
-    val visible = FieldTaskRepository.tasks.applyFilter(filter, CurrentUser.ID)
+    // "Mine" means the borrowed view member while the Crew or Subcontractor persona is
+    // demoed (Demo: view as is a lens, not a login), and the signed-in user otherwise.
+    // Both of those personas open on their own work.
+    val viewMember = DemoProjectRepository.crewViewMember
+        ?: DemoProjectRepository.subcontractorMember
+    val myId = viewMember?.id ?: CurrentUser.ID
+    var filter by rememberSaveable {
+        mutableStateOf(if (viewMember != null) TaskFilter.MINE else TaskFilter.ALL)
+    }
+    val visible = FieldTaskRepository.tasks.applyFilter(filter, myId)
 
     BrowseScaffold(
         title = "Field task",

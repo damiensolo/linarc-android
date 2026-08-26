@@ -216,12 +216,33 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                             modifier = Modifier.testTag("bottomNavTab_${tab.route}"),
                             selected = selected,
                             onClick = {
-                                if (selected) {
-                                    // Reselect returns this tab to its root. Already at the root,
-                                    // popBackStack returns false and does nothing.
-                                    navController.popBackStack(tab.route, inclusive = false)
-                                } else {
-                                    navController.navigate(tab.graphRoute) {
+                                // Settings is the one Pattern B screen that belongs to NO tab
+                                // graph (it opens from every tab's header), so while it is
+                                // showing no tab is selected and the save/restore tab-switch
+                                // below would have to thread state across a tabless screen —
+                                // which is exactly where it silently no-ops. Handle it
+                                // explicitly instead: close the tabless screen first
+                                // (popBackStack is synchronous, revealing the tab it was
+                                // opened over), then switch only if that isn't already the
+                                // tapped tab.
+                                val current = navController.currentDestination
+                                val onTablessScreen = current != null && bottomNavTabs.none { t ->
+                                    current.hierarchy.any { it.route == t.graphRoute }
+                                }
+                                if (onTablessScreen) {
+                                    navController.popBackStack()
+                                }
+                                val nowSelected = navController.currentDestination?.hierarchy
+                                    ?.any { it.route == tab.graphRoute } == true
+                                when {
+                                    // Closing Settings already revealed the tapped tab, exactly
+                                    // where the user left it — nothing further to do.
+                                    nowSelected && onTablessScreen -> Unit
+                                    nowSelected ->
+                                        // Reselect returns this tab to its root. Already at the
+                                        // root, popBackStack returns false and does nothing.
+                                        navController.popBackStack(tab.route, inclusive = false)
+                                    else -> navController.navigate(tab.graphRoute) {
                                         popUpTo(navController.graph.findStartDestination().id) {
                                             saveState = true
                                         }
@@ -303,7 +324,9 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
             },
         ) {
             // Layout rule: Pattern B destinations live inside their tab's graph so the tab owns
-            // their back stack; Pattern A / immersive destinations live at the root.
+            // their back stack; Pattern A / immersive destinations live at the root — as does
+            // any destination reachable from more than one tab (settings, daily_log_detail),
+            // since nesting those under one tab corrupts the other tabs' saved stacks.
 
             navigation(startDestination = AppRoutes.TODAY_HOME, route = AppRoutes.TODAY_GRAPH) {
                 composable(AppRoutes.TODAY_HOME) {
@@ -321,6 +344,16 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         // tool (Issues / Incidents / Punch list) — same destination the lists use.
                         onOpenRecord = { recordId ->
                             navController.navigate(AppRoutes.recordDetail(recordId))
+                        },
+                        // Crew view's My assignment rows open the Field task detail the tool
+                        // owns — status control and checklist included.
+                        onOpenTask = { taskId ->
+                            navController.navigate(AppRoutes.fieldTaskDetail(taskId))
+                        },
+                        // Project manager view's decision rows open the Collaboration
+                        // conversation the tool owns.
+                        onOpenTopic = { topicId ->
+                            navController.navigate(AppRoutes.collabTopic(topicId))
                         },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
@@ -362,15 +395,6 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                                 else -> navController.navigate(AppRoutes.toolCreate(tool.id))
                             }
                         },
-                    )
-                }
-                composable(AppRoutes.SETTINGS) {
-                    SettingsScreen(
-                        onBack = { navController.popBackStack() },
-                        onPreviewSplash = { previewSplash() },
-                        // The original Voice-to-Log flow lives on as a scripted demo here; the
-                        // camera's quick chip now opens the bilingual Voice note instead.
-                        onOpenVoiceLogDemo = { navController.navigate(AppRoutes.VOICE_LOG) },
                     )
                 }
                 composable(
@@ -547,6 +571,22 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         },
                     )
                 }
+            }
+
+            // Settings is Pattern B (bottom bar stays) but must live at the ROOT, not inside
+            // the Tools graph: it opens from every tab's header overflow. Nested under Tools it
+            // pushed a Tools-graph destination onto Today's/Plans' stacks, which lit the Tools
+            // tab as selected (hierarchy match) and broke its reselect-pop (Tools home wasn't on
+            // the stack), and tab restoreState kept resurrecting the saved Settings entry. At
+            // the root no tab claims it, so any tab tap pops it and it is never restored.
+            composable(AppRoutes.SETTINGS) {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onPreviewSplash = { previewSplash() },
+                    // The original Voice-to-Log flow lives on as a scripted demo here; the
+                    // camera's quick chip now opens the bilingual Voice note instead.
+                    onOpenVoiceLogDemo = { navController.navigate(AppRoutes.VOICE_LOG) },
+                )
             }
 
             // Root level: Pattern A and immersive flows. They hide the bottom bar, and

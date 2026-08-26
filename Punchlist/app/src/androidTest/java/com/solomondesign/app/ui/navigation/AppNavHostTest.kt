@@ -300,7 +300,41 @@ class AppNavHostTest {
     }
 
     @Test
-    fun settings_showsDemoViewAs_withForemanLiveAndOthersListed() {
+    fun settings_bottomBarTabs_alwaysCloseSettings() {
+        composeTestRule.setContent {
+            AppTheme {
+                AppNavHost()
+            }
+        }
+
+        // Settings belongs to no tab graph, so the bar's tab taps must handle it explicitly
+        // (see the bottom-bar onClick). Open it from the Tools header…
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
+        composeTestRule.onNodeWithTag("headerSettingsMenuItem").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen").assertExists()
+
+        // …tapping the tab it was opened over just closes it, back to that tab.
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("toolsScreen").assertExists()
+
+        // Reopen it and leave via a DIFFERENT tab: Settings closes, the tapped tab shows.
+        composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
+        composeTestRule.onNodeWithTag("headerSettingsMenuItem").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen").assertExists()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TODAY_HOME}").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+
+        // And returning to Tools lands on Tools — never on a resurrected Settings.
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("toolsScreen").assertExists()
+    }
+
+    @Test
+    fun settings_showsDemoViewAs_withLivePersonasAndOthersListed() {
         composeTestRule.setContent {
             AppTheme {
                 AppNavHost()
@@ -318,8 +352,11 @@ class AppNavHostTest {
         composeTestRule.onNodeWithTag("persona_FOREMAN").assertExists()
         composeTestRule.onNodeWithTag("persona_SUPERINTENDENT").assertExists()
         composeTestRule.onNodeWithTag("persona_OWNER").assertExists()
-        composeTestRule.onNodeWithText("Live").assertExists()
-        composeTestRule.onAllNodesWithText("Next — same tabs, different Today").assertCountEquals(5)
+        // Foreman is the persona being viewed; the other five are live but not selected
+        // (all went live 2026-08-25 — Subcontractor was the last placeholder to ship).
+        composeTestRule.onNodeWithText("Live · viewing now").assertExists()
+        composeTestRule.onAllNodesWithText("Live · tap to view").assertCountEquals(5)
+        composeTestRule.onAllNodesWithText("Next — same tabs, different Today").assertCountEquals(0)
     }
 
     @Test

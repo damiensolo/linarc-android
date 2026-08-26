@@ -55,6 +55,13 @@ fun TaskFilter.label(): String = when (this) {
     TaskFilter.BLOCKED -> "Blocked"
 }
 
+/**
+ * The Subcontractor's "assigned work" scope: every task for their trade, assigned or not —
+ * a sub owns the trade's scope, not just the names already on tasks. Pure so it is
+ * JVM-unit-testable.
+ */
+fun List<FieldTask>.forTrade(trade: String): List<FieldTask> = filter { it.trade == trade }
+
 /** Pulled out of the composable so list filtering is JVM-unit-testable. */
 fun List<FieldTask>.applyFilter(filter: TaskFilter, currentUserId: String): List<FieldTask> =
     when (filter) {

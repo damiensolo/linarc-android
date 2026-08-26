@@ -89,6 +89,20 @@ object FieldTaskRepository {
                     note = "Med gas line conflicts with the 4\" storm at column 4. " +
                         "RFI-118 outstanding.",
                 ),
+                // Second plumbing task so the Subcontractor view's trade scope reads as a
+                // work list, not a single row; also the natural Request Inspection candidate
+                // (rough-in complete, waiting on sign-off before close-in).
+                FieldTask(
+                    id = "task-fixture-carriers",
+                    title = "Set fixture carriers, restroom group L2",
+                    trade = "Plumbing",
+                    location = "Area B · Level 2",
+                    status = TaskStatus.IN_PROGRESS,
+                    assigneeId = "sam-reyes",
+                    dueLabel = "Today",
+                    note = "Carriers set in rooms 1–3; room 4 waits on the recessed box. " +
+                        "Rough-in inspection needed before close-in.",
+                ),
                 FieldTask(
                     id = "task-headwall-backing",
                     title = "Backing for wall-mounted headwalls",

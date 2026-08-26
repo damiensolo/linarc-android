@@ -48,6 +48,7 @@ import com.solomondesign.app.ui.designsystem.DesignTokens
 import com.solomondesign.app.ui.designsystem.FieldPageHeader
 import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
+import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.profile.ProfileAvatarButton
 
 private const val GridColumnCount = 3
@@ -64,6 +65,9 @@ fun ToolsScreen(
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
+    // Same tools for every persona, reordered per view — Crew leads with its own work
+    // (tasks, hours, photos, safety). See PlatformTools.catalogFor.
+    val catalog = PlatformTools.catalogFor(persona)
     val queuedOutbox = DemoProjectRepository.queuedOutboxCount
     var isGrid by rememberSaveable { mutableStateOf(true) }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -94,7 +98,7 @@ fun ToolsScreen(
         }
             if (isGrid) {
                 items(
-                    PlatformTools.catalog.chunked(GridColumnCount),
+                    catalog.chunked(GridColumnCount),
                     key = { row -> row.joinToString { it.id } },
                 ) { row ->
                     Row(
@@ -117,7 +121,7 @@ fun ToolsScreen(
                     }
                 }
             } else {
-                items(PlatformTools.catalog, key = { it.id }) { tool ->
+                items(catalog, key = { it.id }) { tool ->
                     ToolListRow(
                         tool = tool,
                         onOpen = { onOpenTool(tool) },
@@ -141,14 +145,18 @@ fun ToolsScreen(
                     onClick = onOpenOutbox,
                 )
             }
-            item {
-                FieldWorkRow(
-                    title = "Voice logs",
-                    subtitle = "Recorded daily logs and playback",
-                    statusColor = progress,
-                    enabled = true,
-                    onClick = onOpenVoiceLogs,
-                )
+            // The spec's persona table gives the Owner "no time cards or voice log", so the
+            // voice-log history — an internal field record — stays off the Owner's Tools.
+            if (persona != FieldPersona.OWNER) {
+                item {
+                    FieldWorkRow(
+                        title = "Voice logs",
+                        subtitle = "Recorded daily logs and playback",
+                        statusColor = progress,
+                        enabled = true,
+                        onClick = onOpenVoiceLogs,
+                    )
+                }
             }
     }
 }

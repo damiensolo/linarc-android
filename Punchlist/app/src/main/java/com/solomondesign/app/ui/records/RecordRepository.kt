@@ -100,6 +100,42 @@ object RecordRepository {
                     createdAtMillis = now - hour,
                     authorName = "Hector Ortiz",
                 ),
+                // Aging RFIs (logged-not-blocking, per the RFI default): the Project manager
+                // view leads with these, oldest first. Both tie into the existing demo
+                // narrative — RFI-118 is named in the med-gas collab thread and the Column 4
+                // task note; RFI-121 answers the headwall-heights question Dave asked.
+                FieldRecord(
+                    id = "rec-seed-rfi-118",
+                    category = RecordCategory.ISSUE,
+                    title = "RFI-118 — Med-gas re-route at Column 4",
+                    type = RFI_ISSUE_TYPE,
+                    description = "Requested routing direction for the med-gas drop vs the " +
+                        "4\" storm conflict. Awaiting A/E response.",
+                    location = "Column 4",
+                    eventDateMillis = now - 72 * hour,
+                    assigneeIds = listOf("sam-reyes"),
+                    attachments = emptyList(),
+                    createdAtMillis = now - 72 * hour,
+                    authorName = "Alex Rivera",
+                    severity = RecordSeverity.HIGH,
+                    impact = RecordImpact.SCHEDULE,
+                ),
+                FieldRecord(
+                    id = "rec-seed-rfi-121",
+                    category = RecordCategory.ISSUE,
+                    title = "RFI-121 — Headwall backing heights",
+                    type = RFI_ISSUE_TYPE,
+                    description = "Drawings show 60\" AFF, submittal shows 54\". Need " +
+                        "direction before the backing install in rooms 5–8.",
+                    location = "Level 2",
+                    eventDateMillis = now - 144 * hour,
+                    assigneeIds = listOf("dave-miller"),
+                    attachments = emptyList(),
+                    createdAtMillis = now - 144 * hour,
+                    authorName = "Alex Rivera",
+                    severity = RecordSeverity.MEDIUM,
+                    impact = RecordImpact.QUALITY,
+                ),
                 FieldRecord(
                     id = "rec-seed-punch",
                     category = RecordCategory.PUNCH,

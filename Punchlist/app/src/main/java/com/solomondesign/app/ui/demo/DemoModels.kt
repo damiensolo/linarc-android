@@ -50,6 +50,12 @@ data class StreamItem(
      */
     val relatedFieldRecordId: String? = null,
     /**
+     * For rows raised about a [com.solomondesign.app.ui.tasks.FieldTask] (the Subcontractor's
+     * inspection requests): the task id. Today deep-links into the Field task detail when set,
+     * so a request row never dead-ends.
+     */
+    val relatedTaskId: String? = null,
+    /**
      * True only for rows that represent an active work stoppage — records explicitly marked
      * "blocks work" and dictated delays. Today's Blockers section shows exactly these; a
      * logged-but-not-blocking issue stays off it (issued ≠ blocked).

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.solomondesign.app.ui.navigation.AppRoutes
+import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.records.RecordCategory
 
 enum class ToolCategory { FIELD, PROJECT, DOCUMENTATION, FINANCIALS, QUALITY }
@@ -170,6 +171,47 @@ object PlatformTools {
     )
 
     fun byId(id: String): PlatformTool? = catalog.firstOrNull { it.id == id }
+
+    /**
+     * Persona-first ids for the Crew view of the catalog: what a crew member reaches for —
+     * their tasks, their hours, photos, and safety — floats to the top; the rest keeps
+     * catalog order below. Ids, not indices, so [catalogFor] survives catalog reordering.
+     */
+    private val crewLeadIds = listOf("field_task", "time_card", "images", "toolbox_talks", "checklist")
+
+    /** Superintendent-first ids: quality and safety oversight — open records, then the rest. */
+    private val superintendentLeadIds =
+        listOf("issues", "punch_list", "incidents", "rfis", "checklist")
+
+    /** Project-manager-first ids: RFIs, decision threads, issues, cost, and project files. */
+    private val projectManagerLeadIds =
+        listOf("rfis", "collaboration", "issues", "t_and_m", "drive")
+
+    /** Owner-first ids: progress and decisions — photos, plans, threads, files. */
+    private val ownerLeadIds = listOf("images", "plans", "collaboration", "drive", "rfis")
+
+    /** Subcontractor-first ids: assigned work and getting it signed off. */
+    private val subcontractorLeadIds =
+        listOf("field_task", "checklist", "punch_list", "images", "rfis")
+
+    /**
+     * The catalog as one persona sees it — same tools reordered (the spec's iteration-2
+     * rule: same objects reorder by persona), with ONE sanctioned removal: the Owner drops
+     * Time card, because the spec's persona table says Owner sees "no time cards or voice
+     * log" — labor hours are internal, not an owner surface. No other persona removes
+     * anything. Personas without a dedicated ordering keep the canonical [catalog] order.
+     */
+    fun catalogFor(persona: FieldPersona): List<PlatformTool> = when (persona) {
+        FieldPersona.CREW -> leadWith(crewLeadIds)
+        FieldPersona.SUPERINTENDENT -> leadWith(superintendentLeadIds)
+        FieldPersona.PROJECT_MANAGER -> leadWith(projectManagerLeadIds)
+        FieldPersona.OWNER -> leadWith(ownerLeadIds).filterNot { it.id == "time_card" }
+        FieldPersona.SUBCONTRACTOR -> leadWith(subcontractorLeadIds)
+        else -> catalog
+    }
+
+    private fun leadWith(leadIds: List<String>): List<PlatformTool> =
+        leadIds.mapNotNull(::byId) + catalog.filterNot { it.id in leadIds }
 
     private fun tool(
         id: String,

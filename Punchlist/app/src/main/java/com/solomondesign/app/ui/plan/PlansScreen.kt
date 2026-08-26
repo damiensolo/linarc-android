@@ -51,9 +51,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.demo.PinKind
 import com.solomondesign.app.ui.designsystem.FieldCollapsibleSectionHeader
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
 import com.solomondesign.app.ui.designsystem.FieldPageHeader
+import com.solomondesign.app.ui.designsystem.FieldWorkRow
+import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.profile.ProfileAvatarButton
 
 /**
@@ -100,6 +103,27 @@ fun PlansScreen(
             onOpenSettings = onOpenSettings,
             trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
         )
+        if (DemoProjectRepository.persona == FieldPersona.SUPERINTENDENT) {
+            // Plan is the Superintendent's power view: one tap from the tab root straight to
+            // the live pin sheet, with the current pin and issue-pin counts on the row.
+            val pinSheet = PlanSheetRepository.sheets.firstOrNull { it.isPinSheet }
+            if (pinSheet != null) {
+                val issuePins = DemoProjectRepository.pins.count { it.kind == PinKind.ISSUE }
+                FieldWorkRow(
+                    title = "Pinned work · ${pinSheet.title}",
+                    subtitle = "$pinCount pin${if (pinCount == 1) "" else "s"} · " +
+                        "$issuePins issue pin${if (issuePins == 1) "" else "s"}",
+                    statusColor = if (issuePins > 0) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.tertiary
+                    },
+                    enabled = true,
+                    onClick = { onOpenSheet(pinSheet.id) },
+                    modifier = Modifier.testTag("superPinShortcut"),
+                )
+            }
+        }
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
