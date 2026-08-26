@@ -26,6 +26,10 @@ object AppRoutes {
      */
     const val PLAN_VIEWER = "plan_viewer/{sheetId}"
 
+    /** Bilingual voice capture from the camera's quick chip; creates records from the note. */
+    const val VOICE_NOTE = "voice_note"
+
+    /** The original Voice-to-Log daily-log flow — demoed from Settings → Demo since 2026-08-25. */
     const val VOICE_LOG = "voice_log"
     const val DAILY_LOG_HISTORY = "daily_log_history"
     const val DAILY_LOG_DETAIL = "daily_log_detail/{recordId}"
@@ -126,6 +130,7 @@ object AppRoutes {
         PLAN_HOME,
         PLAN_VIEWER,
         TOOLS_HOME,
+        VOICE_NOTE,
         VOICE_LOG,
         DAILY_LOG_HISTORY,
         DAILY_LOG_DETAIL,

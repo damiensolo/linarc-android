@@ -1,6 +1,7 @@
 package com.solomondesign.app.ui.voicelog
 
 import android.Manifest
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -21,8 +22,9 @@ import java.io.File
 
 /**
  * End-to-end pass through recording -> parsing -> review -> submit -> Today/history.
- * Entry is the bottom bar's Capture action -> camera -> Voice log quick chip; RECORD_AUDIO and
- * CAMERA are pre-granted so no system dialog blocks the pass.
+ * Entry is Settings → Demo → "Voice daily log (demo)" — the flow moved off the camera's quick
+ * chip on 2026-08-25 (the chip now opens the bilingual Voice note). RECORD_AUDIO is pre-granted
+ * so no system dialog blocks the pass.
  */
 class VoiceLogFlowTest {
 
@@ -52,7 +54,7 @@ class VoiceLogFlowTest {
         goToRecordingScreen()
         composeTestRule.onNodeWithText("Stop & Parse").performClick()
         waitForReviewScreen()
-        submitAndReturnToToday()
+        submitAndReturnToSettings()
 
         val record = DailyLogRepository.records.firstOrNull()
         checkNotNull(record) { "Submitting should add a record to DailyLogRepository" }
@@ -89,7 +91,7 @@ class VoiceLogFlowTest {
         composeTestRule.onNodeWithText("Also Save Audio for Playback").performClick()
         composeTestRule.onNodeWithText("Stop & Parse").performClick()
         waitForReviewScreen()
-        submitAndReturnToToday()
+        submitAndReturnToSettings()
 
         val record = DailyLogRepository.records.firstOrNull()
         checkNotNull(record) { "Submitting should add a record to DailyLogRepository" }
@@ -108,8 +110,12 @@ class VoiceLogFlowTest {
     }
 
     private fun goToRecordingScreen() {
-        composeTestRule.onNodeWithTag("bottomNavCapture").performClick()
-        composeTestRule.onNodeWithTag("cameraQuickVoice").performClick()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
+        composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
+        composeTestRule.onNodeWithTag("headerSettingsMenuItem").performClick()
+        composeTestRule.onNodeWithTag("settingsScreen")
+            .performScrollToNode(hasTestTag("demoVoiceLogRow"))
+        composeTestRule.onNodeWithTag("demoVoiceLogRow").performClick()
         composeTestRule.waitUntil(timeoutMillis = 15_000) {
             composeTestRule.onAllNodesWithText("Stop & Parse").fetchSemanticsNodes().isNotEmpty()
         }
@@ -123,12 +129,14 @@ class VoiceLogFlowTest {
         }
     }
 
-    private fun submitAndReturnToToday() {
+    // Exiting the demo flow pops back to where it launched: Settings. The tests then reselect
+    // the Tools tab, which pops the tab stack to its root, before checking the history list.
+    private fun submitAndReturnToSettings() {
         composeTestRule.onNodeWithText("Submit").performClick()
         composeTestRule.waitUntil(timeoutMillis = 5_000) {
             composeTestRule.onAllNodesWithText("Done").fetchSemanticsNodes().isNotEmpty()
         }
         composeTestRule.onNodeWithText("Done").performClick()
-        composeTestRule.onNodeWithTag("todayScreen").assertExists()
+        composeTestRule.onNodeWithTag("settingsScreen").assertExists()
     }
 }

@@ -92,7 +92,7 @@ Same three tabs for every persona. Only Today focus, capture CTAs, and Plan dens
 **Capture (bottom-bar action)**
 
 1. **Photo** — in-app CameraX camera (rear/front flip, flashlight, tap-to-focus, pinch-zoom) → review with title, description, suggested tags → Save, or “Save & create…” which picks a record category (issue / incident / punch item) and continues into that record form with the photo already attached and the fields seeded. Photos land on Today, as Plan pins, and in Images. A **Markup** toggle chip on the viewfinder routes the shot through the annotation editor (select/move/resize, pen, line, arrow, double arrow, box, oval, cloud, text, six colors, undo/redo) before review; annotations are baked into the saved JPEG.
-2. **Voice** (quick chip on the camera) — existing Voice-to-Log (record → parse → review → submit). After submit, labor/delays/issues appear on Today (delays under Blockers as reported stoppages; issues under Recent captures, logged not blocking) and issues are pinned on Plan.
+2. **Voice note** (quick chip on the camera; replaced the Voice daily log chip 2026-08-25) — bilingual voice capture as a create workflow. Recording shows the transcript live with an English | Español segmented toggle; the spoken language is auto-detected best-effort (the recognizer re-arms in the detected language) and one tap overrides it. Done → review with a floating toolbar in the image-viewer style: **Share / Translate / Re-record / Delete / Create**. Translate (and the same toggle) flips the note between English and Spanish via on-device ML Kit translation — models download once, then it works offline. Create picks issue / incident / punch item and continues into the record form seeded with a derived title, a **bilingual description (original + translation)**, and a matched location. The note itself is ephemeral: the records made from it are the durable artifacts. No audio file is recorded (transcription-only avoids the mic-contention failure). Works without camera permission.
 3. **Issue** (quick chip on the camera) — opens the record create form (Issue category); the dictated-video flow prefills it via the parsed title/location/description.
 
 **Tools**
@@ -105,11 +105,17 @@ Same three tabs for every persona. Only Today focus, capture CTAs, and Plan dens
 - **Blocking is an explicit, auditable status — issued ≠ blocked.** Creating a record logs it (tool list + one queued Outbox entry + a Plan pin at its location) and never stops work by itself. A **"Blocks work?" toggle (default off)** makes it a blocker; a narrow per-type policy turns it on by default (Issue types "Safety hazard" and "Failed inspection", Incident type "Injury" — the prototype's stand-in for admin-configurable defaults; observations, punch items, and RFIs stay off, RFIs blocking only when the reporter ties one to a scheduled task and flips the toggle). Enabling blocking reveals the blocking details — reason (required to submit), affected trade / scheduled task / work package (the block scopes to these, never the whole crew), expected resolution date, escalation contact, resolution authority (Superintendent / Safety manager / QA/QC / Project manager), and a crew-acknowledgement requirement (on by default while blocking). Only blocking records land on Today's Blockers; their list rows flag "Blocks work" in red and their detail shows the blocking banner.
 - Scan is catalog-only in this build (no live scanner).
 - Below the catalog: the **Activity Center** — product activity, not configuration: Outbox — every publish-style action (records, time entries, messages, photos, videos, voice logs, pin-comment publishes) queues here as "waiting for signal", and a **"Signal restored — send all"** button drains the queue one entry at a time to demo connectivity returning (entries flip to "Sent to project"; still no real sync engine — that stays a non-goal); Voice logs — history and playback of submitted recordings.
-- **Settings** (Pattern B, reached from the Tools header's overflow/3-dot menu): Appearance — Dark theme toggle (light and dark chrome); then the Demo section (strategy-demo scaffolding, not product surface): Demo: view as — Foreman selected and live; other personas visible (tapping a non-live persona explains that the view is next; it must not fake a broken UI); Splash animation picker.
+- **Settings** (Pattern B, reached from the Tools header's overflow/3-dot menu): Appearance — Dark theme toggle (light and dark chrome); then the Demo section (strategy-demo scaffolding, not product surface): Demo: view as — Foreman selected and live; other personas visible (tapping a non-live persona explains that the view is next; it must not fake a broken UI); Splash animation picker; **Voice daily log (demo)** — the original Voice-to-Log flow (record → parse → review → submit), kept launchable for scripted demos after the Capture chip became Voice note; submitted demo logs still land on Today, Plans, and the Voice logs history on Tools.
 
 ## Voice-to-Log contract
 
+Entry moved on 2026-08-25: Settings → Demo → Voice daily log (demo). The camera quick chip now opens Voice note instead; Today links and the Tools history list are unchanged.
+
 Keep the real mic / `SpeechRecognizer` / regex parser pipeline. Do not replace the parser with an LLM unless explicitly approved (new dependency).
+
+## Voice note contract
+
+Real dictation (`SpeechRecognizer` with an `EXTRA_LANGUAGE` hint per utterance) and real on-device translation (ML Kit `translate`, approved dependency 2026-08-25). Spoken-language auto-detect is a text heuristic (`VoiceNoteLanguageDetector`) — best-effort by design; the one-tap toggle is authoritative. Create must prefill at minimum the description (bilingual when a translation exists) and whatever else derives cheaply (title, location).
 
 Hector demo line must continue to extract: Hector + Dave labor, 40 studs, delivery delay, weather delay, spalling issue at Column 4.
 
@@ -126,9 +132,10 @@ On **Submit**, write to `DailyLogRepository` **and** publish structured items in
 ## Demo script (v1)
 
 1. Launch as Foreman → Splash → Project List → select Riverside Medical → Today shows crew + Start My Day. Confirm.
-2. Capture (bottom bar) → Voice log chip → Hector script → review → Submit.
-3. Today shows delay + issue. Plan shows a pin near Column 4.
-4. Tools → Demo: view as → other personas visible, not live.
+2. Capture (bottom bar) → Voice note chip → speak Spanish ("falta concreto en la pared del nivel dos") → toggle auto-switches to Español with live text → Done → Translate shows the English version → Create → Issue → form arrives with a bilingual description and Level 2 location → Save.
+3. Settings (Tools header overflow) → Demo → Voice daily log (demo) → Hector script → review → Submit.
+4. Today shows delay + issue. Plan shows a pin near Column 4.
+5. Settings → Demo: view as → other personas visible, not live.
 
 ## Iteration 2 (not this build)
 

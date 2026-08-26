@@ -49,6 +49,7 @@ class AppChromeTest {
     @Test
     fun taskFlowAndImmersiveRoutesHideBottomBarAndFab() {
         listOf(
+            AppRoutes.VOICE_NOTE,
             AppRoutes.VOICE_LOG,
             AppRoutes.DAILY_LOG_DETAIL,
             AppRoutes.CAMERA,
@@ -143,6 +144,7 @@ class AppChromeTest {
             AppRoutes.TODAY_HOME to true,
             AppRoutes.PLAN_HOME to true,
             AppRoutes.TOOLS_HOME to true,
+            AppRoutes.VOICE_NOTE to false,
             AppRoutes.VOICE_LOG to false,
             AppRoutes.DAILY_LOG_DETAIL to false,
             AppRoutes.CAMERA to false,

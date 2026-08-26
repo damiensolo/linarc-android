@@ -146,8 +146,10 @@ private sealed interface CaptureStep {
  * dictation and a review, publishing via [DemoProjectRepository.addCapturedVideo]
  * (Today + Plan pin) — optionally continuing into a prefilled Quick issue.
  *
- * Voice daily log and Quick issue stay one tap away via quick chips, so nothing the old Capture
- * sheet offered was lost — and both work even when camera permission is denied.
+ * Voice note (bilingual voice capture) and Quick issue stay one tap away via quick chips, so
+ * nothing the old Capture sheet offered was lost — and both work even when camera permission is
+ * denied. (The chip opened the Voice daily log until 2026-08-25; that flow now demos from
+ * Settings → Demo.)
  */
 @Composable
 fun CameraCaptureScreen(
@@ -155,7 +157,7 @@ fun CameraCaptureScreen(
     /** Carries the published photo's id so a record form beneath can attach what it asked for. */
     onPhotoSaved: (photoId: String) -> Unit,
     onVideoSaved: () -> Unit,
-    onVoiceLog: () -> Unit,
+    onVoiceNote: () -> Unit,
     onQuickIssue: () -> Unit,
     /** Photo review's "Save & create…": the photo is saved, then this opens the staged form. */
     onCreateRecord: (RecordCategory) -> Unit,
@@ -386,7 +388,7 @@ fun CameraCaptureScreen(
                 }
             },
             onToggleMarkup = holder::toggleMarkupAfterCapture,
-            onVoiceLog = onVoiceLog,
+            onVoiceNote = onVoiceNote,
             onQuickIssue = onQuickIssue,
             modifier = modifier,
         )
@@ -539,7 +541,7 @@ private fun ViewfinderContent(
     onSelectMode: (CameraMode) -> Unit,
     onShutter: () -> Unit,
     onToggleMarkup: () -> Unit,
-    onVoiceLog: () -> Unit,
+    onVoiceNote: () -> Unit,
     onQuickIssue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -705,9 +707,9 @@ private fun ViewfinderContent(
                         )
                     }
                     ViewfinderChip(
-                        text = "Voice log",
+                        text = "Voice note",
                         icon = Icons.Filled.Mic,
-                        onClick = onVoiceLog,
+                        onClick = onVoiceNote,
                         testTag = "cameraQuickVoice",
                     )
                     ViewfinderChip(

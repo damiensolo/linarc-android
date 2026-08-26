@@ -143,6 +143,9 @@ private val chromeByRoute: Map<String, ScreenChrome> = mapOf(
     AppRoutes.PLAN_HOME to ScreenChrome(NavPattern.TAB_ROOT),
     AppRoutes.TOOLS_HOME to ScreenChrome(NavPattern.TAB_ROOT),
 
+    // Voice note draws its own recording chrome, then Pattern A review, inside one route —
+    // immersive like the voice log it replaced on the camera's quick chip.
+    AppRoutes.VOICE_NOTE to ScreenChrome(NavPattern.IMMERSIVE),
     AppRoutes.VOICE_LOG to ScreenChrome(NavPattern.IMMERSIVE),
     AppRoutes.DAILY_LOG_DETAIL to ScreenChrome(NavPattern.IMMERSIVE),
     // The camera owns its whole surface (no Material top bar); its review step draws its own

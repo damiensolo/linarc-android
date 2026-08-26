@@ -97,6 +97,7 @@ import com.solomondesign.app.ui.voicelog.DailyLogHomeScreen
 import com.solomondesign.app.ui.video.VideoPlaybackScreen
 import com.solomondesign.app.ui.voicelog.DailyLogPlaybackScreen
 import com.solomondesign.app.ui.voicelog.VoiceLogScreen
+import com.solomondesign.app.ui.voicenote.VoiceNoteScreen
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -367,6 +368,9 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     SettingsScreen(
                         onBack = { navController.popBackStack() },
                         onPreviewSplash = { previewSplash() },
+                        // The original Voice-to-Log flow lives on as a scripted demo here; the
+                        // camera's quick chip now opens the bilingual Voice note instead.
+                        onOpenVoiceLogDemo = { navController.navigate(AppRoutes.VOICE_LOG) },
                     )
                 }
                 composable(
@@ -551,6 +555,24 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
             composable(AppRoutes.VOICE_LOG) {
                 VoiceLogScreen(onExit = { navController.popBackStack() })
             }
+            composable(AppRoutes.VOICE_NOTE) {
+                VoiceNoteScreen(
+                    onExit = { navController.popBackStack() },
+                    // The chooser picked a category; stage the form with the note's transcript
+                    // (bilingual when translated) seeded, then stack the form so Back returns
+                    // to the note — same shape as creating from a photo.
+                    onCreateRecord = { category, seeds ->
+                        RecordDraft.begin(
+                            category,
+                            System.currentTimeMillis(),
+                            seedTitle = seeds.title,
+                            seedDescription = seeds.description,
+                            seedLocation = seeds.location,
+                        )
+                        navController.navigate(AppRoutes.recordCreate(category.routeId))
+                    },
+                )
+            }
             composable(
                 route = AppRoutes.DAILY_LOG_DETAIL,
                 arguments = listOf(navArgument("recordId") { type = NavType.StringType }),
@@ -596,8 +618,8 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     // The quick chips swap flows rather than stack them: replacing the camera in
                     // the back stack means Back from voice/issue lands where capture began, not
                     // on a stale viewfinder.
-                    onVoiceLog = {
-                        navController.navigate(AppRoutes.VOICE_LOG) {
+                    onVoiceNote = {
+                        navController.navigate(AppRoutes.VOICE_NOTE) {
                             popUpTo(AppRoutes.CAMERA) { inclusive = true }
                         }
                     },

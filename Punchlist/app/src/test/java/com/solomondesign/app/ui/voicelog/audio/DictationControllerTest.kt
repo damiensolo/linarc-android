@@ -17,6 +17,12 @@ private class FakeSpeechTranscriber(private val available: Boolean = true) : Spe
     var lastOnFinal: ((String) -> Unit)? = null
         private set
 
+    /** Language tag of every [start] call, in order — how a test proves a mid-take switch. */
+    val startLanguageTags = mutableListOf<String?>()
+
+    /** Set while an utterance is "in flight"; [stop] finalizes it, like the real recognizer. */
+    private var pendingOnFinal: ((String) -> Unit)? = null
+
     private val script = ArrayDeque<(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (SpeechError) -> Unit) -> Unit>()
 
     fun enqueueFinal(text: String) {
@@ -27,15 +33,30 @@ private class FakeSpeechTranscriber(private val available: Boolean = true) : Spe
         script.add { _, _, onError -> onError(error) }
     }
 
+    /** Leaves the next utterance open (no scripted result) so stop() has something to finalize. */
+    fun enqueueOpenUtterance() {
+        script.add { _, onFinal, _ -> pendingOnFinal = onFinal }
+    }
+
     override fun isAvailable(): Boolean = available
 
-    override fun start(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (SpeechError) -> Unit) {
+    override fun start(
+        onPartial: (String) -> Unit,
+        onFinal: (String) -> Unit,
+        onError: (SpeechError) -> Unit,
+        languageTag: String?,
+    ) {
         startCount++
         lastOnFinal = onFinal
+        startLanguageTags.add(languageTag)
         script.removeFirstOrNull()?.invoke(onPartial, onFinal, onError)
     }
 
-    override fun stop() = Unit
+    override fun stop() {
+        pendingOnFinal?.invoke("")
+        pendingOnFinal = null
+    }
+
     override fun destroy() = Unit
 }
 
@@ -111,6 +132,36 @@ class DictationControllerTest {
         controller.start()
 
         assertEquals("finally heard something", controller.transcript)
+        assertEquals(0, controller.consecutiveNoMatchCount)
+    }
+
+    @Test
+    fun setLanguage_midDictation_rearmsTheRecognizerInTheNewLanguage() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.setLanguage("en-US")
+        controller.start()
+        assertEquals(listOf<String?>("en-US"), transcriber.startLanguageTags)
+
+        controller.setLanguage("es-US")
+
+        // The in-flight utterance was stopped and finalized, so the loop re-armed — in Spanish.
+        assertEquals(listOf<String?>("en-US", "es-US"), transcriber.startLanguageTags)
+    }
+
+    @Test
+    fun reset_clearsAccumulatedState_forAFreshTake() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueFinal("first take")
+        val controller = DictationController(transcriber)
+        controller.start()
+        assertEquals("first take", controller.transcript)
+
+        controller.reset()
+
+        assertEquals("", controller.transcript)
+        assertNull(controller.errorMessage)
         assertEquals(0, controller.consecutiveNoMatchCount)
     }
 

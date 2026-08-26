@@ -35,7 +35,30 @@ class DictationController(private val transcriber: SpeechTranscriber) {
     var consecutiveNoMatchCount by mutableStateOf(0)
         private set
 
+    /** BCP-47 hint passed to every (re-)arm of the recognizer; null = device default. */
+    var languageTag: String? = null
+        private set
+
     private var active = false
+
+    /**
+     * Switches the recognition language mid-dictation. The in-flight utterance is stopped so it
+     * finalizes in its old language; the loop then re-arms with [tag]. Already-accumulated
+     * transcript is kept — dictation may legitimately mix languages.
+     */
+    fun setLanguage(tag: String?) {
+        if (tag == languageTag) return
+        languageTag = tag
+        if (active) transcriber.stop()
+    }
+
+    /** Clears all accumulated state for a fresh take (re-record). Doesn't start listening. */
+    fun reset() {
+        stop()
+        transcript = ""
+        errorMessage = null
+        consecutiveNoMatchCount = 0
+    }
 
     fun start() {
         if (!transcriber.isAvailable()) {
@@ -77,6 +100,7 @@ class DictationController(private val transcriber: SpeechTranscriber) {
                     errorMessage = error.message
                 }
             },
+            languageTag = languageTag,
         )
     }
 }

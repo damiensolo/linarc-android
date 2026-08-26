@@ -21,7 +21,14 @@ interface SpeechTranscriber {
     /** Whether this device actually has a speech-recognition service installed. */
     fun isAvailable(): Boolean
 
-    fun start(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (SpeechError) -> Unit)
+    /** [languageTag] is a BCP-47 hint (e.g. "es-US"); null keeps the device's default language. */
+    fun start(
+        onPartial: (String) -> Unit,
+        onFinal: (String) -> Unit,
+        onError: (SpeechError) -> Unit,
+        languageTag: String? = null,
+    )
+
     fun stop()
     fun destroy()
 }
@@ -33,7 +40,12 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
 
     override fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
-    override fun start(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (SpeechError) -> Unit) {
+    override fun start(
+        onPartial: (String) -> Unit,
+        onFinal: (String) -> Unit,
+        onError: (SpeechError) -> Unit,
+        languageTag: String?,
+    ) {
         // Reuse one SpeechRecognizer for the whole dictation session instead of creating a new
         // one per utterance — DictationController re-arms this every few seconds, and creating
         // (without destroying) a fresh SpeechRecognizer each time leaks a bound connection to the
@@ -73,6 +85,10 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            if (languageTag != null) {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageTag)
+            }
         }
         activeRecognizer.startListening(intent)
     }

@@ -9,10 +9,11 @@ import androidx.compose.ui.Modifier
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 
 /**
- * Voice-to-Log entry from the Capture FAB. Recording and transcription are real
- * (`ui/voicelog/audio`); [VoiceLogParser] is a deterministic on-device pass over the transcript.
- * On submit, the record is stored in [DailyLogRepository] and published to [DemoProjectRepository]
- * so Today and Plan update in the same session.
+ * Voice-to-Log, demoed from Settings → Demo → "Voice daily log (demo)" since 2026-08-25 (the
+ * camera quick chip that used to open this now opens the bilingual Voice note). Recording and
+ * transcription are real (`ui/voicelog/audio`); [VoiceLogParser] is a deterministic on-device
+ * pass over the transcript. On submit, the record is stored in [DailyLogRepository] and published
+ * to [DemoProjectRepository] so Today and Plan update in the same session.
  */
 @Composable
 fun VoiceLogScreen(onExit: () -> Unit, modifier: Modifier = Modifier) {

@@ -42,14 +42,18 @@ import kotlinx.coroutines.launch
 /**
  * Pattern B — app settings, reached from the Tools header's overflow menu. Houses what used to
  * sit at the bottom of the Tools catalog: Appearance (theme) and the strategy-demo controls
- * (view as, splash animation). Product activity (Outbox, Voice logs) stayed on Tools as the
- * Activity Center — settings configure the app, they aren't work.
+ * (view as, splash animation, and the Voice daily log demo — the original Voice-to-Log flow,
+ * moved off the camera's quick chip when Voice note took its place). Product activity (Outbox,
+ * Voice logs) stayed on Tools as the Activity Center — settings configure the app, they aren't
+ * work.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onPreviewSplash: () -> Unit,
+    /** Launches the original Voice-to-Log daily-log flow, kept here as a scripted demo. */
+    onOpenVoiceLogDemo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val persona = DemoProjectRepository.persona
@@ -136,6 +140,20 @@ fun SettingsScreen(
                         enabled = true,
                         onClick = { showSplashPicker = true },
                         modifier = Modifier.testTag("demoSplashRow"),
+                    )
+                }
+                item {
+                    // The original Voice-to-Log flow, moved off the camera's quick chip
+                    // (2026-08-25) in favor of the bilingual Voice note. Kept runnable for
+                    // scripted demos: submitted logs still land on Today, Plans, and the
+                    // Voice logs history on Tools.
+                    FieldWorkRow(
+                        title = "Voice daily log (demo)",
+                        subtitle = "Dictate a day summary → parsed log cards",
+                        statusColor = progress,
+                        enabled = true,
+                        onClick = onOpenVoiceLogDemo,
+                        modifier = Modifier.testTag("demoVoiceLogRow"),
                     )
                 }
             }
