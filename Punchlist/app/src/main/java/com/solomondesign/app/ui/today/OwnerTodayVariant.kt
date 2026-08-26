@@ -1,10 +1,10 @@
 package com.solomondesign.app.ui.today
 
 /**
- * The two demoable Owner Today layouts, switchable at Settings → Demo → "Owner Today layout"
- * (mirroring the Splash animation picker). Both existed in the product's history and are kept
- * side-by-side deliberately for A/B demo conversations — this is a demo control, not a user
- * preference:
+ * The two demoable Owner Today layouts. The Demo: view as picker lists Owner as one row per
+ * layout, so picking a layout and switching to the Owner view is a single tap — no separate
+ * setting. Both existed in the product's history and are kept side-by-side deliberately for
+ * A/B demo conversations — this is a demo control, not a user preference:
  *
  * - [DASHBOARD] — the 2026-08-25 confidence dashboard (OwnerTodaySections.kt): progress
  *   photos, the four decision topics, enriched delays. The default.

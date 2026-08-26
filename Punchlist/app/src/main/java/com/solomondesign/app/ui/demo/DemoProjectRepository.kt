@@ -46,9 +46,10 @@ object DemoProjectRepository {
     var splashVariant by mutableStateOf(SplashVariant.DEPTH)
 
     /**
-     * Which Owner Today layout renders — both versions stay demoable side-by-side
-     * (Settings → Demo → "Owner Today layout"). Resets to the dashboard on [clear]:
-     * unlike [splashVariant] this is a per-demo comparison pick, not a brand choice.
+     * Which Owner Today layout renders — both versions stay demoable side-by-side: the
+     * Demo: view as picker lists Owner as one row per layout, and tapping a row sets this
+     * and selects the Owner persona together. Resets to the dashboard on [clear]: unlike
+     * [splashVariant] this is a per-demo comparison pick, not a brand choice.
      */
     var ownerTodayVariant by mutableStateOf(OwnerTodayVariant.DASHBOARD)
 

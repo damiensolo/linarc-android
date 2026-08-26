@@ -351,11 +351,15 @@ class AppNavHostTest {
         composeTestRule.onNodeWithTag("demoViewAsRow").performClick()
         composeTestRule.onNodeWithTag("persona_FOREMAN").assertExists()
         composeTestRule.onNodeWithTag("persona_SUPERINTENDENT").assertExists()
-        composeTestRule.onNodeWithTag("persona_OWNER").assertExists()
+        // Owner appears as one row per Today layout (v1 classic / v2 dashboard), so the
+        // v1-vs-v2 demo A/B is a single tap from this picker.
+        composeTestRule.onNodeWithTag("persona_OWNER_DASHBOARD").assertExists()
+        composeTestRule.onNodeWithTag("persona_OWNER_CLASSIC").assertExists()
         // Foreman is the persona being viewed; the other five are live but not selected
-        // (all went live 2026-08-25 — Subcontractor was the last placeholder to ship).
+        // (all went live 2026-08-25 — Subcontractor was the last placeholder to ship), and
+        // Owner's two layout rows make six tappable rows.
         composeTestRule.onNodeWithText("Live · viewing now").assertExists()
-        composeTestRule.onAllNodesWithText("Live · tap to view").assertCountEquals(5)
+        composeTestRule.onAllNodesWithText("Live · tap to view").assertCountEquals(6)
         composeTestRule.onAllNodesWithText("Next — same tabs, different Today").assertCountEquals(0)
     }
 

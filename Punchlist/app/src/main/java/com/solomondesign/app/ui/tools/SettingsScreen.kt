@@ -61,7 +61,6 @@ fun SettingsScreen(
     val darkTheme = DemoProjectRepository.darkTheme
     var showViewAs by remember { mutableStateOf(false) }
     var showSplashPicker by remember { mutableStateOf(false) }
-    var showOwnerLayoutPicker by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -136,19 +135,6 @@ fun SettingsScreen(
                     )
                 }
                 item {
-                    // Both Owner Today layouts (the original v1 and the decision dashboard)
-                    // stay demoable for side-by-side comparison — same picker pattern as the
-                    // splash A/B below.
-                    FieldWorkRow(
-                        title = "Owner Today layout",
-                        subtitle = DemoProjectRepository.ownerTodayVariant.title,
-                        statusColor = progress,
-                        enabled = true,
-                        onClick = { showOwnerLayoutPicker = true },
-                        modifier = Modifier.testTag("demoOwnerLayoutRow"),
-                    )
-                }
-                item {
                     FieldWorkRow(
                         title = "Splash animation",
                         subtitle = DemoProjectRepository.splashVariant.title,
@@ -199,67 +185,52 @@ fun SettingsScreen(
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
             )
             FieldPersona.entries.forEach { option ->
-                FieldWorkRow(
-                    title = option.displayName,
-                    subtitle = when {
-                        option == persona -> "Live · viewing now"
-                        option.isLive -> "Live · tap to view"
-                        else -> "Next — same tabs, different Today"
-                    },
-                    statusColor = if (option.isLive) progress else muted,
-                    enabled = true,
-                    onClick = {
-                        if (option.isLive) {
-                            DemoProjectRepository.selectPersona(option)
-                            showViewAs = false
-                        } else {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    "${option.displayName} view is next — ${option.nextFocus}",
-                                )
+                if (option == FieldPersona.OWNER) {
+                    // Both Owner Today layouts are demoable straight from this picker — one
+                    // row per layout, so the v1/v2 A/B is a single tap with no separate
+                    // setting. Tapping sets the layout and switches to the Owner view.
+                    OwnerTodayVariant.entries.forEach { variant ->
+                        val viewingNow = option == persona &&
+                            variant == DemoProjectRepository.ownerTodayVariant
+                        FieldWorkRow(
+                            title = "${option.displayName} — ${variant.title}",
+                            subtitle = if (viewingNow) "Live · viewing now" else "Live · tap to view",
+                            statusColor = progress,
+                            enabled = true,
+                            onClick = {
+                                DemoProjectRepository.ownerTodayVariant = variant
+                                DemoProjectRepository.selectPersona(option)
+                                showViewAs = false
+                            },
+                            modifier = Modifier.testTag("persona_OWNER_${variant.name}"),
+                        )
+                    }
+                } else {
+                    FieldWorkRow(
+                        title = option.displayName,
+                        subtitle = when {
+                            option == persona -> "Live · viewing now"
+                            option.isLive -> "Live · tap to view"
+                            else -> "Next — same tabs, different Today"
+                        },
+                        statusColor = if (option.isLive) progress else muted,
+                        enabled = true,
+                        onClick = {
+                            if (option.isLive) {
+                                DemoProjectRepository.selectPersona(option)
+                                showViewAs = false
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "${option.displayName} view is next — ${option.nextFocus}",
+                                    )
+                                }
+                                showViewAs = false
                             }
-                            showViewAs = false
-                        }
-                    },
-                    modifier = Modifier.testTag("persona_${option.name}"),
-                )
-            }
-            Column(modifier = Modifier.padding(24.dp)) { }
-        }
-    }
-
-    if (showOwnerLayoutPicker) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { showOwnerLayoutPicker = false },
-            sheetState = sheetState,
-            containerColor = raised,
-        ) {
-            Text(
-                text = "Owner Today layout",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-            Text(
-                text = "Applies when viewing as Owner. Both versions stay demoable — " +
-                    "pick one, then Demo: view as → Owner to see it.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = muted,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
-            )
-            OwnerTodayVariant.entries.forEach { option ->
-                val selected = option == DemoProjectRepository.ownerTodayVariant
-                FieldWorkRow(
-                    title = option.title,
-                    subtitle = if (selected) "${option.subtitle} · showing now" else option.subtitle,
-                    statusColor = if (selected) progress else muted,
-                    enabled = true,
-                    onClick = {
-                        DemoProjectRepository.ownerTodayVariant = option
-                        showOwnerLayoutPicker = false
-                    },
-                    modifier = Modifier.testTag("ownerTodayVariant_${option.name}"),
-                )
+                        },
+                        modifier = Modifier.testTag("persona_${option.name}"),
+                    )
+                }
             }
             Column(modifier = Modifier.padding(24.dp)) { }
         }

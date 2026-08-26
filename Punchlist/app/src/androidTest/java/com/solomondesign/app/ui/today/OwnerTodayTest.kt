@@ -167,22 +167,23 @@ class OwnerTodayTest {
     }
 
     /**
-     * Both Owner layouts stay demoable: Settings → Demo → "Owner Today layout" flips between
-     * the v2 decision dashboard (default) and the original v1 photos-and-discussions view.
+     * Both Owner layouts stay demoable from the one picker: Demo: view as lists Owner as two
+     * rows — the v2 decision dashboard (default) and the original v1 photos-and-discussions
+     * view — and tapping one sets the layout and switches to the Owner view together.
      */
     @Test
-    fun ownerLayoutPicker_switchesBetweenDashboardAndClassic() {
+    fun viewAsPicker_switchesBetweenOwnerDashboardAndClassic() {
         DemoProjectRepository.selectPersona(FieldPersona.OWNER)
         launch()
         composeTestRule.onNodeWithTag("ownerTopic_schedule").assertExists()
 
-        // Flip to the classic v1 layout through the real demo flow.
+        // Pick the classic v1 Owner row through the real demo flow.
         composeTestRule.onNodeWithTag("headerOverflowMenu").performClick()
         composeTestRule.onNodeWithTag("headerSettingsMenuItem").performClick()
         composeTestRule.onNodeWithTag("settingsScreen")
-            .performScrollToNode(hasTestTag("demoOwnerLayoutRow"))
-        composeTestRule.onNodeWithTag("demoOwnerLayoutRow").performClick()
-        composeTestRule.onNodeWithTag("ownerTodayVariant_CLASSIC").performClick()
+            .performScrollToNode(hasTestTag("demoViewAsRow"))
+        composeTestRule.onNodeWithTag("demoViewAsRow").performClick()
+        composeTestRule.onNodeWithTag("persona_OWNER_CLASSIC").performClick()
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TODAY_HOME}").performClick()
 
         // v1: photos, flat topic list, shared Delays rows, collapsed roster — no dashboard.
