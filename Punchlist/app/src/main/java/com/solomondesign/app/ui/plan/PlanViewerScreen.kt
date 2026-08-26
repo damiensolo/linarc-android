@@ -4,9 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,9 +53,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,8 +69,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -85,13 +78,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.PinKind
 import com.solomondesign.app.ui.demo.PlanPin
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.DesignTokens
+import com.solomondesign.app.ui.designsystem.ZoomableContainer
 import com.solomondesign.app.ui.images.ImageThumbnail
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.images.imageIdOfPin
@@ -395,8 +388,10 @@ private fun SheetTitleSelector(
 }
 
 /**
- * One zoomable page. Single-finger drags at rest scale stay with the pager (swipe navigation);
- * pinch always zooms, and panning takes over only while zoomed in.
+ * One zoomable page, through the shared [ZoomableContainer] (same gesture contract as the
+ * photo viewer): single-finger drags at rest scale stay with the pager (swipe navigation),
+ * pinch always zooms, panning takes over only while zoomed in, and the page resets to
+ * fit-to-screen once swiped away.
  */
 @Composable
 private fun SheetPage(
@@ -406,62 +401,16 @@ private fun SheetPage(
     onPinClick: (PlanPin) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var scale by remember(sheet.id) { mutableFloatStateOf(1f) }
-    var offset by remember(sheet.id) { mutableStateOf(Offset.Zero) }
-    var containerSize by remember { mutableStateOf(IntSize.Zero) }
-
-    fun clampOffset(candidate: Offset, atScale: Float): Offset {
-        val maxX = (containerSize.width * (atScale - 1f)) / 2f
-        val maxY = (containerSize.height * (atScale - 1f)) / 2f
-        return Offset(candidate.x.coerceIn(-maxX, maxX), candidate.y.coerceIn(-maxY, maxY))
-    }
-
-    val transformState = rememberTransformableState { zoomChange, panChange, _ ->
-        scale = (scale * zoomChange).coerceIn(1f, 6f)
-        offset = clampOffset(offset + panChange, scale)
-    }
-
-    // Reset zoom once the page is swiped away so returning always starts at fit-to-screen.
-    LaunchedEffect(isCurrent) {
-        if (!isCurrent) {
-            scale = 1f
-            offset = Offset.Zero
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .onSizeChanged { containerSize = it }
-            .transformable(state = transformState, canPan = { scale > 1f })
-            .pointerInput(sheet.id) {
-                detectTapGestures(
-                    onDoubleTap = { tap ->
-                        if (scale > 1.5f) {
-                            scale = 1f
-                            offset = Offset.Zero
-                        } else {
-                            val target = 2.5f
-                            scale = target
-                            val center = Offset(size.width / 2f, size.height / 2f)
-                            offset = clampOffset((center - tap) * (target - 1f), target)
-                        }
-                    },
-                )
-            },
-        contentAlignment = Alignment.Center,
+    ZoomableContainer(
+        active = isCurrent,
+        resetKey = sheet.id,
+        modifier = modifier,
     ) {
         val painter = painterResource(sheet.drawableRes)
         val intrinsic = painter.intrinsicSize
         val aspect = if (intrinsic.height > 0f) intrinsic.width / intrinsic.height else 1.5f
         Box(
             modifier = Modifier
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                }
                 // Sized to the drawing's aspect ratio so pins and markup share its coordinates.
                 .aspectRatio(aspect)
                 .background(Color.White)

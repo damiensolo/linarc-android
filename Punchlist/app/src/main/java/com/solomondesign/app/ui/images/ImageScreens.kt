@@ -70,6 +70,7 @@ import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.DesignTokens
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
+import com.solomondesign.app.ui.designsystem.ZoomableContainer
 import com.solomondesign.app.ui.plan.PlanSheetRepository
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordChooserSheet
@@ -79,6 +80,14 @@ import kotlin.math.roundToInt
 
 /** Full-screen viewing: decode near typical display resolution, never the full sensor size. */
 private const val VIEWER_DECODE_EDGE_PX = 2048
+
+/**
+ * Viewer zoom ceiling, coupled to [VIEWER_DECODE_EDGE_PX]: at 4× on a ~1080px-wide screen the
+ * visible slice is ~512 source pixels — about a 2× upscale, still readable for inspecting a
+ * weld or a label. Raising this without raising the decode edge just magnifies blur; raising
+ * both quadruples bitmap memory (2048² ≈ 16 MB ARGB → 4096² ≈ 64 MB), so 4× is the balance.
+ */
+private const val VIEWER_MAX_ZOOM = 4f
 
 /** How the Images tool presents the same photo set. Grid stays the default working view. */
 private enum class ImagesViewMode(val label: String) {
@@ -434,42 +443,54 @@ fun ImageViewerScreen(
                 .testTag("imageViewerScreen"),
             contentAlignment = Alignment.Center,
         ) {
-            val captured = (image.source as? ImageSource.Captured)
-                ?.let { CapturedBitmapStore.get(it.captureKey) }
-            when (val source = image.source) {
-                is ImageSource.Drawable -> Image(
-                    painter = painterResource(source.resId),
-                    contentDescription = image.title,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                )
-
-                is ImageSource.Captured -> if (captured != null) {
-                    Image(
-                        bitmap = captured.asImageBitmap(),
+            // Pinch-to-zoom for close inspection (the personas' most common viewer need) —
+            // the same ZoomableContainer the plan viewer uses, so the gesture ritual is one
+            // muscle memory app-wide. Zoom caps at VIEWER_MAX_ZOOM to stay inside what the
+            // VIEWER_DECODE_EDGE_PX decode keeps sharp; the transform is a graphicsLayer
+            // matrix, so no re-decode or re-layout happens per gesture frame. Captions and
+            // the toolbar stay outside the container and never scale.
+            ZoomableContainer(
+                resetKey = image.id,
+                maxScale = VIEWER_MAX_ZOOM,
+                modifier = Modifier.testTag("imageZoomContainer"),
+            ) {
+                val captured = (image.source as? ImageSource.Captured)
+                    ?.let { CapturedBitmapStore.get(it.captureKey) }
+                when (val source = image.source) {
+                    is ImageSource.Drawable -> Image(
+                        painter = painterResource(source.resId),
                         contentDescription = image.title,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize(),
                     )
-                } else {
-                    SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
-                }
 
-                is ImageSource.CapturedFile -> FilePhoto(
-                    absolutePath = source.absolutePath,
-                    contentDescription = image.title,
-                    maxEdgePx = VIEWER_DECODE_EDGE_PX,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                    fallback = {
+                    is ImageSource.Captured -> if (captured != null) {
+                        Image(
+                            bitmap = captured.asImageBitmap(),
+                            contentDescription = image.title,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
                         SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
-                    },
-                )
+                    }
 
-                is ImageSource.Swatch -> SitePhotoSwatch(
-                    seed = source.seed,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                    is ImageSource.CapturedFile -> FilePhoto(
+                        absolutePath = source.absolutePath,
+                        contentDescription = image.title,
+                        maxEdgePx = VIEWER_DECODE_EDGE_PX,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                        fallback = {
+                            SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
+                        },
+                    )
+
+                    is ImageSource.Swatch -> SitePhotoSwatch(
+                        seed = source.seed,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
 
             Column(modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
