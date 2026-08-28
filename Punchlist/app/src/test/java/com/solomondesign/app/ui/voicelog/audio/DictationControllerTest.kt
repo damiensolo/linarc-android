@@ -20,6 +20,20 @@ private class FakeSpeechTranscriber(private val available: Boolean = true) : Spe
     /** Language tag of every [start] call, in order — how a test proves a mid-take switch. */
     val startLanguageTags = mutableListOf<String?>()
 
+    /** Session brackets — the chime-control contract: one start per take, always one end. */
+    var sessionStartedCount = 0
+        private set
+    var sessionEndedCount = 0
+        private set
+
+    override fun sessionStarted() {
+        sessionStartedCount++
+    }
+
+    override fun sessionEnded() {
+        sessionEndedCount++
+    }
+
     /** Set while an utterance is "in flight"; [stop] finalizes it, like the real recognizer. */
     private var pendingOnFinal: ((String) -> Unit)? = null
 
@@ -133,6 +147,42 @@ class DictationControllerTest {
 
         assertEquals("finally heard something", controller.transcript)
         assertEquals(0, controller.consecutiveNoMatchCount)
+    }
+
+    @Test
+    fun startAndStop_bracketTheSession_forChimeControl() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueFinal("hello")
+        val controller = DictationController(transcriber)
+
+        controller.start()
+        assertEquals(1, transcriber.sessionStartedCount)
+        assertEquals(0, transcriber.sessionEndedCount)
+
+        controller.stop()
+        assertEquals(1, transcriber.sessionEndedCount)
+    }
+
+    @Test
+    fun nonRecoverableError_alsoEndsTheSession_soMutedAudioIsRestored() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueError(SpeechError("Speech recognizer is busy", recoverable = false))
+        val controller = DictationController(transcriber)
+
+        controller.start()
+
+        assertEquals(1, transcriber.sessionStartedCount)
+        assertEquals(1, transcriber.sessionEndedCount)
+    }
+
+    @Test
+    fun unavailableDevice_neverOpensASession() {
+        val transcriber = FakeSpeechTranscriber(available = false)
+        val controller = DictationController(transcriber)
+
+        controller.start()
+
+        assertEquals(0, transcriber.sessionStartedCount)
     }
 
     @Test

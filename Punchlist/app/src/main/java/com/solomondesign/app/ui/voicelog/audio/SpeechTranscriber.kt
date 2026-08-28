@@ -2,6 +2,7 @@ package com.solomondesign.app.ui.voicelog.audio
 
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -29,6 +30,18 @@ interface SpeechTranscriber {
         languageTag: String? = null,
     )
 
+    /**
+     * A continuous dictation session is beginning: the next [start] is the user-visible
+     * "recording started" moment and may play the OS recognizer tone. Default no-op.
+     */
+    fun sessionStarted() {}
+
+    /**
+     * The dictation session is over (stopped, reset, or dead on error) — restore any global
+     * audio state changed during it. Default no-op.
+     */
+    fun sessionEnded() {}
+
     fun stop()
     fun destroy()
 }
@@ -37,8 +50,27 @@ interface SpeechTranscriber {
 class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber {
 
     private var recognizer: SpeechRecognizer? = null
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+    /** True once this session's first utterance armed — everything after must stay silent. */
+    private var chimedThisSession = false
+
+    /** Streams this class muted itself (never ones the user already had muted). */
+    private val mutedStreams = mutableListOf<Int>()
 
     override fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
+
+    override fun sessionStarted() {
+        // Fresh session: make sure a leaked mute from a crashed session can't swallow the one
+        // legitimate "recording started" tone.
+        unmuteChimes()
+        chimedThisSession = false
+    }
+
+    override fun sessionEnded() {
+        unmuteChimes()
+        chimedThisSession = false
+    }
 
     override fun start(
         onPartial: (String) -> Unit,
@@ -55,7 +87,17 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
         val activeRecognizer = recognizer ?: SpeechRecognizer.createSpeechRecognizer(context).also { recognizer = it }
         activeRecognizer.setRecognitionListener(
             object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) = Unit
+                override fun onReadyForSpeech(params: Bundle?) {
+                    // The OS start tone has fired by now. Continuous dictation re-arms the
+                    // recognizer every few seconds (see DictationController), and each re-arm
+                    // replays that tone mid-recording — a fragmented capture experience. So the
+                    // session's first tone plays as the "recording started" cue, then the tone
+                    // streams are muted until sessionEnded()/destroy() restores them.
+                    if (!chimedThisSession) {
+                        chimedThisSession = true
+                        muteChimes()
+                    }
+                }
                 override fun onBeginningOfSpeech() = Unit
                 override fun onRmsChanged(rmsdB: Float) = Unit
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
@@ -90,6 +132,9 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageTag)
             }
         }
+        // Re-arms after the session's first tone must stay silent even if a callback ordering
+        // quirk skipped onReadyForSpeech.
+        if (chimedThisSession) muteChimes()
         activeRecognizer.startListening(intent)
     }
 
@@ -100,6 +145,33 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
     override fun destroy() {
         recognizer?.destroy()
         recognizer = null
+        // Last line of defense: the screen's dispose path must never leave media muted.
+        unmuteChimes()
+        chimedThisSession = false
+    }
+
+    /**
+     * The recognizer tone plays on media (and on some OEMs, system) audio; those are the safe
+     * streams to touch — ring/notification mutes can throw SecurityException without
+     * Do-Not-Disturb access, so they're deliberately left alone.
+     */
+    private fun muteChimes() {
+        if (mutedStreams.isNotEmpty()) return
+        listOf(AudioManager.STREAM_MUSIC, AudioManager.STREAM_SYSTEM).forEach { stream ->
+            runCatching {
+                if (!audioManager.isStreamMute(stream)) {
+                    audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_MUTE, 0)
+                    mutedStreams.add(stream)
+                }
+            }
+        }
+    }
+
+    private fun unmuteChimes() {
+        mutedStreams.forEach { stream ->
+            runCatching { audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_UNMUTE, 0) }
+        }
+        mutedStreams.clear()
     }
 
     private fun Bundle?.firstTranscript(): String =

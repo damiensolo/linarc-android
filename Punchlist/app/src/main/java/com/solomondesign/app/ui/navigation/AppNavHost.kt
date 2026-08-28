@@ -599,8 +599,11 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 VoiceNoteScreen(
                     onExit = { navController.popBackStack() },
                     // The chooser picked a category; stage the form with the note text that was
-                    // showing when Create was tapped (original or translation, never both), then
-                    // stack the form so Back returns to the note — same shape as a photo create.
+                    // showing when Create was tapped (original or translation, never both).
+                    // Create is a full handoff (like the camera's Quick issue chip): the note is
+                    // popped, so Save — or closing the form — lands back where capture began
+                    // (e.g. Today), never on the note screen, whose recomposition would re-arm
+                    // the recorder mid-flow.
                     onCreateRecord = { category, seeds ->
                         RecordDraft.begin(
                             category,
@@ -609,7 +612,9 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                             seedDescription = seeds.description,
                             seedLocation = seeds.location,
                         )
-                        navController.navigate(AppRoutes.recordCreate(category.routeId))
+                        navController.navigate(AppRoutes.recordCreate(category.routeId)) {
+                            popUpTo(AppRoutes.VOICE_NOTE) { inclusive = true }
+                        }
                     },
                 )
             }

@@ -65,6 +65,9 @@ class DictationController(private val transcriber: SpeechTranscriber) {
             errorMessage = "Speech recognition isn't available on this device."
             return
         }
+        // Brackets the whole take for the transcriber: one audible "recording started" tone,
+        // then silent re-arms until the matching sessionEnded (stop, reset, or fatal error).
+        transcriber.sessionStarted()
         active = true
         errorMessage = null
         listenOnce()
@@ -74,6 +77,7 @@ class DictationController(private val transcriber: SpeechTranscriber) {
         active = false
         partial = ""
         transcriber.stop()
+        transcriber.sessionEnded()
     }
 
     private fun listenOnce() {
@@ -98,6 +102,7 @@ class DictationController(private val transcriber: SpeechTranscriber) {
                 } else if (active) {
                     active = false
                     errorMessage = error.message
+                    transcriber.sessionEnded()
                 }
             },
             languageTag = languageTag,
