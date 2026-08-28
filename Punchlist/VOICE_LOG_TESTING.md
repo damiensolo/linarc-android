@@ -6,8 +6,11 @@ Everything except your actual voice is now real: real `RECORD_AUDIO` permission,
 file. I can't speak into the emulator's microphone myself, so this last mile —
 "does it correctly transcribe an actual human voice" — needs you.
 
-Entry point is the **Capture FAB** (not a Capture tab). After submit, the log must
-appear on **Today** and any issue (e.g. Column 4 spalling) must pin on **Plan**.
+Entry point is **Settings → Demo → Voice daily log (demo)** — the Tools header's
+overflow (⋮) menu opens Settings. (Until 2026-08-25 this was the camera's Voice
+chip; that chip now opens the bilingual **Voice note** instead.) After submit, the
+log must appear on **Today** and any issue (e.g. Column 4 spalling) must pin on
+**Plan**.
 
 ## 1. One-time setup
 
@@ -32,7 +35,7 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
 
 1. Open the app as **Foreman** (default) → **Today**.
 2. Optional: tap **Start My Day** and **Confirm**.
-3. Tap the **Capture FAB** (bottom-end “+”) → **Voice daily log**.
+3. Go to **Tools** → header overflow (⋮) → **Settings** → **Voice daily log (demo)**.
 4. Approve the microphone permission if prompted.
 5. You should see **"RECORDING"**, a live timer, and the waveform reacting to real
    sound (try clapping near the mic — the bars should visibly jump).
@@ -59,7 +62,7 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
 11. Tap **Submit** → confirmation screen → **Done**.
 12. Back on **Today**, you should see the new delay/issue (and a voice log card).
     Open **Plan** — a pin should sit near **Column 4**. Tap it.
-13. **More → Voice logs** → tap the new entry.
+13. **Tools → Voice logs** → tap the new entry.
 14. Tap **Play Recording** — you should hear your actual voice played back (if you
     opted into saving audio). Tap again to pause.
 

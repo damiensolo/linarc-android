@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.solomondesign.punchlist"
+    namespace = "com.solomondesign.app"
     compileSdk {
         version = release(37)
     }
@@ -46,6 +46,14 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
+    // In-app camera (Capture): preview, photo capture now; video capture in a later iteration.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.video)
+    // Voice notes: on-device EN<->ES translation (models download once, then work offline).
+    implementation(libs.mlkit.translate)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
