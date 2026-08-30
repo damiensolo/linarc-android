@@ -2,6 +2,8 @@
 
 This is the **single source of truth** for the field Android prototype. Do not resurrect older IA (5-tab bar, Capture tab, Reports tab, Stream-as-home, nested Project Space, OAC/dashboards). If a screen is not in this spec, do not build it.
 
+Lead mobile developer handoff (walkthrough + how to use this app as a production reference): `HANDOFF.md`. Stakeholder demo: `DEMO_SCRIPT.md`. Tab stacks: `NAVIGATION_PATTERNS.md`.
+
 ## Purpose
 
 Internal strategy prototype: prove a field-first information architecture on Android, with Voice-to-Log as the working differentiator. The app opens as a **Foreman**. All five other personas — **Superintendent**, **Crew**, **Project manager**, **Owner**, and **Subcontractor** — are live via Settings → Demo: view as (added 2026-08-25 as the iteration-2 personas).
