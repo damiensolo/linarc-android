@@ -171,9 +171,15 @@ private fun VoiceNoteFlow(
     var spokenLanguage by remember { mutableStateOf(VoiceNoteLanguage.ENGLISH) }
     var displayLanguage by remember { mutableStateOf(VoiceNoteLanguage.ENGLISH) }
     var autoSwitched by remember { mutableStateOf(false) }
-    // Detection only ever looks at text captured after the last language switch, so a switch
-    // (manual or automatic) can't be immediately re-triggered by the older other-language text.
-    var textLengthAtSwitch by remember { mutableIntStateOf(0) }
+    // The one-tap toggle is authoritative (spec): a manual pick turns auto-detect off for the
+    // rest of the take, so detection can never flip the language back against the user's choice.
+    // Re-record re-enables it for the fresh take.
+    var autoDetectEnabled by remember { mutableStateOf(true) }
+    // Detection only ever looks at FINALIZED text captured after the last language switch. The
+    // baseline is a transcript offset, never a combined transcript+partial offset — the partial
+    // mutates as the recognizer refines it, so offsets into the combined string drift and slice
+    // words apart, which is what used to make detection fire on garbage fragments.
+    var transcriptLengthAtSwitch by remember { mutableIntStateOf(0) }
     var noteText by remember { mutableStateOf("") }
     var translation by remember { mutableStateOf<String?>(null) }
     var translating by remember { mutableStateOf(false) }
@@ -215,24 +221,29 @@ private fun VoiceNoteFlow(
     }
 
     // Best-effort auto-detect: watch fresh recognizer text; when it clearly reads as the other
-    // language, flip the toggle and re-arm the recognizer in that language.
+    // language, flip the toggle and re-arm the recognizer in that language. Skipped entirely
+    // once the user picks a language by hand — the toggle is authoritative.
     LaunchedEffect(stage) {
         if (stage != VoiceNoteStage.RECORDING) return@LaunchedEffect
-        snapshotFlow { "${dictation.transcript} ${dictation.partial}".trim() }
-            .collect { combined ->
-                val fresh = combined.drop(textLengthAtSwitch).trim()
+        snapshotFlow { dictation.transcript to dictation.partial }
+            .collect { (transcript, partial) ->
+                if (!autoDetectEnabled) return@collect
+                val fresh = "${transcript.drop(transcriptLengthAtSwitch)} $partial".trim()
                 val detected = VoiceNoteLanguageDetector.detect(fresh)
                 if (detected != null && detected != spokenLanguage) {
                     spokenLanguage = detected
                     displayLanguage = detected
                     autoSwitched = true
-                    textLengthAtSwitch = combined.length
+                    transcriptLengthAtSwitch = transcript.length
                     dictation.setLanguage(detected.speechTag)
                 }
             }
     }
 
-    LaunchedEffect(stage, translateRetryTick) {
+    // Keyed on noteText too: editing the transcript clears the stale translation, and this
+    // effect must then produce a fresh one — without the key, the display toggle dead-ended on
+    // "Couldn't translate" after any edit until a manual retry.
+    LaunchedEffect(stage, translateRetryTick, noteText) {
         if (stage != VoiceNoteStage.REVIEW || translation != null || noteText.isBlank()) {
             return@LaunchedEffect
         }
@@ -253,12 +264,15 @@ private fun VoiceNoteFlow(
             dictation = dictation,
             spokenLanguage = spokenLanguage,
             autoSwitched = autoSwitched,
+            autoDetectEnabled = autoDetectEnabled,
             onSelectLanguage = { language ->
+                // A manual pick always wins: even re-tapping the current language locks it in,
+                // so a wrong auto-switch is undone by one tap and never comes back.
+                autoDetectEnabled = false
+                autoSwitched = false
                 if (language != spokenLanguage) {
                     spokenLanguage = language
                     displayLanguage = language
-                    autoSwitched = false
-                    textLengthAtSwitch = "${dictation.transcript} ${dictation.partial}".trim().length
                     dictation.setLanguage(language.speechTag)
                 }
             },
@@ -321,7 +335,8 @@ private fun VoiceNoteFlow(
                 translationError = null
                 translating = false
                 autoSwitched = false
-                textLengthAtSwitch = 0
+                autoDetectEnabled = true
+                transcriptLengthAtSwitch = 0
                 stage = VoiceNoteStage.RECORDING
             },
             onDelete = onExit,
@@ -342,6 +357,7 @@ private fun VoiceNoteRecordingStage(
     dictation: DictationController,
     spokenLanguage: VoiceNoteLanguage,
     autoSwitched: Boolean,
+    autoDetectEnabled: Boolean,
     onSelectLanguage: (VoiceNoteLanguage) -> Unit,
     onCancel: () -> Unit,
     onDone: (String) -> Unit,
@@ -414,10 +430,11 @@ private fun VoiceNoteRecordingStage(
             VoiceLanguageToggle(selected = spokenLanguage, onSelect = onSelectLanguage)
             Spacer(Modifier.height(4.dp))
             Text(
-                text = if (autoSwitched) {
-                    "Heard ${spokenLanguage.displayName} — switched automatically"
-                } else {
-                    "Auto-detects English or Español as you speak"
+                text = when {
+                    !autoDetectEnabled ->
+                        "Listening in ${spokenLanguage.displayName} — tap the toggle to change"
+                    autoSwitched -> "Heard ${spokenLanguage.displayName} — switched automatically"
+                    else -> "Auto-detects English or Español as you speak"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.PinKind
+import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.FieldCollapsibleSectionHeader
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
 import com.solomondesign.app.ui.designsystem.FieldPageHeader
@@ -60,19 +61,20 @@ import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.profile.ProfileAvatarButton
 
 /**
- * Plans tab root: the full plan set for the project, searchable and grouped by discipline in
- * collapsible sections. Tapping a sheet opens the full-screen [PlanViewerScreen].
+ * Plan sheet list: searchable, grouped by discipline. Tapping a sheet opens [PlanViewerScreen].
  *
- * Plans are the field's source of truth, so this list is one tap from anywhere via the bottom
- * nav — see "Field prototype" in Mobile Structure Validated v1.md.
+ * Two chrome modes, one list:
+ * - Tab root ([onBack] null): [FieldPageHeader] — the Plans destination in the bar.
+ * - Tools catalog ([onBack] set): [BrowseScaffold] — same sheets, Back returns to the catalog.
  */
 @Composable
 fun PlansScreen(
     onOpenSheet: (String) -> Unit,
-    onOpenProfile: () -> Unit,
-    onSwitchProject: () -> Unit,
-    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+    onOpenProfile: () -> Unit = {},
+    onSwitchProject: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     // Stored as the enum name so rememberSaveable can bundle it without a custom Saver.
@@ -89,22 +91,75 @@ fun PlansScreen(
             ?.let { discipline to it }
     }
     val pinCount = DemoProjectRepository.pins.size
+    val subtitle = "${DemoProjectRepository.PROJECT_NAME} · ${PlanSheetRepository.sheets.size} sheets"
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("planScreen"),
-    ) {
-        FieldPageHeader(
-            title = "Plans",
-            subtitle = "${DemoProjectRepository.PROJECT_NAME} · ${PlanSheetRepository.sheets.size} sheets",
-            projectName = DemoProjectRepository.PROJECT_NAME,
-            onSwitchProject = onSwitchProject,
-            onOpenSettings = onOpenSettings,
-            trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
+    val list: @Composable (Modifier) -> Unit = { listModifier ->
+        PlansListBody(
+            query = query,
+            onQueryChange = { query = it },
+            selectedDiscipline = selectedDiscipline,
+            onSelectDiscipline = { disciplineFilterName = it?.name },
+            filtering = filtering,
+            sections = sections,
+            collapsed = collapsed,
+            onToggleCollapsed = { discipline ->
+                collapsed = if (discipline in collapsed) {
+                    collapsed - discipline
+                } else {
+                    collapsed + discipline
+                }
+            },
+            pinCount = pinCount,
+            onOpenSheet = onOpenSheet,
+            modifier = listModifier,
         )
+    }
+
+    if (onBack != null) {
+        BrowseScaffold(
+            title = "Plans",
+            subtitle = subtitle,
+            onBack = onBack,
+            modifier = modifier,
+        ) { padding ->
+            list(Modifier.padding(padding).fillMaxSize().testTag("planScreen"))
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .testTag("planScreen"),
+        ) {
+            FieldPageHeader(
+                title = "Plans",
+                subtitle = subtitle,
+                projectName = DemoProjectRepository.PROJECT_NAME,
+                onSwitchProject = onSwitchProject,
+                onOpenSettings = onOpenSettings,
+                trailing = { ProfileAvatarButton(onClick = onOpenProfile) },
+            )
+            list(Modifier.fillMaxSize())
+        }
+    }
+}
+
+@Composable
+private fun PlansListBody(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    selectedDiscipline: PlanDiscipline?,
+    onSelectDiscipline: (PlanDiscipline?) -> Unit,
+    filtering: Boolean,
+    sections: List<Pair<PlanDiscipline, List<PlanSheet>>>,
+    collapsed: Set<PlanDiscipline>,
+    onToggleCollapsed: (PlanDiscipline) -> Unit,
+    pinCount: Int,
+    onOpenSheet: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
         if (DemoProjectRepository.persona == FieldPersona.SUPERINTENDENT) {
-            // Plan is the Superintendent's power view: one tap from the tab root straight to
+            // Plan is the Superintendent's power view: one tap from the list straight to
             // the live pin sheet, with the current pin and issue-pin counts on the row.
             val pinSheet = PlanSheetRepository.sheets.firstOrNull { it.isPinSheet }
             if (pinSheet != null) {
@@ -126,7 +181,7 @@ fun PlansScreen(
         }
         OutlinedTextField(
             value = query,
-            onValueChange = { query = it },
+            onValueChange = onQueryChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
@@ -135,7 +190,7 @@ fun PlansScreen(
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = if (query.isNotEmpty()) {
                 {
-                    IconButton(onClick = { query = "" }) {
+                    IconButton(onClick = { onQueryChange("") }) {
                         Icon(Icons.Filled.Close, contentDescription = "Clear search")
                     }
                 }
@@ -147,13 +202,16 @@ fun PlansScreen(
         )
         DisciplineFilterRow(
             selected = selectedDiscipline,
-            onSelect = { disciplineFilterName = it?.name },
+            onSelect = onSelectDiscipline,
             modifier = Modifier.padding(top = 8.dp),
         )
         if (sections.isEmpty()) {
             FieldEmptyState(message = "No sheets match \"${query.trim()}\"")
         } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 96.dp),
+            ) {
                 sections.forEach { (discipline, rows) ->
                     val expanded = filtering || discipline !in collapsed
                     item(key = "header_${discipline.name}") {
@@ -162,13 +220,7 @@ fun PlansScreen(
                             count = rows.size,
                             expanded = expanded,
                             onToggleExpanded = {
-                                if (!filtering) {
-                                    collapsed = if (discipline in collapsed) {
-                                        collapsed - discipline
-                                    } else {
-                                        collapsed + discipline
-                                    }
-                                }
+                                if (!filtering) onToggleCollapsed(discipline)
                             },
                             modifier = Modifier.testTag("planSection_${discipline.name}"),
                         )

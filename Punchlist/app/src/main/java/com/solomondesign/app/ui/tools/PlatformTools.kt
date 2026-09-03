@@ -93,6 +93,7 @@ object PlatformTools {
             subtitle = "Plan sheets for this area",
             category = ToolCategory.DOCUMENTATION,
             icon = Icons.Filled.Map,
+            homeRoute = AppRoutes.PLAN_LIST,
         ),
         tool(
             id = "rfis",

@@ -601,6 +601,16 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     )
                 }
 
+                // Same sheet list as the Plans tab; Pattern B so Tools stays selected.
+                composable(AppRoutes.PLAN_LIST) {
+                    PlansScreen(
+                        onOpenSheet = { sheetId ->
+                            navController.navigate(AppRoutes.planViewer(sheetId))
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+
                 // ---- Record tools: Issues / Incidents / Punch list (Pattern B lists) ----
                 composable(AppRoutes.RECORD_LIST_ISSUES) {
                     RecordListScreen(

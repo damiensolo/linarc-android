@@ -59,7 +59,7 @@ object AppRoutes {
     const val TOOL_CREATE = "tool/{toolId}/create"
     const val TOOL_DETAIL = "tool/{toolId}/detail/{title}"
 
-    // Dedicated routes for the five real Tools areas. Each is Pattern B except the image viewer.
+    // Dedicated routes for the built Tools areas. Each is Pattern B except the image / plan viewers.
     const val FIELD_TASK_LIST = "field_task"
     const val FIELD_TASK_DETAIL = "field_task/{taskId}"
 
@@ -71,6 +71,13 @@ object AppRoutes {
 
     const val COLLAB_TOPIC_LIST = "collaboration"
     const val COLLAB_TOPIC_DETAIL = "collaboration/{topicId}"
+
+    /**
+     * Tools-catalog Plans list. Same [PlansScreen] as [PLAN_HOME], but a distinct route so it
+     * lives in the Tools graph (Pattern B, Back to the catalog) instead of jumping tabs and
+     * stealing the Plans tab's stack.
+     */
+    const val PLAN_LIST = "plans"
 
     const val IMAGE_GRID = "images"
 
@@ -153,6 +160,7 @@ object AppRoutes {
         CREW_DETAIL,
         COLLAB_TOPIC_LIST,
         COLLAB_TOPIC_DETAIL,
+        PLAN_LIST,
         IMAGE_GRID,
         IMAGE_VIEWER,
         IMAGE_MARKUP,

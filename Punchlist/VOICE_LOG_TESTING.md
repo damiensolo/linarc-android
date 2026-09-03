@@ -99,3 +99,25 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
 - **Hours/quantities are only detected when actually spoken.** The spec's own
   example transcript doesn't state delay durations either — that JSON figure
   was the spec's *illustrative* LLM inference, not something in the audio.
+
+## 5. Voice note and Speak (same mic path)
+
+The camera **Voice note** chip and form **Speak** buttons use the same
+`SpeechRecognizer` loop (`DictationController`). Setup is identical (host mic
+on the emulator, `RECORD_AUDIO` grant).
+
+**Voice note** (`FEATURE_GUIDE.md` §5)
+
+1. Capture → **Voice note** (works without camera permission).
+2. Speak. **Pause / Resume** keeps the words already captured.
+3. A manual English | Español pick locks the language until **Re-record**.
+4. **Done** → type to fix a word on review → **Create** (description only; title stays empty).
+
+**Speak into a field** (`FEATURE_GUIDE.md` §10)
+
+- Long text only: record Description, Blocking reason, collab Message, plan pin comment.
+- One in-app take at a time; opening the camera stops Speak.
+- Keyboard/Gboard voice typing still works on a focused field. There is no mic on Title, chips, dates, or hours.
+
+If Pause/Resume or a language toggle surfaces a raw `ERROR_CLIENT` string instead of
+"tap Resume", that is a dictation-reliability regression (spec Voice note contract).

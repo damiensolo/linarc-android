@@ -4,7 +4,7 @@ What is **real**, what is **partial**, and what is only a **placeholder** — pl
 
 This is a **strategy prototype**. Data lives in memory (it resets on Logout or process kill). There is no backend, login, or real sync.
 
-**Related docs:** product spec (`Mobile Structure Validated v1.md`) · developer handoff (`HANDOFF.md`) · live demo script (`DEMO_SCRIPT.md`)
+**Related docs:** product spec (`Mobile Structure Validated v1.md`) · developer handoff (`HANDOFF.md`) · live demo script (`DEMO_SCRIPT.md`) · tab stacks (`NAVIGATION_PATTERNS.md`) · voice mic path (`VOICE_LOG_TESTING.md`)
 
 ---
 
@@ -30,7 +30,7 @@ Placeholders are intentional. They show the full Tools catalog without faking br
 | Project list | Semi-functional | Search works. **Any** row loads the same seeded job. Only Riverside Medical is “the” project. **Accounts** tab is a placeholder |
 | Today | Functional | Persona-specific; rows open the real photo, video, record, task, or log. Every section header collapses (tap it — same as the crew roster) |
 | Capture (bar button) | Functional | Action, not a tab — never stays selected |
-| Plans (tab) | Functional | One Area B sheet + pins. Compose drawing, not a PDF engine |
+| Plans (tab) | Functional | Same Area B sheets + pins as **Tools → Plans**. Compose drawing, not a PDF engine |
 | Tools catalog | Functional | Grid/list switch. Built tools open real screens; others open placeholders |
 | Profile sheet | Semi-functional | **Switch project** and **Logout** work. Other rows explain they have no backend |
 | Dark / light theme | Functional | Settings → Appearance |
@@ -51,14 +51,13 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | **Crew** | Roster → member detail | Tools → Crew |
 | **Collaboration** | Topics → thread (Speak on message), new topic (FAB or +) | Tools → Collaboration |
 | **Images** | Grid / Timeline / Albums / Map, viewer, markup, album, create-from-photo | Tools → Images |
+| **Plans** | Same sheet list + pins as the Plans tab | Tools → Plans, or the Plans tab |
 | **Issues** | List, detail, create (FAB or +; Speak on Description / Blocking reason) | Tools → Issues |
 | **Incidents** | Same record system as Issues | Tools → Incidents |
 | **Punch list** | Same record system as Issues | Tools → Punch list |
 | **Outbox** | Queue of publishes; **Signal restored — send all** (demo drain, not a sync engine) | Tools → Activity Center → Outbox |
 | **Voice logs** | History + playback of submitted Voice-to-Log demos | Tools → Activity Center → Voice logs |
 | **Settings** | Theme, Demo: view as, splash picker, Voice daily log (demo) | Tools header **⋮** → Settings |
-
-**Plans (the tab)** is functional. **Plans (the Tools card)** is a placeholder that points at the same idea — use the **Plans** tab instead.
 
 ### Semi-functional (on purpose)
 
@@ -76,7 +75,6 @@ Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs
 
 | Tool | Why it’s here |
 |---|---|
-| Plans (Tools card) | Catalog completeness — use the **Plans tab** |
 | RFIs | Catalog; use Issues, PM Aging RFIs, or the PE **RFI desk** / **Draft RFI** for the real flow |
 | T & M | Catalog only |
 | Checklist | Catalog only (Field task still has a real checklist) |
@@ -99,7 +97,7 @@ Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs
 | Issue chip | Functional | Record create form (Issue). **Speak** on Description / Blocking reason |
 | Voice daily log | Functional | **Settings → Demo → Voice daily log (demo)** — not on the camera anymore |
 
-Voice note language detect is **best-effort**; the EN | Español toggle is the source of truth. Translation uses on-device ML Kit (models download once).
+Voice note language detect is **best-effort**; a manual **English | Español** pick is the source of truth and stays until **Re-record**. Translation uses on-device ML Kit (models download once). If the mic drops, **Pause** then **Resume** (plain-language retry — not a raw error). Review edits re-translate automatically.
 
 ---
 
@@ -143,8 +141,8 @@ Start each flow from **Today** unless a step says otherwise. Use a **device or e
 
 1. Capture → tap the **Voice note** chip (works even if you deny camera).
 2. Speak (try Spanish: *falta concreto en la pared del nivel dos*). **Pause** if a truck passes, then **Resume** — the words already captured stay.
-3. Confirm the **English | Español** toggle.
-4. **Done**. Type to fix a mis-heard word, or **Translate** if you want the other language on screen.
+3. Confirm the **English | Español** toggle (a manual pick locks the language for this take).
+4. **Done**. Type to fix a mis-heard word (edits re-translate), or **Translate** if you want the other language on screen.
 5. Review shows chips (Issue / Incident / Punch). Change if needed.
 6. Optional: **Add photo** (camera, then back — sequential, not at the same time).
 7. **Create**. The full form opens: the description is prefilled, the **title is empty** (you type it — dictated text never auto-fills the title, so there's nothing to delete first).
@@ -160,7 +158,8 @@ Start each flow from **Today** unless a step says otherwise. Use a **device or e
 ### 6. Camera Issue chip
 
 1. Capture → **Issue** chip.
-2. Complete the record form → Save.
+2. Fill **Title** (type it — no Speak on title). Optional: **Speak** into Description.
+3. Sticky **Save record**.
 
 ### 7. Record a video (optional)
 
@@ -199,7 +198,7 @@ In-app Speak is only on long text. Keyboard/Gboard voice typing is the fallback 
 2. Turn **Blocks work?** on → **Speak** into Blocking reason.
 3. Start Speak, then tap **Camera** — Speak should stop before the viewfinder.
 4. **Tools → Collaboration** → a topic → **Speak** a message → **Send**.
-5. **Plans** → open a pin → **Speak** a comment → **Add**.
+5. **Plans** (tab) *or* **Tools → Plans** → open a pin → **Speak** a comment → **Add**.
 6. Start Speak on Description, then Speak on Blocking reason — the first take should stop.
 
 ### 11. Field task, time, crew, collab
@@ -231,18 +230,22 @@ In-app Speak is only on long text. Keyboard/Gboard voice typing is the fallback 
 
 ### 13. Plan pins and comments
 
-1. Tap **Plans**.
-2. Open the Area B / Level 2 sheet.
+The **Plans tab** and **Tools → Plans** open the **same** sheet list. From Tools, Back returns to the catalog (Tools stays selected). From the tab, the list is the tab root.
+
+1. Tap **Plans**, *or* **Tools → Plans**.
+2. Open the Area B / Level 2 sheet (A-102). You should **not** see “Plans · sample 1”.
 3. Pinch to zoom, pan while zoomed, double-tap to reset.
 4. Tap a pin → sheet with title / photo / comments.
 5. Add a comment (or tap **Speak**) → **Publish to team**.
 6. **Tools → Outbox** — the publish is queued.
 
+Superintendent: **Pinned work** on this list jumps straight to the pin sheet (tab or Tools card).
+
 ### 14. Tab stacks (don’t get lost)
 
-1. Tools → Field task → open a detail.
+1. Tools → Field task (or **Tools → Plans**) → open a detail / sheet.
 2. Tap **Today**.
-3. Tap **Tools** **once** — you should still be on that task.
+3. Tap **Tools** **once** — you should still be on that task or the plan list.
 4. Tap **Tools** **again** — catalog.
 5. Third tap on the catalog does nothing.
 
@@ -258,10 +261,10 @@ In-app Speak is only on long text. Keyboard/Gboard voice typing is the fallback 
 | Pick | Then look at | You should see |
 |---|---|---|
 | **Crew** | Today, then Tools | My shift (start/end), my assignment. Tools lead with Field task / Time card |
-| **Superintendent** | Today, then Plans | Blockers + open issues first. Plans: **Pinned work** shortcut |
+| **Superintendent** | Today, then Plans (or Tools → Plans) | Blockers + open issues first. Plans: **Pinned work** shortcut |
 | **Project manager** | Today | **Aging RFIs** oldest first (RFI-121 ~6 days, red), then delays, then discussions |
-| **Project engineer** | Today, then Tools | **RFI desk** card (count + oldest age, **Draft RFI** opens the Issue form already on the RFI type), Open RFIs, Coordination & quality. Tools lead with RFIs / Issues / Plans |
-| **Owner — Decision dashboard** | Today, then Tools | Photos + four decision cards + delays. **No** Time card tile, **no** Voice logs row |
+| **Project engineer** | Today, then Tools | **RFI desk** card (count + oldest age, **Draft RFI** opens the Issue form already on the RFI type), Open RFIs, Coordination & quality. Tools lead with RFIs / Issues / **Plans** (live sheets, not a placeholder) |
+| **Owner — Decision dashboard** | Today, then Tools | Photos + four decision cards + delays. Tools lead with Images / **Plans** (live). **No** Time card tile, **no** Voice logs row |
 | **Owner — Photos & discussions (v1)** | Today | Older owner layout (kept for comparison) |
 | **Subcontractor** | Today | **Request inspection** → pick a task → Today row + Outbox. My work includes the blocked med-gas task |
 
@@ -297,7 +300,9 @@ No real login, API, or database. No PDF plan engine. No live barcode/QR scan. No
 
 | You see | It means |
 |---|---|
-| “placeholder in this build” / sample 1–3 | Unbuilt tool — expected |
+| “placeholder in this build” / sample 1–3 | Unbuilt tool (RFIs, T & M, Checklist, Drive, Toolbox Talks, Scan) — expected |
+| **Tools → Plans** shows real sheets (A-101, Level 2…) | Correct — same list as the Plans tab |
+| “Plans · sample 1” | Stale — that card is live now; reinstall if you still see samples |
 | “Demo data” on Owner charts | Seeded metrics — expected |
 | “Demo tiles can’t be marked up” | Markup needs a **captured** photo |
 | Capture not highlighted in the bar | Correct — it’s an action |

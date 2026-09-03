@@ -34,6 +34,7 @@
 - Prefer Material 3 (`NavigationBar`, `FAB`, `ModalBottomSheet`, `ListItem`).
 - Keep Voice-to-Log as the scripted demo at Settings → Demo → "Voice daily log (demo)" (moved 2026-08-25). Submitted logs must land on Today and as Plan pins, not only in a private history list; the Voice logs history stays on Tools.
 - Captured photos must land on Today, as Plan pins, and in the Images grid — never only in a private list.
+- **Tools → Plans** opens the live sheet list (`PLAN_LIST` / `PlansScreen`), the same drawings as the Plans tab — not the generic `tool/{id}` placeholder. Do not send that card back to sample rows. The tab keeps `plan_home` so the two stacks stay independent; the sheet viewer stays Pattern A at graph root.
 
 ## Agent behavior
 - Before implementation, provide a short plan: files to change, existing components to reuse, UI state, tests, and assumptions.

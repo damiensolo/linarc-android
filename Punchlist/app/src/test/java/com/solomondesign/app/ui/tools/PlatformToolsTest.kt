@@ -1,5 +1,6 @@
 package com.solomondesign.app.ui.tools
 
+import com.solomondesign.app.ui.navigation.AppRoutes
 import com.solomondesign.app.ui.persona.FieldPersona
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -56,6 +57,11 @@ class PlatformToolsTest {
     fun catalog_idsAreUnique() {
         val ids = PlatformTools.catalog.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
+    }
+
+    @Test
+    fun catalog_plansOpensTheLiveSheetList() {
+        assertEquals(AppRoutes.PLAN_LIST, PlatformTools.byId("plans")!!.homeRoute)
     }
 
     @Test
