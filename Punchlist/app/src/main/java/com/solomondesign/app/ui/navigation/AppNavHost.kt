@@ -77,6 +77,7 @@ import com.solomondesign.app.ui.profile.ProfileSheet
 import com.solomondesign.app.ui.projects.ProjectListScreen
 import com.solomondesign.app.ui.records.CameraAttachmentInbox
 import com.solomondesign.app.ui.records.RECORD_LOCATIONS
+import com.solomondesign.app.ui.records.RFI_ISSUE_TYPE
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordCreateScreen
 import com.solomondesign.app.ui.records.RecordDetailScreen
@@ -98,12 +99,37 @@ import com.solomondesign.app.ui.video.VideoPlaybackScreen
 import com.solomondesign.app.ui.voicelog.DailyLogPlaybackScreen
 import com.solomondesign.app.ui.voicelog.VoiceLogScreen
 import com.solomondesign.app.ui.voicenote.VoiceNoteScreen
+import com.solomondesign.app.ui.voicenote.VoiceNoteSeeds
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.net.URLEncoder
 
 private fun dailyLogDetailRoute(recordId: String) =
     "daily_log_detail/${URLEncoder.encode(recordId, "UTF-8")}"
+
+// No seedTitle on purpose (2026-09-03): dictated text fills only the description — a
+// transcript head made a junk title the reporter had to delete. The form's required,
+// empty title field is where the reporter names the record.
+private fun beginVoiceNoteDraft(category: RecordCategory, seeds: VoiceNoteSeeds) {
+    RecordDraft.begin(
+        category,
+        System.currentTimeMillis(),
+        seedDescription = seeds.description,
+        seedLocation = seeds.location,
+        seedPhotoImageIds = seeds.photoImageIds,
+        seedBlocksWork = seeds.blocksWork,
+        seedBlockingReason = seeds.blockingReason,
+    )
+}
+
+private fun recordSavedMessage(category: RecordCategory): String = when (category) {
+    RecordCategory.ISSUE ->
+        "Issue saved — on Today, Plans, and Issues · queued in Outbox"
+    RecordCategory.INCIDENT ->
+        "Incident saved — on Today, Plans, and Incidents · queued in Outbox"
+    RecordCategory.PUNCH ->
+        "Punch item saved — on Plans and the Punch list · queued in Outbox"
+}
 
 /** True for the three bottom-nav tab roots — switching between them is a sideways move, not a
  * push, so it gets a crossfade instead of a directional slide. */
@@ -354,6 +380,18 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         // conversation the tool owns.
                         onOpenTopic = { topicId ->
                             navController.navigate(AppRoutes.collabTopic(topicId))
+                        },
+                        // Project engineer view's RFI desk: stage the Issue form already on
+                        // the RFI type — the same create flow and publish path as any issue.
+                        onDraftRfi = {
+                            RecordDraft.begin(
+                                RecordCategory.ISSUE,
+                                System.currentTimeMillis(),
+                                seedType = RFI_ISSUE_TYPE,
+                            )
+                            navController.navigate(
+                                AppRoutes.recordCreate(RecordCategory.ISSUE.routeId),
+                            )
                         },
                         onOpenProfile = { activeSheet = AppSheet.PROFILE },
                         onSwitchProject = { switchProject() },
@@ -623,22 +661,27 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
             composable(AppRoutes.VOICE_NOTE) {
                 VoiceNoteScreen(
                     onExit = { navController.popBackStack() },
-                    // The chooser picked a category; stage the form with the note text that was
-                    // showing when Create was tapped (original or translation, never both).
                     // Create is a full handoff (like the camera's Quick issue chip): the note is
                     // popped, so Save — or closing the form — lands back where capture began
                     // (e.g. Today), never on the note screen, whose recomposition would re-arm
                     // the recorder mid-flow.
                     onCreateRecord = { category, seeds ->
-                        RecordDraft.begin(
-                            category,
-                            System.currentTimeMillis(),
-                            seedTitle = seeds.title,
-                            seedDescription = seeds.description,
-                            seedLocation = seeds.location,
-                        )
+                        beginVoiceNoteDraft(category, seeds)
                         navController.navigate(AppRoutes.recordCreate(category.routeId)) {
                             popUpTo(AppRoutes.VOICE_NOTE) { inclusive = true }
+                        }
+                    },
+                    onAddPhoto = {
+                        CameraAttachmentInbox.arm()
+                        navController.navigate(AppRoutes.CAMERA)
+                    },
+                    onAppendToExisting = { match, seeds ->
+                        DemoProjectRepository.appendVoiceNote(match, seeds)
+                        navController.popBackStack()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                "Added to ${match.title} — on Today · queued in Outbox",
+                            )
                         }
                     },
                 )
@@ -719,16 +762,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         scope.launch {
                             // "Queued in Outbox" is the offline-first story: saved on this
                             // device now, synced when signal returns (see OutboxScreen).
-                            snackbarHostState.showSnackbar(
-                                when (saved) {
-                                    RecordCategory.ISSUE ->
-                                        "Issue saved — on Today, Plans, and Issues · queued in Outbox"
-                                    RecordCategory.INCIDENT ->
-                                        "Incident saved — on Today, Plans, and Incidents · queued in Outbox"
-                                    RecordCategory.PUNCH ->
-                                        "Punch item saved — on Plans and the Punch list · queued in Outbox"
-                                },
-                            )
+                            snackbarHostState.showSnackbar(recordSavedMessage(saved))
                         }
                     },
                     // Attach-from-camera stacks the regular camera on the form; the form's

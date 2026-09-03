@@ -20,6 +20,11 @@ object RecordRepository {
 
     fun find(id: String): FieldRecord? = _records.firstOrNull { it.id == id }
 
+    fun replace(record: FieldRecord) {
+        val index = _records.indexOfFirst { it.id == record.id }
+        if (index >= 0) _records[index] = record
+    }
+
     fun add(record: FieldRecord) {
         _records.add(0, record)
     }

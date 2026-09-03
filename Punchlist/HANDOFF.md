@@ -17,7 +17,7 @@ It exists to prove:
 
 1. A **three-destination chassis** (Today, Plans, Tools) plus **Capture as a bar action**, not a tab.
 2. **One tap to capture**, with evidence that **fans out** (Today + Plan + the owning tool) instead of a private list.
-3. **Same objects, six personas** — reorder and (for Owner only) omit. Not six apps. Not extra tabs.
+3. **Same objects, seven personas** — reorder and (for Owner only) omit. Not seven apps. Not extra tabs.
 4. **Orientation in the field:** tab stacks survive; Capture never owns a stack.
 
 This is a **strategy prototype**. In-memory stores, no backend, no auth, no Room/Hilt, no sync engine. The Outbox is a **queue UI** that demonstrates offline-first publish, not a real sync pipeline.
@@ -38,7 +38,7 @@ Run the app as Foreman. Follow this order; it matches how the product is meant t
 | 6 | **Tools → Field task** → switch to Today → tap **Tools** once → tap Tools again | First tap restores place; second tap is catalog. Required nav contract. |
 | 7 | **Plans** → open sheet → pinch/zoom → pin → comment → Publish | Drawing is the shared map. Comments queue in Outbox. |
 | 8 | Tools **⋮ → Settings → Demo: view as** | Same bar. Profile avatar stays Alex Rivera. Only Today/Tools (and Super’s Plan shortcut) change. |
-| 9 | Flip **Crew → Superintendent → PM → Owner (dashboard) → Subcontractor** | Reorder, don’t fork. Owner is the one persona that **removes** labor/voice surfaces. |
+| 9 | Flip **Crew → Superintendent → PM → Project engineer → Owner (dashboard) → Subcontractor** | Reorder, don’t fork. Owner is the one persona that **removes** labor/voice surfaces. |
 
 Then read `AppChrome.kt` + `AppNavHost.kt` with `NAVIGATION_PATTERNS.md` open.
 
@@ -88,6 +88,7 @@ Same three tabs, same objects, **reordered**. Workers do not switch roles in pro
 | Crew | My shift, my assignment (Hector Ortiz) | Field task, Time card, Images… | Shift start/end logs a real queued time entry |
 | Superintendent | Blockers, open issues (`attentionOrder`) | Issues, Punch, Incidents… | Plans: **Pinned work** shortcut to the pin sheet |
 | Project manager | Aging RFIs **oldest first**, delays, collab | RFIs, Collaboration… | Age is urgency (inversion of newest-first) |
+| Project engineer | **RFI desk** (count + oldest age, Draft RFI), Open RFIs, Coordination & quality, collab | RFIs, Issues, Plans… | Works the same RFI objects the PM overviews; Draft RFI stages the Issue form on the RFI type |
 | Owner | Progress photos + **four decision topics** + delays | Images, Plans… | **Omits** time cards, voice logs, crew ops |
 | Subcontractor | Request inspection + my work (Sam Reyes / plumbing trade) | Field task, Checklist, Punch… | Inspection request is a **message**, not a record |
 
@@ -188,7 +189,7 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 
 **What’s fully built vs placeholder**
 
-- **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration, Images, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, six personas.
+- **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration, Images, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, seven personas.
 - **Catalog only / placeholder:** RFIs (as a tool — PM “RFIs” are Issues of type “RFI / design clarification”), T&M, Checklist, Drive, Toolbox Talks, Scan (no live scanner), Accounts on the project picker.
 
 ---

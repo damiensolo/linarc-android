@@ -109,10 +109,19 @@ object RecordDraft {
         seedDescription: String = "",
         seedLocation: String? = null,
         seedPhotoImageIds: List<String> = emptyList(),
+        seedBlocksWork: Boolean = false,
+        seedBlockingReason: String = "",
+        /** Pre-selects a type (must be one of the category's [RecordCategory.typeOptions],
+         * ignored otherwise) — e.g. the Project engineer's Draft RFI opens the Issue form
+         * already on [RFI_ISSUE_TYPE]. Applies the type's blocking default like a manual pick. */
+        seedType: String? = null,
     ) {
         val dictated = if (newCategory == RecordCategory.ISSUE) IssueDraftHolder.take() else null
         category = newCategory
-        title = seedTitle.ifBlank { dictated?.title.orEmpty() }
+        // Only an explicit seed (e.g. the photo viewer's image title) fills the title. The
+        // dictated hand-off never does (decided 2026-09-03): transcript-derived titles were
+        // junk the reporter had to delete, so its title is ignored even if a producer sets one.
+        title = seedTitle
         description = seedDescription.ifBlank { dictated?.note.orEmpty() }
         location = (seedLocation ?: dictated?.location)
             ?.takeIf { it in RECORD_LOCATIONS }
@@ -135,8 +144,14 @@ object RecordDraft {
         blockingReasonTouched = false
         submitAttempted = false
         // Last: applies the type's configured blocking default (first option is never blocking,
-        // so a fresh form always starts with the toggle off).
+        // so a fresh form always starts with the toggle off). A valid seedType then wins,
+        // through the same path as a manual pick so its blocking default applies too.
         selectType(newCategory.typeOptions.first())
+        seedType?.takeIf { it in newCategory.typeOptions }?.let(::selectType)
+        if (seedBlocksWork) {
+            setBlocking(true)
+            blockingReason = seedBlockingReason
+        }
         staged = true
         CameraAttachmentInbox.reset()
     }
@@ -244,6 +259,9 @@ object CameraAttachmentInbox {
         private set
 
     private var armed = false
+
+    /** True after [arm] until a [deposit] or [reset] — used to hide photo-review's voice chip. */
+    fun isArmed(): Boolean = armed
 
     fun arm() {
         armed = true

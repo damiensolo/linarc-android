@@ -17,10 +17,12 @@ import com.solomondesign.app.ui.video.formatVideoDuration
 import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.records.AttachmentKind
 import com.solomondesign.app.ui.records.FieldRecord
+import com.solomondesign.app.ui.records.RecordAttachment
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.splash.SplashVariant
 import com.solomondesign.app.ui.tasks.FieldTask
+import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.theme.AvatarPalette
 import com.solomondesign.app.ui.timecards.COST_CODES
 import com.solomondesign.app.ui.timecards.TimeCardRepository
@@ -28,6 +30,8 @@ import com.solomondesign.app.ui.timecards.TimeEntry
 import com.solomondesign.app.ui.timecards.shiftHoursBetween
 import com.solomondesign.app.ui.today.OwnerTodayVariant
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
+import com.solomondesign.app.ui.voicenote.VoiceNoteMatch
+import com.solomondesign.app.ui.voicenote.VoiceNoteSeeds
 
 /**
  * In-memory demo store for the Foreman prototype: persona, Start My Day, Today stream, Plan pins.
@@ -454,6 +458,69 @@ object DemoProjectRepository {
         record.attachments
             .filter { it.kind == AttachmentKind.PHOTO }
             .forEach { ProjectImageRepository.linkRecord(it.ref, record.id) }
+    }
+
+    /**
+     * Voice note "Add to…": appends the spoken text onto an existing task or record, queues one
+     * Outbox entry, and publishes a Today row that deep-links back — never a dead-end, never a
+     * duplicate object. Photos already published by the camera are linked when the target is a
+     * record.
+     */
+    fun appendVoiceNote(match: VoiceNoteMatch, seeds: VoiceNoteSeeds) {
+        val now = System.currentTimeMillis()
+        val note = seeds.description.trim()
+        if (note.isBlank()) return
+        when (match.kind) {
+            VoiceNoteMatch.Kind.TASK -> {
+                FieldTaskRepository.appendNote(match.id, note)
+                streamItems.add(
+                    0,
+                    StreamItem(
+                        id = "stream-voice-$now",
+                        kind = StreamKind.TASK,
+                        title = "Voice note: ${match.title}",
+                        subtitle = note.take(80),
+                        timestampMillis = now,
+                        relatedTaskId = match.id,
+                    ),
+                )
+                queueOutbox(
+                    id = "outbox-voice-$now",
+                    title = "Voice note on ${match.title}",
+                    detail = note.take(60),
+                    relatedTaskId = match.id,
+                )
+            }
+            VoiceNoteMatch.Kind.RECORD -> {
+                val record = RecordRepository.find(match.id) ?: return
+                val extra = seeds.photoImageIds.map { imageId ->
+                    RecordAttachment(id = "att-voice-$imageId-$now", kind = AttachmentKind.PHOTO, ref = imageId)
+                }.filter { next -> record.attachments.none { it.ref == next.ref } }
+                val updated = record.copy(
+                    description = if (record.description.isBlank()) note else "${record.description}\n\n$note",
+                    attachments = record.attachments + extra,
+                )
+                RecordRepository.replace(updated)
+                extra.forEach { ProjectImageRepository.linkRecord(it.ref, record.id) }
+                streamItems.add(
+                    0,
+                    StreamItem(
+                        id = "stream-voice-$now",
+                        kind = StreamKind.ISSUE,
+                        title = "Voice note: ${match.title}",
+                        subtitle = note.take(80),
+                        timestampMillis = now,
+                        relatedFieldRecordId = record.id,
+                    ),
+                )
+                queueOutbox(
+                    id = "outbox-voice-$now",
+                    title = "Voice note on ${match.title}",
+                    detail = note.take(60),
+                    relatedFieldRecordId = record.id,
+                )
+            }
+        }
     }
 
     /**

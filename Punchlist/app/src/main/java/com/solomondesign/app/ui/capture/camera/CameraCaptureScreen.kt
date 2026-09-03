@@ -84,10 +84,11 @@ import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.images.CapturedMediaStore
 import com.solomondesign.app.ui.markup.MarkupEditorScreen
+import com.solomondesign.app.ui.records.CameraAttachmentInbox
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordDraft
-import com.solomondesign.app.ui.video.IssueDraftParser
 import com.solomondesign.app.ui.video.formatVideoDuration
+import com.solomondesign.app.ui.voicenote.VoiceNotePhotoInbox
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -423,7 +424,7 @@ fun CameraCaptureScreen(
                 CapturedMediaStore.delete(current.absolutePath)
                 step = CaptureStep.Viewfinder
             },
-            onSave = { title, description, tags, createRecord ->
+            onSave = { title, description, tags, createRecord, continueToVoice ->
                 val photoId = DemoProjectRepository.addPhoto(
                     title = title,
                     subtitle = description.ifBlank {
@@ -434,19 +435,24 @@ fun CameraCaptureScreen(
                     tags = tags,
                     hasMarkup = current.annotated,
                 )
-                if (createRecord != null) {
-                    // The photo is published either way; "Save & create…" continues into the
-                    // chosen record form with it already attached and the fields seeded.
-                    RecordDraft.begin(
-                        createRecord,
-                        System.currentTimeMillis(),
-                        seedTitle = title,
-                        seedDescription = description,
-                        seedPhotoImageIds = listOf(photoId),
-                    )
-                    onCreateRecord(createRecord)
-                } else {
-                    onPhotoSaved(photoId)
+                when {
+                    createRecord != null -> {
+                        // The photo is published either way; "Save & create…" continues into the
+                        // chosen record form with it already attached and the fields seeded.
+                        RecordDraft.begin(
+                            createRecord,
+                            System.currentTimeMillis(),
+                            seedTitle = title,
+                            seedDescription = description,
+                            seedPhotoImageIds = listOf(photoId),
+                        )
+                        onCreateRecord(createRecord)
+                    }
+                    continueToVoice -> {
+                        VoiceNotePhotoInbox.deposit(photoId)
+                        onVoiceNote()
+                    }
+                    else -> onPhotoSaved(photoId)
                 }
             },
             // Review's own markup entry: bake into the same capture file so the published photo
@@ -459,6 +465,7 @@ fun CameraCaptureScreen(
                     step = CaptureStep.Review(current.absolutePath, result, annotated = true)
                 }
             },
+            allowContinueToVoice = !CameraAttachmentInbox.isArmed(),
             modifier = modifier,
         )
 
@@ -494,11 +501,13 @@ fun CameraCaptureScreen(
                     durationSeconds = current.durationSeconds,
                 )
                 if (fileIssue) {
-                    // The clip is already published; the issue form opens prefilled from
-                    // the parse so filing is one review-and-save, not a retype.
+                    // The clip is already published; the issue form opens prefilled with the
+                    // dictated note and location — but never a title (decided 2026-09-03):
+                    // transcript-derived titles were junk the reporter had to delete, so the
+                    // reporter names the issue on the form.
                     IssueDraftHolder.set(
                         IssueDraft(
-                            title = IssueDraftParser.issueTitle(title),
+                            title = "",
                             location = location,
                             note = note,
                         ),

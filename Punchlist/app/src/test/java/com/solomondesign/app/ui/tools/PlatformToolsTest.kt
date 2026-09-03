@@ -102,6 +102,20 @@ class PlatformToolsTest {
     }
 
     @Test
+    fun catalogFor_projectEngineer_leadsWithTechnicalHubAndKeepsEveryTool() {
+        val peCatalog = PlatformTools.catalogFor(FieldPersona.PROJECT_ENGINEER)
+        assertEquals(
+            listOf("RFIs", "Issues", "Plans", "Punch list", "Drive"),
+            peCatalog.take(5).map { it.label },
+        )
+        assertEquals(PlatformTools.catalog.size, peCatalog.size)
+        assertEquals(
+            PlatformTools.catalog.map { it.id }.toSet(),
+            peCatalog.map { it.id }.toSet(),
+        )
+    }
+
+    @Test
     fun catalogFor_owner_leadsWithProgressTools_andDropsOnlyTimeCard() {
         val ownerCatalog = PlatformTools.catalogFor(FieldPersona.OWNER)
         assertEquals(

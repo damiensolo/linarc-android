@@ -45,8 +45,8 @@ class VoiceLogPublisherTest {
 
     @Test
     fun everyPersonaIsLiveForThisBuild() {
-        // All six personas went live 2026-08-25 (iteration-2 view-as) — Subcontractor was
-        // the last. If a new persona is added, it starts as a placeholder again.
+        // All seven personas are live via Demo: view as (iteration-2 on 2026-08-25,
+        // Project engineer on 2026-09-03). An eighth starts as a placeholder again.
         assertTrue(FieldPersona.entries.all { it.isLive })
     }
 }

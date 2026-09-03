@@ -5,6 +5,7 @@ import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.records.RecordDraft
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.video.VideoRepository
+import com.solomondesign.app.ui.voicenote.VoiceNotePhotoInbox
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.timecards.TimeCardRepository
 import com.solomondesign.app.ui.voicelog.DailyLogRepository
@@ -26,5 +27,6 @@ object DemoSession {
         VideoRepository.clear()
         RecordRepository.clear()
         RecordDraft.clear()
+        VoiceNotePhotoInbox.reset()
     }
 }

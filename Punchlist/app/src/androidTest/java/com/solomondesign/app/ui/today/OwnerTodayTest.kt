@@ -223,6 +223,11 @@ class OwnerTodayTest {
         scrollTodayTo(hasText("Aging RFIs"))
         composeTestRule.onNodeWithText("Aging RFIs").assertExists()
 
+        composeTestRule.runOnIdle { DemoProjectRepository.selectPersona(FieldPersona.PROJECT_ENGINEER) }
+        scrollTodayTo(hasTestTag("rfiDeskCard"))
+        composeTestRule.onNodeWithTag("rfiDeskCard").assertExists()
+        composeTestRule.onAllNodesWithTag("ownerTopic_schedule").assertCountEquals(0)
+
         composeTestRule.runOnIdle { DemoProjectRepository.selectPersona(FieldPersona.OWNER) }
         scrollTodayTo(hasTestTag("ownerTopic_schedule"))
         composeTestRule.onNodeWithTag("ownerTopic_schedule").assertExists()

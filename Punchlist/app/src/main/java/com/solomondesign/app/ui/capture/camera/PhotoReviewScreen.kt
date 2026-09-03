@@ -66,8 +66,16 @@ fun PhotoReviewScreen(
     photo: Bitmap,
     onRetake: () -> Unit,
     /** [createRecord] non-null continues into that record's create form with the photo attached. */
-    onSave: (title: String, description: String, tags: List<String>, createRecord: RecordCategory?) -> Unit,
+    onSave: (
+        title: String,
+        description: String,
+        tags: List<String>,
+        createRecord: RecordCategory?,
+        continueToVoice: Boolean,
+    ) -> Unit,
     onAnnotated: (Bitmap) -> Unit,
+    /** Hide when the camera was opened to attach a photo (voice review or a record form). */
+    allowContinueToVoice: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var title by remember { mutableStateOf("Progress photo") }
@@ -76,8 +84,8 @@ fun PhotoReviewScreen(
     var showMarkup by remember { mutableStateOf(false) }
     var showCreateChooser by remember { mutableStateOf(false) }
 
-    val save = { createRecord: RecordCategory? ->
-        onSave(title.trim(), description.trim(), selectedTags.toList(), createRecord)
+    val save = { createRecord: RecordCategory?, continueToVoice: Boolean ->
+        onSave(title.trim(), description.trim(), selectedTags.toList(), createRecord, continueToVoice)
     }
 
     if (showMarkup) {
@@ -99,7 +107,7 @@ fun PhotoReviewScreen(
         modifier = modifier,
         // The photo itself is the unsaved edit — discarding returns to the viewfinder.
         hasUnsavedChanges = true,
-        onConfirm = { save(null) },
+        onConfirm = { save(null, false) },
         confirmLabel = "Save",
         confirmEnabled = title.isNotBlank(),
         discardTitle = "Discard photo?",
@@ -191,6 +199,15 @@ fun PhotoReviewScreen(
                 onClick = { showCreateChooser = true },
                 modifier = Modifier.testTag("photoSaveCreate"),
             )
+            if (allowContinueToVoice) {
+                AppButton(
+                    text = "Add voice note",
+                    type = AppButtonType.Secondary,
+                    enabled = title.isNotBlank(),
+                    onClick = { save(null, true) },
+                    modifier = Modifier.testTag("photoAddVoiceNote"),
+                )
+            }
             AppButton(
                 text = "Retake",
                 type = AppButtonType.Secondary,
@@ -205,7 +222,7 @@ fun PhotoReviewScreen(
             title = "Save photo & create",
             onPick = { category ->
                 showCreateChooser = false
-                save(category)
+                save(category, false)
             },
             onDismiss = { showCreateChooser = false },
         )

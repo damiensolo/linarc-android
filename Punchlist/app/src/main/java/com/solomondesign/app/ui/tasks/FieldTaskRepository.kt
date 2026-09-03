@@ -17,6 +17,14 @@ object FieldTaskRepository {
 
     fun find(id: String): FieldTask? = _tasks.firstOrNull { it.id == id }
 
+    fun appendNote(id: String, addition: String) {
+        val index = _tasks.indexOfFirst { it.id == id }
+        if (index < 0 || addition.isBlank()) return
+        val task = _tasks[index]
+        val note = if (task.note.isBlank()) addition else "${task.note}\n\n$addition"
+        _tasks[index] = task.copy(note = note)
+    }
+
     fun setStatus(id: String, status: TaskStatus) {
         val index = _tasks.indexOfFirst { it.id == id }
         if (index >= 0) _tasks[index] = _tasks[index].copy(status = status)

@@ -34,7 +34,7 @@ Placeholders are intentional. They show the full Tools catalog without faking br
 | Tools catalog | Functional | Grid/list switch. Built tools open real screens; others open placeholders |
 | Profile sheet | Semi-functional | **Switch project** and **Logout** work. Other rows explain they have no backend |
 | Dark / light theme | Functional | Settings → Appearance |
-| Demo: view as | Functional | All six personas. Profile photo/name stay Alex Rivera |
+| Demo: view as | Functional | All seven personas. Profile photo/name stay Alex Rivera |
 
 ---
 
@@ -65,7 +65,7 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | Item | What is real | What is not |
 |---|---|---|
 | Outbox | Queue + “send all” flips items to sent | No network, no retry, no conflict handling |
-| RFIs as a *product idea* | PM Today **Aging RFIs** are real Issues of type “RFI / design clarification” | The **RFIs** Tools card is still a placeholder |
+| RFIs as a *product idea* | PM **Aging RFIs** and PE **RFI desk / Open RFIs / Draft RFI** are real Issues of type “RFI / design clarification” | The **RFIs** Tools card is still a placeholder |
 | Owner dashboard charts | Quality/decisions use live records | Schedule and budget figures are labeled demo data |
 | Image markup | Works on **photos you capture** | Seeded demo photos explain they can’t be marked up |
 | Scan | Tile is in the catalog | No live camera scanner |
@@ -77,7 +77,7 @@ Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs
 | Tool | Why it’s here |
 |---|---|
 | Plans (Tools card) | Catalog completeness — use the **Plans tab** |
-| RFIs | Catalog; use Issues + PM Aging RFIs for the real flow |
+| RFIs | Catalog; use Issues, PM Aging RFIs, or the PE **RFI desk** / **Draft RFI** for the real flow |
 | T & M | Catalog only |
 | Checklist | Catalog only (Field task still has a real checklist) |
 | Drive | Catalog only |
@@ -94,8 +94,8 @@ Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs
 | Photo → Save & create… | Functional | Photo + a new issue / incident / punch with the shot attached |
 | Photo markup | Functional | Baked into the JPEG (captured photos only) |
 | Video → describe → save | Functional | Today, Plan pin |
-| Video → file as issue | Functional | Video + Issue form (prefilled). Issues are titled as issues, not “observations” |
-| Voice note chip | Functional | Create → record form. Works **without** camera permission. Note is not saved as audio |
+| Video → file as issue | Functional | Video + Issue form (location/note prefilled; **title left empty** — you name the issue) |
+| Voice note chip | Functional | Create → record form (chips, optional photo, Add to existing). Dictation fills the **description only — never the title**. Works **without** camera permission. Note is not saved as audio |
 | Issue chip | Functional | Record create form (Issue) |
 | Voice daily log | Functional | **Settings → Demo → Voice daily log (demo)** — not on the camera anymore |
 
@@ -145,9 +145,17 @@ Start each flow from **Today** unless a step says otherwise. Use a **device or e
 2. Speak (try Spanish: *falta concreto en la pared del nivel dos*).
 3. Confirm the **English | Español** toggle.
 4. **Done** → **Translate** if you want the other language on screen.
-5. **Create** → **Issue**.
-6. The description is **exactly the text showing when you tapped Create** (one language, not both).
-7. **Save record**. You should land back on Today, not the recorder.
+5. Review shows chips (Issue / Incident / Punch). Change if needed.
+6. Optional: **Add photo** (camera, then back — sequential, not at the same time).
+7. **Create**. The full form opens: the description is prefilled, the **title is empty** (you type it — dictated text never auto-fills the title, so there's nothing to delete first).
+8. The description is **exactly the text showing when you tapped Create** (one language, not both).
+9. You should land back on Today, not the recorder.
+
+**Blocking:** say “this is blocking plumbing at column 4” — review should pre-check Blocks work.
+
+**Add to existing:** say “RFI-118 still waiting” or name the med-gas task → **Add to…** → Today row opens that record or task. (This is the Project engineer / Superintendent path: comment on the open RFI instead of minting a duplicate issue.)
+
+**Photo then voice:** Capture → photo → **Add voice note** → dictate → Create (photo already attached).
 
 ### 6. Camera Issue chip
 
@@ -239,6 +247,7 @@ Try type **Safety hazard** or **Failed inspection** — blocking may default on.
 | **Crew** | Today, then Tools | My shift (start/end), my assignment. Tools lead with Field task / Time card |
 | **Superintendent** | Today, then Plans | Blockers + open issues first. Plans: **Pinned work** shortcut |
 | **Project manager** | Today | **Aging RFIs** oldest first (RFI-121 ~6 days, red), then delays, then discussions |
+| **Project engineer** | Today, then Tools | **RFI desk** card (count + oldest age, **Draft RFI** opens the Issue form already on the RFI type), Open RFIs, Coordination & quality. Tools lead with RFIs / Issues / Plans |
 | **Owner — Decision dashboard** | Today, then Tools | Photos + four decision cards + delays. **No** Time card tile, **no** Voice logs row |
 | **Owner — Photos & discussions (v1)** | Today | Older owner layout (kept for comparison) |
 | **Subcontractor** | Today | **Request inspection** → pick a task → Today row + Outbox. My work includes the blocked med-gas task |
@@ -248,6 +257,8 @@ Flip back to **Foreman** when you’re done.
 **Crew shift:** Crew view → **Start shift** → **End shift** → Time card + Outbox get an entry.
 
 **Sub inspection:** Request inspection is a **message to the GC**, not a new punch item.
+
+**PE Draft RFI:** Project engineer view → **Draft RFI** → the Issue form opens already on *RFI / design clarification* → Save → it lands in the Issues tool, at the bottom of Open RFIs ("Opened today"), and in the Outbox.
 
 ### 16. Outbox (offline demo)
 

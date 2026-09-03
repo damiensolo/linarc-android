@@ -16,8 +16,8 @@ class VoiceNoteSeedsTest {
         )
 
         // Exactly what was on screen — no translation block appended (simplified 2026-08-25).
+        // No title is derived (2026-09-03): dictated text seeds only the description.
         assertEquals("falta concreto en la pared del nivel 2", seeds.description)
-        assertEquals("Falta concreto en la pared del nivel 2", seeds.title)
         // The unused translation still helps: "level 2" matches the known record location.
         assertEquals("Level 2", seeds.location)
     }
@@ -32,7 +32,6 @@ class VoiceNoteSeedsTest {
         )
 
         assertEquals("concrete is missing on the level 2 wall", seeds.description)
-        assertEquals("Concrete is missing on the level 2 wall", seeds.title)
         assertEquals("Level 2", seeds.location)
     }
 
@@ -46,20 +45,20 @@ class VoiceNoteSeedsTest {
         )
 
         assertEquals("puerta dañada en el pasillo", seeds.description)
-        assertEquals("Puerta dañada en el pasillo", seeds.title)
         assertNull(seeds.location)
     }
 
     @Test
-    fun title_capsAtEightWords_withoutCuttingMidWord() {
+    fun photoIds_passThroughToTheDraftSeeds() {
         val seeds = buildVoiceNoteSeeds(
-            original = "the temporary handrail on the west stair is loose and needs to be re-anchored today",
+            original = "crack at column 4",
             translation = null,
             spokenLanguage = VoiceNoteLanguage.ENGLISH,
             displayLanguage = VoiceNoteLanguage.ENGLISH,
-            locations = emptyList(),
+            photoImageIds = listOf("photo-1"),
         )
-
-        assertEquals("The temporary handrail on the west stair is", seeds.title)
+        assertEquals(listOf("photo-1"), seeds.photoImageIds)
+        assertEquals(true, seeds.categoryFromKeywords)
+        assertEquals("Column 4", seeds.location)
     }
 }

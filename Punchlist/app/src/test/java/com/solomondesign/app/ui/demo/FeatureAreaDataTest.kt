@@ -13,6 +13,8 @@ import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.video.VideoRepository
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
+import com.solomondesign.app.ui.voicenote.VoiceNoteMatch
+import com.solomondesign.app.ui.voicenote.VoiceNoteSeeds
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.tasks.TaskFilter
 import com.solomondesign.app.ui.tasks.TaskStatus
@@ -679,5 +681,53 @@ class FeatureAreaDataTest {
         assertEquals(TaskStatus.NOT_STARTED, FieldTaskRepository.find("task-door-bucks")?.status)
         assertNotNull(ProjectImageRepository.find("img-yesterday"))
         assertFalse(DemoProjectRepository.dayStarted)
+    }
+
+    @Test
+    fun appendVoiceNote_onTask_addsNoteOutboxAndTodayRow() {
+        val beforeNote = FieldTaskRepository.find("task-med-gas-col4")!!.note
+        val seeds = VoiceNoteSeeds(
+            description = "med gas still waiting on RFI-118",
+            location = "Column 4",
+        )
+
+        DemoProjectRepository.appendVoiceNote(
+            VoiceNoteMatch("task-med-gas-col4", "Med gas rough-in at column 4", VoiceNoteMatch.Kind.TASK),
+            seeds,
+        )
+
+        val note = FieldTaskRepository.find("task-med-gas-col4")!!.note
+        assertTrue(note.startsWith(beforeNote))
+        assertTrue(note.contains("med gas still waiting on RFI-118"))
+        val row = DemoProjectRepository.streamItems.first()
+        assertEquals("task-med-gas-col4", row.relatedTaskId)
+        assertTrue(DemoProjectRepository.outboxItems.last().title.contains("Med gas"))
+    }
+
+    @Test
+    fun appendVoiceNote_onRecord_appendsDescriptionAndLinksPhoto() {
+        val seeds = VoiceNoteSeeds(
+            description = "RFI-118 still waiting",
+            location = "Column 4",
+            photoImageIds = listOf("img-yesterday"),
+        )
+
+        DemoProjectRepository.appendVoiceNote(
+            VoiceNoteMatch(
+                "rec-seed-rfi-118",
+                "RFI-118 — Med-gas re-route at Column 4",
+                VoiceNoteMatch.Kind.RECORD,
+            ),
+            seeds,
+        )
+
+        val record = RecordRepository.find("rec-seed-rfi-118")!!
+        assertTrue(record.description.contains("RFI-118 still waiting"))
+        assertTrue(record.attachments.any { it.ref == "img-yesterday" })
+        assertEquals("rec-seed-rfi-118", ProjectImageRepository.find("img-yesterday")?.linkedRecordId)
+        assertEquals(
+            "rec-seed-rfi-118",
+            DemoProjectRepository.streamItems.first().relatedFieldRecordId,
+        )
     }
 }
