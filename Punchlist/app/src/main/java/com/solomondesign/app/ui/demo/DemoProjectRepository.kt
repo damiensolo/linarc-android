@@ -17,10 +17,12 @@ import com.solomondesign.app.ui.video.formatVideoDuration
 import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.records.AttachmentKind
 import com.solomondesign.app.ui.records.FieldRecord
+import com.solomondesign.app.ui.records.RecordAttachment
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.splash.SplashVariant
 import com.solomondesign.app.ui.tasks.FieldTask
+import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.theme.AvatarPalette
 import com.solomondesign.app.ui.timecards.COST_CODES
 import com.solomondesign.app.ui.timecards.TimeCardRepository
@@ -28,6 +30,8 @@ import com.solomondesign.app.ui.timecards.TimeEntry
 import com.solomondesign.app.ui.timecards.shiftHoursBetween
 import com.solomondesign.app.ui.today.OwnerTodayVariant
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
+import com.solomondesign.app.ui.voicenote.VoiceNoteMatch
+import com.solomondesign.app.ui.voicenote.VoiceNoteSeeds
 
 /**
  * In-memory demo store for the Foreman prototype: persona, Start My Day, Today stream, Plan pins.
@@ -99,9 +103,37 @@ object DemoProjectRepository {
     val queuedOutboxCount: Int
         get() = outboxItems.count { it.status == OutboxStatus.QUEUED }
 
-    /** Every publish-style action funnels here: it commits locally, then waits for signal. */
-    fun queueOutbox(id: String, title: String, detail: String = "") {
-        outboxItems.add(OutboxItem(id = id, title = title, detail = detail))
+    /**
+     * Every publish-style action funnels here: it commits locally, then waits for signal.
+     * Publishers pass the one related id matching what they queued (see [OutboxItem]) so the
+     * Outbox row can deep-link back into the owning tool's detail.
+     */
+    fun queueOutbox(
+        id: String,
+        title: String,
+        detail: String = "",
+        relatedImageId: String? = null,
+        relatedVideoId: String? = null,
+        relatedFieldRecordId: String? = null,
+        relatedLogId: String? = null,
+        relatedTaskId: String? = null,
+        relatedTopicId: String? = null,
+        relatedCrewMemberId: String? = null,
+    ) {
+        outboxItems.add(
+            OutboxItem(
+                id = id,
+                title = title,
+                detail = detail,
+                relatedImageId = relatedImageId,
+                relatedVideoId = relatedVideoId,
+                relatedFieldRecordId = relatedFieldRecordId,
+                relatedLogId = relatedLogId,
+                relatedTaskId = relatedTaskId,
+                relatedTopicId = relatedTopicId,
+                relatedCrewMemberId = relatedCrewMemberId,
+            ),
+        )
     }
 
     /**
@@ -203,6 +235,7 @@ object DemoProjectRepository {
             id = "outbox-log-${record.id}",
             title = "Voice daily log",
             detail = record.transcript.ifBlank { "Submitted from voice" }.take(60),
+            relatedLogId = record.id,
         )
     }
 
@@ -273,6 +306,7 @@ object DemoProjectRepository {
             id = "outbox-$photoId",
             title = "Photo: ${title.ifBlank { "Site photo" }}",
             detail = subtitle,
+            relatedImageId = photoId,
         )
         return photoId
     }
@@ -327,7 +361,12 @@ object DemoProjectRepository {
                 yFraction = 0.44f,
             ),
         )
-        queueOutbox(id = "outbox-$videoId", title = "Video: $title", detail = subtitle)
+        queueOutbox(
+            id = "outbox-$videoId",
+            title = "Video: $title",
+            detail = subtitle,
+            relatedVideoId = videoId,
+        )
         return videoId
     }
 
@@ -393,6 +432,7 @@ object DemoProjectRepository {
             id = "outbox-${record.id}",
             title = "${record.category.label}: ${record.title}",
             detail = record.location,
+            relatedFieldRecordId = record.id,
         )
         if (record.blocksWork) {
             addIssue(
@@ -421,6 +461,69 @@ object DemoProjectRepository {
     }
 
     /**
+     * Voice note "Add to…": appends the spoken text onto an existing task or record, queues one
+     * Outbox entry, and publishes a Today row that deep-links back — never a dead-end, never a
+     * duplicate object. Photos already published by the camera are linked when the target is a
+     * record.
+     */
+    fun appendVoiceNote(match: VoiceNoteMatch, seeds: VoiceNoteSeeds) {
+        val now = System.currentTimeMillis()
+        val note = seeds.description.trim()
+        if (note.isBlank()) return
+        when (match.kind) {
+            VoiceNoteMatch.Kind.TASK -> {
+                FieldTaskRepository.appendNote(match.id, note)
+                streamItems.add(
+                    0,
+                    StreamItem(
+                        id = "stream-voice-$now",
+                        kind = StreamKind.TASK,
+                        title = "Voice note: ${match.title}",
+                        subtitle = note.take(80),
+                        timestampMillis = now,
+                        relatedTaskId = match.id,
+                    ),
+                )
+                queueOutbox(
+                    id = "outbox-voice-$now",
+                    title = "Voice note on ${match.title}",
+                    detail = note.take(60),
+                    relatedTaskId = match.id,
+                )
+            }
+            VoiceNoteMatch.Kind.RECORD -> {
+                val record = RecordRepository.find(match.id) ?: return
+                val extra = seeds.photoImageIds.map { imageId ->
+                    RecordAttachment(id = "att-voice-$imageId-$now", kind = AttachmentKind.PHOTO, ref = imageId)
+                }.filter { next -> record.attachments.none { it.ref == next.ref } }
+                val updated = record.copy(
+                    description = if (record.description.isBlank()) note else "${record.description}\n\n$note",
+                    attachments = record.attachments + extra,
+                )
+                RecordRepository.replace(updated)
+                extra.forEach { ProjectImageRepository.linkRecord(it.ref, record.id) }
+                streamItems.add(
+                    0,
+                    StreamItem(
+                        id = "stream-voice-$now",
+                        kind = StreamKind.ISSUE,
+                        title = "Voice note: ${match.title}",
+                        subtitle = note.take(80),
+                        timestampMillis = now,
+                        relatedFieldRecordId = record.id,
+                    ),
+                )
+                queueOutbox(
+                    id = "outbox-voice-$now",
+                    title = "Voice note on ${match.title}",
+                    detail = note.take(60),
+                    relatedFieldRecordId = record.id,
+                )
+            }
+        }
+    }
+
+    /**
      * The Subcontractor's Request Inspection: publishes a request row on Today (linked back
      * to the task, so it never dead-ends) and queues ONE Outbox entry — offline-first, like
      * every publish. No record is created: in this prototype the request is a message to the
@@ -443,6 +546,7 @@ object DemoProjectRepository {
             id = "outbox-inspect-$now",
             title = "Inspection request: ${task.title}",
             detail = task.location,
+            relatedTaskId = task.id,
         )
         lastInspectionRequestTitle = task.title
     }
@@ -560,8 +664,20 @@ object DemoProjectRepository {
         )
         outboxItems.addAll(
             listOf(
-                OutboxItem("outbox-1", "Photo: Area B framing", "Area B"),
-                OutboxItem("outbox-2", "Issue: Missing guardrail", "Level 2"),
+                // Linked to real seeds (ProjectImageRepository / RecordRepository) so the queue
+                // taps through to detail from first launch — an Outbox row never dead-ends.
+                OutboxItem(
+                    "outbox-1",
+                    "Photo: Area B framing",
+                    "Area B",
+                    relatedImageId = "img-corridor-c",
+                ),
+                OutboxItem(
+                    "outbox-2",
+                    "Issue: Missing guardrail",
+                    "Level 2",
+                    relatedFieldRecordId = "rec-seed-guardrail",
+                ),
             ),
         )
     }

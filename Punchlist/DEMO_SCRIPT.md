@@ -8,7 +8,7 @@ Product spec (source of truth): `Mobile Structure Validated v1.md`. Navigation c
 
 ## 1. What this is (10 seconds)
 
-This is a **field-first Android prototype** for Linarc Onsite. It proves that one chassis can serve six jobsite roles without extra tabs, extra products, or a module maze. Default view: **Foreman on Riverside Medical — Area B.**
+This is a **field-first Android prototype** for Linarc Onsite. It proves that one chassis can serve seven jobsite roles without extra tabs, extra products, or a module maze. Default view: **Foreman on Riverside Medical — Area B.**
 
 It is a strategy prototype, not a shipped backend. Capture, voice, records, plan pins, and outbox are real on-device flows. Sync, auth, and PDF plans are intentionally out of scope.
 
@@ -22,12 +22,13 @@ It is a strategy prototype, not a shipped backend. Capture, voice, records, plan
 | **Crew** | My shift + my assignment | Clock and task, not a GC dashboard |
 | **Superintendent** | Blockers and open issues first; Plan is one tap to pins | Oversight, not roster management |
 | **Project manager** | Aging RFIs first (oldest = loudest) | Decisions before they become delays |
+| **Project engineer** | RFI desk: draft + chase, then coordination & quality | Works the same RFIs the PM watches — one tap to Draft RFI |
 | **Owner** | Confidence dashboard: photos + four decision topics | Schedule, budget, quality, “what needs me” — no labor ops |
 | **Subcontractor** | My work + Request inspection | Trade scope and a GC message, not a second portal |
 
 **Shared value:** one capture (photo, video, voice, issue) **fans out** to Today, Plan, and the right tool — never a private list. **Issued ≠ blocked:** only an explicit “blocks work” status stops the day. **Offline-first:** publish queues in the Outbox until signal returns.
 
-**The bet:** reduce taps, keep orientation, and show the *same work objects* through the lens of each persona — instead of six apps or a 5-tab kitchen sink.
+**The bet:** reduce taps, keep orientation, and show the *same work objects* through the lens of each persona — instead of seven apps or a 5-tab kitchen sink.
 
 ---
 
@@ -64,7 +65,7 @@ It is a strategy prototype, not a shipped backend. Capture, voice, records, plan
 
 ## 5. How to run the room
 
-**With the exec (first ~8 min):** value, IA, Foreman happy path, two persona flips (Crew + Owner), one “this is not six apps” line. Skip Settings internals and code.
+**With the exec (first ~8 min):** value, IA, Foreman happy path, two persona flips (Crew + Owner), one “this is not seven apps” line. Skip Settings internals and code.
 
 **With the technical team (next ~5 min, or a second pass):** Pattern A/B/C, nested graphs + `saveState`/`restoreState`, Capture as action, fan-out, blocking vs issued, Outbox as queued publishes, what is *not* built (no Room/Hilt/sync/PDF).
 
@@ -144,16 +145,17 @@ Always: **Tools ⋮ → Settings → Demo: view as.** Profile avatar stays Alex 
 | 1 | **Crew** | Today: My shift, My assignment. Start/end shift. Tools lead: Field task, Time card | “The crew sees *their* day, not the GC’s.” |
 | 2 | **Superintendent** | Today opens on Blockers + open issues. Plans: **Pinned work** shortcut | “Oversight first. Plan is the power view.” |
 | 3 | **Project manager** | Aging RFIs oldest-first (RFI-121, 6 days, red) | “Silence gets more expensive with age.” |
-| 4 | **Owner — Decision dashboard** | Photos + four topics (schedule, budget, quality, decisions) + delays. Tools: no Time card, no Voice logs | “Confidence, not operations.” |
-| 5 | **Subcontractor** | Inspections → Request inspection → pick a task. My work (blocked med-gas) | “Trade scope + one message to the GC. Not a portal.” |
+| 4 | **Project engineer** | RFI desk (count + oldest age) → **Draft RFI**. Open RFIs, then Coordination & quality (med-gas conflict first) | “The PE *works* the queue the PM *watches*.” |
+| 5 | **Owner — Decision dashboard** | Photos + four topics (schedule, budget, quality, decisions) + delays. Tools: no Time card, no Voice logs | “Confidence, not operations.” |
+| 6 | **Subcontractor** | Inspections → Request inspection → pick a task. My work (blocked med-gas) | “Trade scope + one message to the GC. Not a portal.” |
 
-If time is short: **Crew + Owner + Subcontractor** only.
+If time is short: **Crew + Owner + Subcontractor** only. If you already showed Aging RFIs, add **Project engineer** — Draft RFI is the 10-second proof they share objects.
 
 ---
 
 ### Beat 7 — Close (45s)
 
-> “Same objects. Same bar. Role changes *priority*, not the product. Capture is always next to Today. Create never dies in a private list. That’s the field product we should scale — not another tab, and not six apps.”
+> “Same objects. Same bar. Role changes *priority*, not the product. Capture is always next to Today. Create never dies in a private list. That’s the field product we should scale — not another tab, and not seven apps.”
 
 **Ask:** “Is this the IA we take to customers, or do we still want a module-first home?”
 
@@ -173,7 +175,7 @@ If time is short: **Crew + Owner + Subcontractor** only.
 ## 8. Slack one-pager (paste before the meeting)
 
 **Field prototype — exec + eng walkthrough**  
-IA: Today · Capture (action) · Plans · Tools. Default Foreman. Six live personas via Demo: view as (same tabs, reordered Today/Tools; Owner omits labor/voice).  
+IA: Today · Capture (action) · Plans · Tools. Default Foreman. Seven live personas via Demo: view as (same tabs, reordered Today/Tools; Owner omits labor/voice). Project engineer is the RFI desk (draft + chase) next to the PM’s aging overview.  
 Proofs: one-tap capture that fans out; tab stacks that restore; sticky create; bilingual voice → record; issued ≠ blocked; Outbox for offline publish.  
 Not in this build: sync, auth, PDF plans, dashboards as a seventh tab.  
 Ask: confirm this chassis as the field product, not a 5-tab or multi-app strategy.

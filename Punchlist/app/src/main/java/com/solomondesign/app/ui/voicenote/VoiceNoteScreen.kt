@@ -6,9 +6,12 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +34,11 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -65,11 +71,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.designsystem.AppBottomSheet
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonType
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
+import com.solomondesign.app.ui.images.ImageThumbnail
+import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.records.CameraAttachmentInbox
 import com.solomondesign.app.ui.records.RecordCategory
-import com.solomondesign.app.ui.records.RecordChooserSheet
+import com.solomondesign.app.ui.records.RecordRepository
+import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.voicelog.audio.AndroidSpeechTranscriber
 import com.solomondesign.app.ui.voicelog.audio.DictationController
 
@@ -81,7 +92,10 @@ private enum class VoiceNoteStage { RECORDING, REVIEW }
  * with a one-tap toggle plus best-effort auto-detection; the finished note gets the same floating
  * toolbar treatment as the photo viewer (share / translate / re-record / delete / create), and
  * Create prefills an Issue, Incident, or Punch item with the note text in whichever language is
- * showing at that moment (original or translation — never both merged).
+ * showing at that moment (original or translation — never both merged). Review preselects the
+ * category and Blocks work from keywords, can attach a photo sequentially, and can Add to an
+ * existing task or record instead of creating a new one. Confident title + location + category
+ * can Save from a short confirm sheet; Edit details opens the full form.
  *
  * The note itself is ephemeral by design (decided 2026-08-25): the records made from it are the
  * durable artifacts. No audio file is recorded — transcription-only sidesteps the known
@@ -90,8 +104,17 @@ private enum class VoiceNoteStage { RECORDING, REVIEW }
 @Composable
 fun VoiceNoteScreen(
     onExit: () -> Unit,
-    /** The chooser picked a record category; open its form seeded from this note. */
+    /**
+     * Open the chosen record form seeded from this note. Always the full form: the seeds
+     * carry no title (dictated text fills only the description — decided 2026-09-03), and a
+     * record needs one, so the reporter types it there. The old confident short-confirm quick
+     * save went with the derived title it depended on.
+     */
     onCreateRecord: (RecordCategory, VoiceNoteSeeds) -> Unit,
+    /** Stack the in-app camera; the saved photo returns here via [CameraAttachmentInbox]. */
+    onAddPhoto: () -> Unit,
+    /** Append this note onto an existing task or field record. */
+    onAppendToExisting: (VoiceNoteMatch, VoiceNoteSeeds) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -122,13 +145,21 @@ fun VoiceNoteScreen(
         return
     }
 
-    VoiceNoteFlow(onExit = onExit, onCreateRecord = onCreateRecord, modifier = modifier)
+    VoiceNoteFlow(
+        onExit = onExit,
+        onCreateRecord = onCreateRecord,
+        onAddPhoto = onAddPhoto,
+        onAppendToExisting = onAppendToExisting,
+        modifier = modifier,
+    )
 }
 
 @Composable
 private fun VoiceNoteFlow(
     onExit: () -> Unit,
     onCreateRecord: (RecordCategory, VoiceNoteSeeds) -> Unit,
+    onAddPhoto: () -> Unit,
+    onAppendToExisting: (VoiceNoteMatch, VoiceNoteSeeds) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -150,16 +181,30 @@ private fun VoiceNoteFlow(
     var translating by remember { mutableStateOf(false) }
     var translationError by remember { mutableStateOf<String?>(null) }
     var translateRetryTick by remember { mutableIntStateOf(0) }
+    var photoImageIds by remember { mutableStateOf(VoiceNotePhotoInbox.takeAll()) }
+
+    val existingCandidates = FieldTaskRepository.tasks.map {
+        VoiceNoteMatch(it.id, it.title, VoiceNoteMatch.Kind.TASK)
+    } + RecordRepository.records.map {
+        VoiceNoteMatch(it.id, it.title, VoiceNoteMatch.Kind.RECORD)
+    }
 
     // Both models start downloading immediately so review-time translation is instant. Offline
     // and never-downloaded is the one case that fails; translate() surfaces it.
     LaunchedEffect(Unit) { translator.prepare() }
+
+    LaunchedEffect(CameraAttachmentInbox.pending) {
+        CameraAttachmentInbox.take()?.let { id ->
+            if (id !in photoImageIds) photoImageIds = photoImageIds + id
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
             dictation.stop()
             transcriber.destroy()
             translator.close()
+            CameraAttachmentInbox.reset()
         }
     }
 
@@ -246,6 +291,8 @@ private fun VoiceNoteFlow(
                                     translation,
                                     spokenLanguage,
                                     displayLanguage,
+                                    photoImageIds = photoImageIds,
+                                    existingCandidates = existingCandidates,
                                 ).description,
                             )
                             append("\n\nVoice note · ")
@@ -270,12 +317,11 @@ private fun VoiceNoteFlow(
                 stage = VoiceNoteStage.RECORDING
             },
             onDelete = onExit,
-            onCreateRecord = { category ->
-                onCreateRecord(
-                    category,
-                    buildVoiceNoteSeeds(noteText, translation, spokenLanguage, displayLanguage),
-                )
-            },
+            onCreateRecord = { category, seeds -> onCreateRecord(category, seeds) },
+            onAppendToExisting = { match, seeds -> onAppendToExisting(match, seeds) },
+            onAddPhoto = onAddPhoto,
+            photoImageIds = photoImageIds,
+            existingCandidates = existingCandidates,
             onClose = onExit,
             modifier = modifier,
         )
@@ -397,6 +443,7 @@ private fun VoiceNoteRecordingStage(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun VoiceNoteReviewStage(
     noteText: String,
@@ -410,12 +457,52 @@ private fun VoiceNoteReviewStage(
     onShare: () -> Unit,
     onRerecord: () -> Unit,
     onDelete: () -> Unit,
-    onCreateRecord: (RecordCategory) -> Unit,
+    onCreateRecord: (RecordCategory, VoiceNoteSeeds) -> Unit,
+    onAppendToExisting: (VoiceNoteMatch, VoiceNoteSeeds) -> Unit,
+    onAddPhoto: () -> Unit,
+    photoImageIds: List<String>,
+    existingCandidates: List<VoiceNoteMatch>,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val inferred = buildVoiceNoteSeeds(
+        original = noteText,
+        translation = translation,
+        spokenLanguage = spokenLanguage,
+        displayLanguage = displayLanguage,
+        photoImageIds = photoImageIds,
+        existingCandidates = existingCandidates,
+    )
+
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showCreateChooser by remember { mutableStateOf(false) }
+    var showAddToSheet by remember { mutableStateOf(false) }
+    var categoryTouched by remember { mutableStateOf(false) }
+    var blockingTouched by remember { mutableStateOf(false) }
+    var existingTouched by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf(inferred.category) }
+    var selectedBlocksWork by remember { mutableStateOf(inferred.blocksWork) }
+    var selectedExisting by remember { mutableStateOf(inferred.existing) }
+
+    LaunchedEffect(inferred.category, inferred.blocksWork, inferred.existing?.id) {
+        if (!categoryTouched) selectedCategory = inferred.category
+        if (!blockingTouched) selectedBlocksWork = inferred.blocksWork
+        if (!existingTouched) selectedExisting = inferred.existing
+    }
+
+    val seeds = inferred.copy(
+        category = selectedCategory,
+        blocksWork = selectedBlocksWork,
+        blockingReason = if (selectedBlocksWork) {
+            inferred.blockingReason.ifBlank { inferred.description }
+        } else {
+            ""
+        },
+        existing = selectedExisting,
+    )
+    // Always the full form: the seeds carry no title (dictated text fills only the
+    // description, decided 2026-09-03), and a record requires one — so the confident
+    // short-confirm quick save is gone until title inference is genuinely trustworthy.
+    val createFromReview: () -> Unit = { onCreateRecord(selectedCategory, seeds) }
 
     TaskFlowScaffold(
         title = "Voice note",
@@ -431,7 +518,7 @@ private fun VoiceNoteReviewStage(
                     onTranslate = { onSelectDisplayLanguage(displayLanguage.other()) },
                     onRerecord = onRerecord,
                     onDelete = { showDeleteDialog = true },
-                    onCreate = { showCreateChooser = true },
+                    onCreate = createFromReview,
                 )
             }
         },
@@ -487,17 +574,100 @@ private fun VoiceNoteReviewStage(
                     )
                 }
             }
+
+            Spacer(Modifier.height(24.dp))
+            VoiceNotePhotoRow(photoImageIds = photoImageIds, onAddPhoto = onAddPhoto)
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = buildString {
+                    append("Looks like ${selectedCategory.label.lowercase()}")
+                    if (selectedBlocksWork) append(" · blocking")
+                },
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("voiceNoteIntentHint"),
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                RecordCategory.entries.forEach { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = {
+                            categoryTouched = true
+                            selectedCategory = category
+                        },
+                        label = { Text(category.label) },
+                        modifier = Modifier.testTag("voiceNoteCategory_${category.routeId}"),
+                    )
+                }
+                FilterChip(
+                    selected = selectedBlocksWork,
+                    onClick = {
+                        blockingTouched = true
+                        selectedBlocksWork = !selectedBlocksWork
+                    },
+                    label = { Text("Blocks work") },
+                    modifier = Modifier.testTag("voiceNoteBlocksWork"),
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+            selectedExisting?.let { match ->
+                Text(
+                    text = "Matches ${match.title}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("voiceNoteExistingHint"),
+                )
+                Spacer(Modifier.height(8.dp))
+                AppButton(
+                    text = "Add to this instead",
+                    type = AppButtonType.Secondary,
+                    onClick = { onAppendToExisting(match, seeds.copy(existing = match)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("voiceNoteAddToSuggested"),
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            AppButton(
+                text = "Add to…",
+                type = AppButtonType.Secondary,
+                onClick = { showAddToSheet = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("voiceNoteAddTo"),
+            )
+            Spacer(Modifier.height(12.dp))
+            AppButton(
+                text = "Create ${selectedCategory.label.lowercase()}",
+                type = AppButtonType.Primary,
+                onClick = createFromReview,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("voiceNoteCreateConfirm"),
+            )
         }
     }
 
-    if (showCreateChooser) {
-        RecordChooserSheet(
-            title = "Create from this voice note",
-            onPick = { category ->
-                showCreateChooser = false
-                onCreateRecord(category)
+    if (showAddToSheet) {
+                VoiceNoteAddToSheet(
+            candidates = listOfNotNull(selectedExisting) +
+                existingCandidates.filter { it.id != selectedExisting?.id },
+            onPick = { match ->
+                existingTouched = true
+                selectedExisting = match
+                showAddToSheet = false
+                onAppendToExisting(match, seeds.copy(existing = match))
             },
-            onDismiss = { showCreateChooser = false },
+            onDismiss = { showAddToSheet = false },
         )
     }
 
@@ -522,6 +692,73 @@ private fun VoiceNoteReviewStage(
             },
             modifier = Modifier.testTag("noteDeleteDialog"),
         )
+    }
+}
+
+@Composable
+private fun VoiceNotePhotoRow(
+    photoImageIds: List<String>,
+    onAddPhoto: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (photoImageIds.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                photoImageIds.forEach { id ->
+                    val image = ProjectImageRepository.find(id)
+                    if (image != null) {
+                        ImageThumbnail(image = image, size = 64.dp)
+                    }
+                }
+            }
+        }
+        AppButton(
+            text = if (photoImageIds.isEmpty()) "Add photo" else "Add another photo",
+            type = AppButtonType.Secondary,
+            onClick = onAddPhoto,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("voiceNoteAddPhoto"),
+        )
+    }
+}
+
+@Composable
+private fun VoiceNoteAddToSheet(
+    candidates: List<VoiceNoteMatch>,
+    onPick: (VoiceNoteMatch) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AppBottomSheet(
+        title = "Add to existing",
+        subtitle = "Comment on a task or record instead of creating a new one",
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag("voiceNoteAddToSheet"),
+    ) { dismiss ->
+        if (candidates.isEmpty()) {
+            Text(
+                text = "No tasks or records to add to yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+        } else {
+            candidates.forEach { match ->
+                ListItem(
+                    headlineContent = { Text(match.title) },
+                    supportingContent = {
+                        Text(if (match.kind == VoiceNoteMatch.Kind.TASK) "Field task" else "Record")
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier
+                        .clickable { dismiss { onPick(match) } }
+                        .testTag("voiceNoteAddTo_${match.id}"),
+                )
+            }
+        }
     }
 }
 

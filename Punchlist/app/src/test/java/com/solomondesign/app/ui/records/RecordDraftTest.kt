@@ -39,6 +39,41 @@ class RecordDraftTest {
         assertEquals(emptyList<String>(), RecordDraft.assigneeIds)
         assertEquals(listOf("img-1"), RecordDraft.attachments.map { it.ref })
         assertEquals(AttachmentKind.PHOTO, RecordDraft.attachments.single().kind)
+        assertFalse(RecordDraft.blocksWork)
+    }
+
+    @Test
+    fun begin_seedsBlockingFromVoice() {
+        RecordDraft.begin(
+            RecordCategory.ISSUE,
+            nowMillis = 1L,
+            seedTitle = "Crack at column 4",
+            seedBlocksWork = true,
+            seedBlockingReason = "blocking plumbing",
+        )
+
+        assertTrue(RecordDraft.blocksWork)
+        assertEquals("blocking plumbing", RecordDraft.blockingReason)
+        assertTrue(RecordDraft.canSubmit)
+    }
+
+    @Test
+    fun begin_seedsAValidType_throughTheBlockingDefaultPath() {
+        // The Project engineer's Draft RFI: the Issue form opens already on the RFI type.
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L, seedType = RFI_ISSUE_TYPE)
+        assertEquals(RFI_ISSUE_TYPE, RecordDraft.type)
+        assertFalse("RFIs are logged, not blocking, by default", RecordDraft.blocksWork)
+
+        // A seeded blocking-by-default type applies its policy like a manual pick would.
+        RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L, seedType = "Safety hazard")
+        assertEquals("Safety hazard", RecordDraft.type)
+        assertTrue(RecordDraft.blocksWork)
+    }
+
+    @Test
+    fun begin_ignoresATypeTheCategoryDoesNotOffer() {
+        RecordDraft.begin(RecordCategory.PUNCH, nowMillis = 1L, seedType = RFI_ISSUE_TYPE)
+        assertEquals(RecordCategory.PUNCH.typeOptions.first(), RecordDraft.type)
     }
 
     @Test
@@ -60,7 +95,8 @@ class RecordDraftTest {
 
         RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L, seedDescription = "typed instead")
 
-        assertEquals("Crack — Column 4", RecordDraft.title)
+        // Dictated text never fills the title (2026-09-03) — the reporter names the record.
+        assertEquals("", RecordDraft.title)
         assertEquals("Column 4", RecordDraft.location)
         assertEquals("explicit seeds beat the hand-off", "typed instead", RecordDraft.description)
         assertNull("the hand-off is one-shot", IssueDraftHolder.take())

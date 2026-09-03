@@ -187,6 +187,14 @@ object PlatformTools {
     private val projectManagerLeadIds =
         listOf("rfis", "collaboration", "issues", "t_and_m", "drive")
 
+    /**
+     * Project-engineer-first ids: the technical document hub — the RFI queue they draft and
+     * chase, the coordination/quality issues behind those questions, the drawings they keep
+     * current, QC closeout, and the project files (specs, submittals).
+     */
+    private val projectEngineerLeadIds =
+        listOf("rfis", "issues", "plans", "punch_list", "drive")
+
     /** Owner-first ids: progress and decisions — photos, plans, threads, files. */
     private val ownerLeadIds = listOf("images", "plans", "collaboration", "drive", "rfis")
 
@@ -205,6 +213,7 @@ object PlatformTools {
         FieldPersona.CREW -> leadWith(crewLeadIds)
         FieldPersona.SUPERINTENDENT -> leadWith(superintendentLeadIds)
         FieldPersona.PROJECT_MANAGER -> leadWith(projectManagerLeadIds)
+        FieldPersona.PROJECT_ENGINEER -> leadWith(projectEngineerLeadIds)
         FieldPersona.OWNER -> leadWith(ownerLeadIds).filterNot { it.id == "time_card" }
         FieldPersona.SUBCONTRACTOR -> leadWith(subcontractorLeadIds)
         else -> catalog

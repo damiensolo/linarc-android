@@ -44,16 +44,8 @@ class IssueDraftParserTest {
 
         assertEquals("Video", parsed.title)
         assertEquals(IssueDraftParser.DEFAULT_TITLE, parsed.title)
-        assertEquals("Issue", IssueDraftParser.issueTitle(parsed.title))
         assertNull(parsed.location)
         assertFalse(parsed.looksLikeIssue)
-    }
-
-    @Test
-    fun draftedDefectTitle_isKeptWhenFilingAnIssue() {
-        assertEquals("Crack — Column 4", IssueDraftParser.issueTitle("Crack — Column 4"))
-        assertEquals(IssueDraftParser.DEFAULT_ISSUE_TITLE, IssueDraftParser.issueTitle(""))
-        assertEquals(IssueDraftParser.DEFAULT_ISSUE_TITLE, IssueDraftParser.issueTitle("video"))
     }
 
     @Test

@@ -90,6 +90,23 @@ data class OutboxItem(
     /** What is inside the entry (e.g. "2 comments", "Column 4"), not its queue state. */
     val detail: String = "",
     val status: OutboxStatus = OutboxStatus.QUEUED,
+    // Same never-dead-end rule as [StreamItem]: an Outbox row links back to what it published,
+    // so the queue is a receipt list, not a dead list. At most one of these is set per entry;
+    // the Outbox screen deep-links into the owning tool's detail when the target still resolves.
+    /** A published photo: the [com.solomondesign.app.ui.images.ProjectImage] id. */
+    val relatedImageId: String? = null,
+    /** A published video: the [com.solomondesign.app.ui.video.CapturedVideo] id. */
+    val relatedVideoId: String? = null,
+    /** An issue / incident / punch item: the [com.solomondesign.app.ui.records.FieldRecord] id. */
+    val relatedFieldRecordId: String? = null,
+    /** A voice daily log: the [com.solomondesign.app.ui.voicelog.DailyLogRecord] id. */
+    val relatedLogId: String? = null,
+    /** An inspection request: the [com.solomondesign.app.ui.tasks.FieldTask] id it was raised on. */
+    val relatedTaskId: String? = null,
+    /** A posted message: the [com.solomondesign.app.ui.collab.CollabTopic] id. */
+    val relatedTopicId: String? = null,
+    /** A time entry: the [CrewMember.id] whose time card it landed on. */
+    val relatedCrewMemberId: String? = null,
 )
 
 /** Row subtitle combining [OutboxItem.detail] with queue state. Pure so the wording is testable. */

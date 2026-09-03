@@ -157,11 +157,24 @@ fun List<FieldRecord>.attentionOrder(): List<FieldRecord> =
 /**
  * The Project manager's lead section: RFI-type issues, OLDEST first — an RFI gets more
  * urgent the longer it sits unanswered, the opposite of every newest-first capture list.
- * Pure so it is JVM-unit-testable.
+ * Pure so it is JVM-unit-testable. The Project engineer's RFI desk works this same queue.
  */
 fun List<FieldRecord>.agingRfis(): List<FieldRecord> =
     filter { it.category == RecordCategory.ISSUE && it.type == RFI_ISSUE_TYPE }
         .sortedBy { it.createdAtMillis }
+
+/**
+ * The Project engineer's coordination & quality queue: the technical records they resolve —
+ * non-RFI issues (coordination clashes, quality, safety observations) and punch items — in
+ * [attentionOrder]. RFIs are excluded because the RFI desk section above already carries
+ * them; incidents stay off (safety reporting is the Superintendent's oversight, not the
+ * PE's technical queue). Pure so it is JVM-unit-testable.
+ */
+fun List<FieldRecord>.technicalQueue(): List<FieldRecord> =
+    filter {
+        (it.category == RecordCategory.ISSUE && it.type != RFI_ISSUE_TYPE) ||
+            it.category == RecordCategory.PUNCH
+    }.attentionOrder()
 
 /** "Opened today", "1 day open", "6 days open". Pure so it is JVM-unit-testable. */
 fun rfiAgeLabel(createdAtMillis: Long, nowMillis: Long): String {

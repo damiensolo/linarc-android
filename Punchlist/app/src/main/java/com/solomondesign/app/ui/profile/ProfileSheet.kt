@@ -64,8 +64,8 @@ fun ProfileAvatarButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 /**
  * Account sheet reached by tapping the header avatar. There's no backend/auth in this
  * prototype (per `Mobile Structure Validated v1.md`), so every action except Switch project and
- * Logout surfaces a message instead of faking a working flow — the same treatment already used
- * for non-live personas in Tools → Demo: view as. Switch project returns to the startup Project
+ * Logout surfaces a message instead of faking a working flow — the same explain-don't-fake
+ * treatment as unbuilt account actions. Switch project returns to the startup Project
  * List; Logout resets the local demo session via
  * [com.solomondesign.app.ui.demo.DemoProjectRepository.clear].
  */

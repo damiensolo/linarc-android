@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Draw
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,7 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonType
 import com.solomondesign.app.ui.designsystem.DesignTokens
+import com.solomondesign.app.ui.designsystem.TagEditor
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
+import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.markup.MarkupEditorScreen
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordChooserSheet
@@ -60,14 +59,21 @@ private val suggestedTags = listOf("Framing", "Area B", "Progress")
  * title/description/tags untouched — the field states live above the branch, so swapping the
  * rendered surface never resets them.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PhotoReviewScreen(
     photo: Bitmap,
     onRetake: () -> Unit,
     /** [createRecord] non-null continues into that record's create form with the photo attached. */
-    onSave: (title: String, description: String, tags: List<String>, createRecord: RecordCategory?) -> Unit,
+    onSave: (
+        title: String,
+        description: String,
+        tags: List<String>,
+        createRecord: RecordCategory?,
+        continueToVoice: Boolean,
+    ) -> Unit,
     onAnnotated: (Bitmap) -> Unit,
+    /** Hide when the camera was opened to attach a photo (voice review or a record form). */
+    allowContinueToVoice: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var title by remember { mutableStateOf("Progress photo") }
@@ -76,8 +82,8 @@ fun PhotoReviewScreen(
     var showMarkup by remember { mutableStateOf(false) }
     var showCreateChooser by remember { mutableStateOf(false) }
 
-    val save = { createRecord: RecordCategory? ->
-        onSave(title.trim(), description.trim(), selectedTags.toList(), createRecord)
+    val save = { createRecord: RecordCategory?, continueToVoice: Boolean ->
+        onSave(title.trim(), description.trim(), selectedTags.toList(), createRecord, continueToVoice)
     }
 
     if (showMarkup) {
@@ -99,7 +105,7 @@ fun PhotoReviewScreen(
         modifier = modifier,
         // The photo itself is the unsaved edit — discarding returns to the viewfinder.
         hasUnsavedChanges = true,
-        onConfirm = { save(null) },
+        onConfirm = { save(null, false) },
         confirmLabel = "Save",
         confirmEnabled = title.isNotBlank(),
         discardTitle = "Discard photo?",
@@ -168,22 +174,14 @@ fun PhotoReviewScreen(
                     .fillMaxWidth()
                     .testTag("photoDescriptionField"),
             )
-            Text("Suggested tags", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                suggestedTags.forEach { tag ->
-                    FilterChip(
-                        selected = tag in selectedTags,
-                        onClick = {
-                            selectedTags = if (tag in selectedTags) {
-                                selectedTags - tag
-                            } else {
-                                selectedTags + tag
-                            }
-                        },
-                        label = { Text(tag) },
-                    )
-                }
-            }
+            // Suggestions stay one-tap chips; the search field finds any existing project tag
+            // or mints a new one (2026-09-03) — suggestions are no longer the only option.
+            TagEditor(
+                selectedTags = selectedTags,
+                suggestedTags = suggestedTags,
+                allTags = ProjectImageRepository.visibleTags(),
+                onSelectedTagsChange = { selectedTags = it },
+            )
             AppButton(
                 text = "Save & create…",
                 type = AppButtonType.Secondary,
@@ -191,6 +189,15 @@ fun PhotoReviewScreen(
                 onClick = { showCreateChooser = true },
                 modifier = Modifier.testTag("photoSaveCreate"),
             )
+            if (allowContinueToVoice) {
+                AppButton(
+                    text = "Add voice note",
+                    type = AppButtonType.Secondary,
+                    enabled = title.isNotBlank(),
+                    onClick = { save(null, true) },
+                    modifier = Modifier.testTag("photoAddVoiceNote"),
+                )
+            }
             AppButton(
                 text = "Retake",
                 type = AppButtonType.Secondary,
@@ -205,7 +212,7 @@ fun PhotoReviewScreen(
             title = "Save photo & create",
             onPick = { category ->
                 showCreateChooser = false
-                save(category)
+                save(category, false)
             },
             onDismiss = { showCreateChooser = false },
         )

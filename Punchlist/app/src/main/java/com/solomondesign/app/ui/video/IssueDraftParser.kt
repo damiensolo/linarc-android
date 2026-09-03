@@ -21,14 +21,13 @@ object IssueDraftParser {
     /** Fallback title for the video when nothing was dictated (the describe step is skippable). */
     const val DEFAULT_TITLE = "Video"
 
-    /** Title used when filing an issue from a capture that has no drafted defect title. */
-    const val DEFAULT_ISSUE_TITLE = "Issue"
-
     private const val TITLE_WORD_LIMIT = 6
 
     /**
-     * Field-defect vocabulary; a hit both titles the issue and preselects issue filing.
-     * Extends `VoiceLogParser`'s issue keywords with common walkthrough callouts.
+     * Field-defect vocabulary; a hit titles the video draft and preselects issue filing.
+     * (It never titles the issue record itself — dictated text seeds only the issue's
+     * note/location, decided 2026-09-03.) Extends `VoiceLogParser`'s issue keywords with
+     * common walkthrough callouts.
      */
     private val defectKeywords = listOf(
         "spalling", "cracked", "crack", "leaking", "leak", "damaged", "damage",
@@ -79,16 +78,4 @@ object IssueDraftParser {
         )
     }
 
-    /**
-     * Maps a capture title onto an issue title: a skipped or generic video label becomes
-     * [DEFAULT_ISSUE_TITLE]; a drafted defect title is kept as-is.
-     */
-    fun issueTitle(captureTitle: String): String {
-        val trimmed = captureTitle.trim()
-        return if (trimmed.isEmpty() || trimmed.equals(DEFAULT_TITLE, ignoreCase = true)) {
-            DEFAULT_ISSUE_TITLE
-        } else {
-            trimmed
-        }
-    }
 }

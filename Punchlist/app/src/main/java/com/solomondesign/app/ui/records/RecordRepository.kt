@@ -20,6 +20,11 @@ object RecordRepository {
 
     fun find(id: String): FieldRecord? = _records.firstOrNull { it.id == id }
 
+    fun replace(record: FieldRecord) {
+        val index = _records.indexOfFirst { it.id == record.id }
+        if (index >= 0) _records[index] = record
+    }
+
     fun add(record: FieldRecord) {
         _records.add(0, record)
     }
@@ -81,6 +86,29 @@ object RecordRepository {
                     attachments = emptyList(),
                     createdAtMillis = now - 26 * hour,
                     authorName = "Dave Miller",
+                    severity = RecordSeverity.HIGH,
+                    impact = RecordImpact.SAFETY,
+                ),
+                // The seeded Outbox's "Issue: Missing guardrail" entry deep-links here — the
+                // queue must tap through to detail from first launch. Logged, not blocking:
+                // Safety hazard defaults to blocks-work on the create form, but the reporter
+                // cleared it because the opening is barricaded and no scheduled work stops —
+                // same documented-and-contained story as the near-miss seed above. (Blocking
+                // would also rank it in the Owner's Decisions needed, which the dashboard
+                // seeds pin to exactly one critical row.)
+                FieldRecord(
+                    id = "rec-seed-guardrail",
+                    category = RecordCategory.ISSUE,
+                    title = "Missing guardrail",
+                    type = "Safety hazard",
+                    description = "Guardrail section removed at the slab edge for material " +
+                        "hoisting; opening is taped off and coned. Reinstall before deck work resumes.",
+                    location = "Level 2",
+                    eventDateMillis = now - 6 * hour,
+                    assigneeIds = listOf("dave-miller"),
+                    attachments = emptyList(),
+                    createdAtMillis = now - 6 * hour,
+                    authorName = "Alex Rivera",
                     severity = RecordSeverity.HIGH,
                     impact = RecordImpact.SAFETY,
                 ),

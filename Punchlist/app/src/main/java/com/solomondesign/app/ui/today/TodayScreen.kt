@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,11 +51,13 @@ import com.solomondesign.app.ui.profile.ProfileAvatarButton
 import com.solomondesign.app.ui.collab.CollabRepository
 import com.solomondesign.app.ui.collab.CollabTopic
 import com.solomondesign.app.ui.demo.StreamItem
+import com.solomondesign.app.ui.records.FieldRecord
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.records.RecordSeverity
 import com.solomondesign.app.ui.records.agingRfis
 import com.solomondesign.app.ui.records.attentionOrder
 import com.solomondesign.app.ui.records.rfiAgeLabel
+import com.solomondesign.app.ui.records.technicalQueue
 import com.solomondesign.app.ui.tasks.FieldTask
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.tasks.forTrade
@@ -74,6 +78,8 @@ fun TodayScreen(
     onOpenRecord: (String) -> Unit,
     onOpenTask: (String) -> Unit,
     onOpenTopic: (String) -> Unit,
+    /** Project engineer view: stages an Issue draft on the RFI type and opens the form. */
+    onDraftRfi: () -> Unit,
     onOpenProfile: () -> Unit,
     onSwitchProject: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -85,23 +91,34 @@ fun TodayScreen(
     val crew = DemoProjectRepository.crew
     var showStartMyDay by remember { mutableStateOf(false) }
     // Same objects, reordered by persona: Crew leads with its own work, the Superintendent
-    // with blockers and open records, the Project manager with aging RFIs — for those the
-    // roster demotes to a collapsed "On site today" at the bottom instead of leading the
-    // page. Foreman keeps the original layout: Start My Day, roster first. The Owner is the
+    // with blockers and open records, the Project manager with aging RFIs, the Project
+    // engineer with the RFI desk and its technical queue — for those the roster demotes to a
+    // collapsed "On site today" at the bottom instead of leading the page. Foreman keeps the
+    // original layout: Start My Day, roster first. The Owner is the
     // one persona that OMITS objects, per the spec's "no time cards or voice log" (extended
     // 2026-08-25 to crew operations): its whole page is the confidence dashboard in
     // OwnerTodaySections.kt — progress photos, four decision topics, delays — and nothing else.
     val isCrewView = persona == FieldPersona.CREW
     val isSuperView = persona == FieldPersona.SUPERINTENDENT
     val isPmView = persona == FieldPersona.PROJECT_MANAGER
+    val isPeView = persona == FieldPersona.PROJECT_ENGINEER
     val isOwnerView = persona == FieldPersona.OWNER
     val isSubView = persona == FieldPersona.SUBCONTRACTOR
     // Both Owner layouts stay demoable (Settings → Demo → "Owner Today layout"): the classic
     // v1 view keeps the shared Delays rows and collapsed roster the dashboard dropped.
     val isClassicOwnerView =
         isOwnerView && DemoProjectRepository.ownerTodayVariant == OwnerTodayVariant.CLASSIC
-    val isForemanView = !isCrewView && !isSuperView && !isPmView && !isOwnerView && !isSubView
+    val isForemanView =
+        !isCrewView && !isSuperView && !isPmView && !isPeView && !isOwnerView && !isSubView
     var crewExpanded by remember(persona) { mutableStateOf(isForemanView) }
+    // Every Today section collapses like the roster (2026-09-03): per-section expansion keyed
+    // by section id, default expanded (the roster keeps its own demoted-collapsed default),
+    // reset on persona switch exactly like crewExpanded.
+    val expandedSections = remember(persona) { mutableStateMapOf<String, Boolean>() }
+    fun sectionExpanded(key: String): Boolean = expandedSections[key] ?: true
+    fun toggleSection(key: String) {
+        expandedSections[key] = !sectionExpanded(key)
+    }
     val crewViewMember = DemoProjectRepository.crewViewMember
     val myTasks = crewViewMember?.let { member ->
         FieldTaskRepository.tasks.filter { it.assigneeId == member.id }
@@ -110,9 +127,15 @@ fun TodayScreen(
     // no closed status in this prototype, so the whole store is the open set.
     val openRecords = if (isSuperView) RecordRepository.records.attentionOrder() else emptyList()
     // Project manager focus: RFI-type issues aging oldest-first, and decision threads.
-    // The Owner shares the decision threads — approvals are the owner's half of "decisions".
-    val agingRfis = if (isPmView) RecordRepository.records.agingRfis() else emptyList()
-    val decisionTopics = if (isPmView || isOwnerView) CollabRepository.topics else emptyList()
+    // The Project engineer works the same RFI queue (their desk, not just an overview) and
+    // shares the decision threads — the A/E conversations behind their open questions.
+    // The Owner shares the decision threads too — approvals are the owner's half of "decisions".
+    val agingRfis = if (isPmView || isPeView) RecordRepository.records.agingRfis() else emptyList()
+    val decisionTopics =
+        if (isPmView || isPeView || isOwnerView) CollabRepository.topics else emptyList()
+    // Project engineer focus: the technical records behind the questions — non-RFI issues
+    // and punch items, attention-ordered. Incidents stay with the Superintendent's oversight.
+    val technicalRecords = if (isPeView) RecordRepository.records.technicalQueue() else emptyList()
     // Owner focus: progress, not operations — captured photos and videos only.
     val progressMedia = if (isOwnerView) {
         streamItems.filter { it.kind == StreamKind.PHOTO || it.kind == StreamKind.VIDEO }
@@ -192,28 +215,35 @@ fun TodayScreen(
                     memberTrade = crewViewMember?.trade.orEmpty(),
                 )
             }
-            item { FieldSectionLabel("My assignment") }
-            if (myTasks.isEmpty()) {
-                item {
-                    Text(
-                        text = "No tasks assigned to you today.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(myTasks, key = { it.id }) { task ->
-                    // Rows open the same Field task detail the tool uses — status control,
-                    // checklist and all — so the assignment never dead-ends on Today.
-                    FieldWorkRow(
-                        title = task.title,
-                        subtitle = "${task.location} · ${task.status.label()} · ${task.dueLabel}",
-                        statusColor = task.status.statusColor(),
-                        enabled = true,
-                        onClick = { onOpenTask(task.id) },
-                        modifier = Modifier.testTag("myTask_${task.id}"),
-                    )
+            collapsibleSection(
+                key = "myAssignment",
+                title = "My assignment",
+                count = myTasks.size,
+                expanded = sectionExpanded("myAssignment"),
+                onToggle = { toggleSection("myAssignment") },
+            ) {
+                if (myTasks.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No tasks assigned to you today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(myTasks, key = { it.id }) { task ->
+                        // Rows open the same Field task detail the tool uses — status control,
+                        // checklist and all — so the assignment never dead-ends on Today.
+                        FieldWorkRow(
+                            title = task.title,
+                            subtitle = "${task.location} · ${task.status.label()} · ${task.dueLabel}",
+                            statusColor = task.status.statusColor(),
+                            enabled = true,
+                            onClick = { onOpenTask(task.id) },
+                            modifier = Modifier.testTag("myTask_${task.id}"),
+                        )
+                    }
                 }
             }
         } else if (isPmView) {
@@ -233,18 +263,58 @@ fun TodayScreen(
             } else {
                 val nowMillis = System.currentTimeMillis()
                 items(agingRfis, key = { "rfi_${it.id}" }) { record ->
-                    val age = rfiAgeLabel(record.createdAtMillis, nowMillis)
-                    FieldWorkRow(
-                        title = record.title,
-                        subtitle = "${record.location} · $age",
-                        statusColor = if (age.startsWith("Opened") || age.startsWith("1 ")) {
-                            MaterialTheme.colorScheme.tertiary
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        },
-                        enabled = true,
-                        onClick = { onOpenRecord(record.id) },
-                        modifier = Modifier.testTag("agingRfi_${record.id}"),
+                    AgingRfiRow(record = record, nowMillis = nowMillis, onOpenRecord = onOpenRecord)
+                }
+            }
+        } else if (isPeView) {
+            // Project engineer focus: the technical document hub. The RFI desk leads — count,
+            // oldest age, and Draft RFI, which opens the Issue form already on the RFI type
+            // (publishing through the same addRecord path as any issue: tool list, pin, Outbox).
+            item {
+                val nowMillis = System.currentTimeMillis()
+                RfiDeskCard(
+                    openRfiCount = agingRfis.size,
+                    oldestRfiAge = agingRfis.firstOrNull()
+                        ?.let { rfiAgeLabel(it.createdAtMillis, nowMillis) },
+                    onDraftRfi = onDraftRfi,
+                )
+            }
+            // The same aging queue the PM reads as an overview is the PE's working list.
+            item { FieldSectionLabel("Open RFIs") }
+            if (agingRfis.isEmpty()) {
+                item {
+                    Text(
+                        text = "No open RFIs. Draft one above, or file an Issue as " +
+                            "RFI / design clarification.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                }
+            } else {
+                val nowMillis = System.currentTimeMillis()
+                items(agingRfis, key = { "rfi_${it.id}" }) { record ->
+                    AgingRfiRow(record = record, nowMillis = nowMillis, onOpenRecord = onOpenRecord)
+                }
+            }
+            // The technical records behind the questions: coordination/quality issues and
+            // punch items, attention-ordered — the same record objects the tools own.
+            item { FieldSectionLabel("Coordination & quality") }
+            if (technicalRecords.isEmpty()) {
+                item {
+                    Text(
+                        text = "No open technical records. Issues and punch items land here.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                }
+            } else {
+                items(technicalRecords, key = { "tech_${it.id}" }) { record ->
+                    OpenRecordRow(
+                        record = record,
+                        onOpenRecord = onOpenRecord,
+                        modifier = Modifier.testTag("techRecord_${record.id}"),
                     )
                 }
             }
@@ -458,34 +528,21 @@ fun TodayScreen(
                 }
             } else {
                 items(openRecords, key = { "openRecord_${it.id}" }) { record ->
-                    FieldWorkRow(
-                        title = record.title,
-                        subtitle = listOf(
-                            record.category.label,
-                            record.location,
-                            record.severity.label + if (record.blocksWork) " · Blocks work" else "",
-                        ).filter { it.isNotBlank() }.joinToString(" · "),
-                        statusColor = when {
-                            record.blocksWork -> MaterialTheme.colorScheme.error
-                            record.severity == RecordSeverity.CRITICAL ||
-                                record.severity == RecordSeverity.HIGH ->
-                                MaterialTheme.colorScheme.error
-                            record.severity == RecordSeverity.MEDIUM ->
-                                MaterialTheme.colorScheme.tertiary
-                            else -> MaterialTheme.colorScheme.outline
-                        },
-                        enabled = true,
-                        onClick = { onOpenRecord(record.id) },
+                    OpenRecordRow(
+                        record = record,
+                        onOpenRecord = onOpenRecord,
                         modifier = Modifier.testTag("openRecord_${record.id}"),
                     )
                 }
             }
         }
 
-        if (isPmView) {
+        if (isPmView || isPeView) {
             // Decisions live in the field's own threads: the Collaboration topics, most
-            // recently active first, unread flagged. (The Owner shares this section but
-            // renders it up top, before delays — see the owner lead branch.)
+            // recently active first, unread flagged. The Project engineer shares them — the
+            // med-gas and headwall threads ARE the conversations behind their open RFIs. (The
+            // Owner shares this section too but renders it up top, before delays — see the
+            // owner lead branch.)
             item { FieldSectionLabel("Decisions & discussions") }
             items(decisionTopics, key = { "topic_${it.id}" }) { topic ->
                 DecisionTopicRow(topic = topic, onOpenTopic = onOpenTopic)
@@ -639,6 +696,116 @@ private fun RequestInspectionCard(
             modifier = Modifier.testTag("requestInspectionButton"),
         )
     }
+}
+
+/**
+ * The Project engineer's day ritual — the RFI desk. The status line reads the live queue
+ * (count + oldest age, the number the PE is paid to keep small); Draft RFI stages the Issue
+ * form on the RFI type (`RecordDraft.begin(seedType = RFI_ISSUE_TYPE)`) so a field question
+ * becomes a tracked record in one tap. Saving publishes like any issue: tool list, Plan pin,
+ * queued Outbox entry.
+ */
+@Composable
+private fun RfiDeskCard(
+    openRfiCount: Int,
+    oldestRfiAge: String?,
+    onDraftRfi: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(16.dp)
+            .testTag("rfiDeskCard"),
+    ) {
+        Text("RFI desk", style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = when {
+                openRfiCount == 0 -> "No open RFIs — field questions start here."
+                oldestRfiAge != null ->
+                    "$openRfiCount open · oldest ${oldestRfiAge.lowercase(Locale.getDefault())}"
+                else -> "$openRfiCount open"
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(
+            text = "Drafts open the Issue form on RFI / design clarification and publish " +
+                "to the Issues tool, Plans, and the Outbox.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+        )
+        AppButton(
+            text = "Draft RFI",
+            onClick = onDraftRfi,
+            modifier = Modifier.testTag("draftRfiButton"),
+        )
+    }
+}
+
+/**
+ * One aging-RFI row: age carried on the row, urgency color flips once it is older than a day.
+ * Shared by the Project manager's "Aging RFIs" overview and the Project engineer's "Open RFIs"
+ * working queue — the same record objects, opened in the same record detail.
+ */
+@Composable
+private fun AgingRfiRow(
+    record: FieldRecord,
+    nowMillis: Long,
+    onOpenRecord: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val age = rfiAgeLabel(record.createdAtMillis, nowMillis)
+    FieldWorkRow(
+        title = record.title,
+        subtitle = "${record.location} · $age",
+        statusColor = if (age.startsWith("Opened") || age.startsWith("1 ")) {
+            MaterialTheme.colorScheme.tertiary
+        } else {
+            MaterialTheme.colorScheme.error
+        },
+        enabled = true,
+        onClick = { onOpenRecord(record.id) },
+        modifier = modifier.testTag("agingRfi_${record.id}"),
+    )
+}
+
+/**
+ * One open-record row: category · location · severity, blocking shouted in error color.
+ * Shared by the Superintendent's "Open issues & inspections" and the Project engineer's
+ * "Coordination & quality" queue; rows open the record detail the tools own.
+ */
+@Composable
+private fun OpenRecordRow(
+    record: FieldRecord,
+    onOpenRecord: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FieldWorkRow(
+        title = record.title,
+        subtitle = listOf(
+            record.category.label,
+            record.location,
+            record.severity.label + if (record.blocksWork) " · Blocks work" else "",
+        ).filter { it.isNotBlank() }.joinToString(" · "),
+        statusColor = when {
+            record.blocksWork -> MaterialTheme.colorScheme.error
+            record.severity == RecordSeverity.CRITICAL ||
+                record.severity == RecordSeverity.HIGH ->
+                MaterialTheme.colorScheme.error
+            record.severity == RecordSeverity.MEDIUM ->
+                MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.outline
+        },
+        enabled = true,
+        onClick = { onOpenRecord(record.id) },
+        modifier = modifier,
+    )
 }
 
 /** Pattern C sheet: pick which of the trade's tasks the inspection covers — one tap. */
@@ -827,6 +994,31 @@ private fun StartMyDaySheetContent(
         AppButton(text = "Confirm", onClick = onConfirm)
         Spacer(Modifier.height(24.dp))
     }
+}
+
+/**
+ * One collapsible Today section (2026-09-03): the same header treatment as the crew roster
+ * ([FieldCollapsibleSectionHeader] — title, live count, chevron), with [content] emitted only
+ * while expanded. The caller owns the expanded state; sections default expanded.
+ */
+private fun LazyListScope.collapsibleSection(
+    key: String,
+    title: String,
+    count: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: LazyListScope.() -> Unit,
+) {
+    item(key = "sectionHeader_$key") {
+        FieldCollapsibleSectionHeader(
+            title = title,
+            count = count,
+            expanded = expanded,
+            onToggleExpanded = onToggle,
+            modifier = Modifier.testTag("sectionHeader_$key"),
+        )
+    }
+    if (expanded) content()
 }
 
 private fun formatTimestamp(millis: Long): String =

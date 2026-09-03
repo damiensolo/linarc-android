@@ -25,6 +25,7 @@ object TimeCardRepository {
             id = "outbox-${entry.id}",
             title = "Time card: ${formatHours(entry.hours + entry.overtimeHours)}",
             detail = entry.dateLabel,
+            relatedCrewMemberId = entry.crewMemberId,
         )
     }
 

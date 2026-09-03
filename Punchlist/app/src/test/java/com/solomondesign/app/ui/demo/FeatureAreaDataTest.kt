@@ -13,6 +13,8 @@ import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.video.VideoRepository
 import com.solomondesign.app.ui.voicelog.DailyLogRecord
+import com.solomondesign.app.ui.voicenote.VoiceNoteMatch
+import com.solomondesign.app.ui.voicenote.VoiceNoteSeeds
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 import com.solomondesign.app.ui.tasks.TaskFilter
 import com.solomondesign.app.ui.tasks.TaskStatus
@@ -130,6 +132,7 @@ class FeatureAreaDataTest {
         assertEquals(4.0, TimeCardRepository.totalHours("sam-reyes"), 0.001)
         assertEquals("te-test", TimeCardRepository.entries.first().id)
         assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
+        assertEquals("sam-reyes", DemoProjectRepository.outboxItems.last().relatedCrewMemberId)
     }
 
     // ---- collaboration ----
@@ -392,6 +395,63 @@ class FeatureAreaDataTest {
         assertEquals("Queued · waiting for signal", OutboxItem("y", "Message").statusLine())
     }
 
+    /** An Outbox row never dead-ends: the seeded entries link to real seeded targets. */
+    @Test
+    fun seededOutboxRowsResolveToRealTargets() {
+        val photoRow = DemoProjectRepository.outboxItems.first { it.id == "outbox-1" }
+        assertNotNull(
+            "the seeded photo entry must resolve to a seeded image",
+            ProjectImageRepository.find(photoRow.relatedImageId!!),
+        )
+        val issueRow = DemoProjectRepository.outboxItems.first { it.id == "outbox-2" }
+        assertEquals("rec-seed-guardrail", issueRow.relatedFieldRecordId)
+        assertEquals("Missing guardrail", RecordRepository.find("rec-seed-guardrail")?.title)
+    }
+
+    /** Every publisher stamps its Outbox entry with a link back to what it published. */
+    @Test
+    fun publishersLinkOutboxEntriesBackToWhatTheyPublished() {
+        val photoId = DemoProjectRepository.addPhoto(
+            title = "Header strap",
+            subtitle = "Area B",
+            createIssue = false,
+        )
+        assertEquals(photoId, DemoProjectRepository.outboxItems.last().relatedImageId)
+
+        val videoId = DemoProjectRepository.addCapturedVideo(
+            title = "Slab pour walk",
+            note = "",
+            videoPath = "video/test.mp4",
+            transcript = "",
+            durationSeconds = 12,
+        )
+        assertEquals(videoId, DemoProjectRepository.outboxItems.last().relatedVideoId)
+
+        DemoProjectRepository.addRecord(
+            FieldRecord(
+                id = "rec-link-test",
+                category = RecordCategory.ISSUE,
+                title = "Linked issue",
+                type = "Quality",
+                description = "",
+                location = "Area B",
+                eventDateMillis = 1_000L,
+                assigneeIds = emptyList(),
+                attachments = emptyList(),
+                createdAtMillis = 2_000L,
+                authorName = CurrentUser.NAME,
+            ),
+        )
+        assertEquals("rec-link-test", DemoProjectRepository.outboxItems.last().relatedFieldRecordId)
+
+        CollabRepository.postMessage("topic-col4-medgas", "Re-route agreed")
+        assertEquals("topic-col4-medgas", DemoProjectRepository.outboxItems.last().relatedTopicId)
+
+        val task = FieldTaskRepository.tasks.first()
+        DemoProjectRepository.requestInspection(task)
+        assertEquals(task.id, DemoProjectRepository.outboxItems.last().relatedTaskId)
+    }
+
     /** Photos, videos, and voice logs queue too — the offline story covers every capture type. */
     @Test
     fun everyCaptureTypeQueuesOneOutboxEntry() {
@@ -426,6 +486,7 @@ class FeatureAreaDataTest {
         )
         assertEquals(before + 3, DemoProjectRepository.queuedOutboxCount)
         assertEquals("Voice daily log", DemoProjectRepository.outboxItems.last().title)
+        assertEquals("log-test", DemoProjectRepository.outboxItems.last().relatedLogId)
     }
 
     // ---- records (issues / incidents / punch items) ----
@@ -620,5 +681,53 @@ class FeatureAreaDataTest {
         assertEquals(TaskStatus.NOT_STARTED, FieldTaskRepository.find("task-door-bucks")?.status)
         assertNotNull(ProjectImageRepository.find("img-yesterday"))
         assertFalse(DemoProjectRepository.dayStarted)
+    }
+
+    @Test
+    fun appendVoiceNote_onTask_addsNoteOutboxAndTodayRow() {
+        val beforeNote = FieldTaskRepository.find("task-med-gas-col4")!!.note
+        val seeds = VoiceNoteSeeds(
+            description = "med gas still waiting on RFI-118",
+            location = "Column 4",
+        )
+
+        DemoProjectRepository.appendVoiceNote(
+            VoiceNoteMatch("task-med-gas-col4", "Med gas rough-in at column 4", VoiceNoteMatch.Kind.TASK),
+            seeds,
+        )
+
+        val note = FieldTaskRepository.find("task-med-gas-col4")!!.note
+        assertTrue(note.startsWith(beforeNote))
+        assertTrue(note.contains("med gas still waiting on RFI-118"))
+        val row = DemoProjectRepository.streamItems.first()
+        assertEquals("task-med-gas-col4", row.relatedTaskId)
+        assertTrue(DemoProjectRepository.outboxItems.last().title.contains("Med gas"))
+    }
+
+    @Test
+    fun appendVoiceNote_onRecord_appendsDescriptionAndLinksPhoto() {
+        val seeds = VoiceNoteSeeds(
+            description = "RFI-118 still waiting",
+            location = "Column 4",
+            photoImageIds = listOf("img-yesterday"),
+        )
+
+        DemoProjectRepository.appendVoiceNote(
+            VoiceNoteMatch(
+                "rec-seed-rfi-118",
+                "RFI-118 — Med-gas re-route at Column 4",
+                VoiceNoteMatch.Kind.RECORD,
+            ),
+            seeds,
+        )
+
+        val record = RecordRepository.find("rec-seed-rfi-118")!!
+        assertTrue(record.description.contains("RFI-118 still waiting"))
+        assertTrue(record.attachments.any { it.ref == "img-yesterday" })
+        assertEquals("rec-seed-rfi-118", ProjectImageRepository.find("img-yesterday")?.linkedRecordId)
+        assertEquals(
+            "rec-seed-rfi-118",
+            DemoProjectRepository.streamItems.first().relatedFieldRecordId,
+        )
     }
 }
