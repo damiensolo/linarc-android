@@ -39,6 +39,10 @@ class DictationController(private val transcriber: SpeechTranscriber) {
     var languageTag: String? = null
         private set
 
+    /** True while the recognizer loop is armed — Compose snapshot so the Speak UI recomposes. */
+    var isListening by mutableStateOf(false)
+        private set
+
     private var active = false
 
     /**
@@ -61,6 +65,7 @@ class DictationController(private val transcriber: SpeechTranscriber) {
     }
 
     fun start() {
+        if (isListening) return
         if (!transcriber.isAvailable()) {
             errorMessage = "Speech recognition isn't available on this device."
             return
@@ -69,12 +74,14 @@ class DictationController(private val transcriber: SpeechTranscriber) {
         // then silent re-arms until the matching sessionEnded (stop, reset, or fatal error).
         transcriber.sessionStarted()
         active = true
+        isListening = true
         errorMessage = null
         listenOnce()
     }
 
     fun stop() {
         active = false
+        isListening = false
         partial = ""
         transcriber.stop()
         transcriber.sessionEnded()
@@ -101,6 +108,7 @@ class DictationController(private val transcriber: SpeechTranscriber) {
                     listenOnce()
                 } else if (active) {
                     active = false
+                    isListening = false
                     errorMessage = error.message
                     transcriber.sessionEnded()
                 }

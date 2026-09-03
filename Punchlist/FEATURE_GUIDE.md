@@ -49,9 +49,9 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | **Field task** | List, filters, detail, status, checklist | Tools → Field task |
 | **Time card** | Crew list, member detail, new entry (FAB) | Tools → Time card |
 | **Crew** | Roster → member detail | Tools → Crew |
-| **Collaboration** | Topics → thread, new topic (FAB or +) | Tools → Collaboration |
+| **Collaboration** | Topics → thread (Speak on message), new topic (FAB or +) | Tools → Collaboration |
 | **Images** | Grid / Timeline / Albums / Map, viewer, markup, album, create-from-photo | Tools → Images |
-| **Issues** | List, detail, create (FAB or +) | Tools → Issues |
+| **Issues** | List, detail, create (FAB or +; Speak on Description / Blocking reason) | Tools → Issues |
 | **Incidents** | Same record system as Issues | Tools → Incidents |
 | **Punch list** | Same record system as Issues | Tools → Punch list |
 | **Outbox** | Queue of publishes; **Signal restored — send all** (demo drain, not a sync engine) | Tools → Activity Center → Outbox |
@@ -95,8 +95,8 @@ Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs
 | Photo markup | Functional | Baked into the JPEG (captured photos only) |
 | Video → describe → save | Functional | Today, Plan pin |
 | Video → file as issue | Functional | Video + Issue form (location/note prefilled; **title left empty** — you name the issue) |
-| Voice note chip | Functional | Create → record form (chips, optional photo, Add to existing). Dictation fills the **description only — never the title**. Works **without** camera permission. Note is not saved as audio |
-| Issue chip | Functional | Record create form (Issue) |
+| Voice note chip | Functional | Create → record form (chips, optional photo, Add to existing). Dictation fills the **description only — never the title**. Review is **editable**; recording has **Pause / Resume**. Works **without** camera permission. Note is not saved as audio |
+| Issue chip | Functional | Record create form (Issue). **Speak** on Description / Blocking reason |
 | Voice daily log | Functional | **Settings → Demo → Voice daily log (demo)** — not on the camera anymore |
 
 Voice note language detect is **best-effort**; the EN | Español toggle is the source of truth. Translation uses on-device ML Kit (models download once).
@@ -142,9 +142,9 @@ Start each flow from **Today** unless a step says otherwise. Use a **device or e
 ### 5. Voice note → issue (bilingual)
 
 1. Capture → tap the **Voice note** chip (works even if you deny camera).
-2. Speak (try Spanish: *falta concreto en la pared del nivel dos*).
+2. Speak (try Spanish: *falta concreto en la pared del nivel dos*). **Pause** if a truck passes, then **Resume** — the words already captured stay.
 3. Confirm the **English | Español** toggle.
-4. **Done** → **Translate** if you want the other language on screen.
+4. **Done**. Type to fix a mis-heard word, or **Translate** if you want the other language on screen.
 5. Review shows chips (Issue / Incident / Punch). Change if needed.
 6. Optional: **Add photo** (camera, then back — sequential, not at the same time).
 7. **Create**. The full form opens: the description is prefilled, the **title is empty** (you type it — dictated text never auto-fills the title, so there's nothing to delete first).
@@ -189,7 +189,20 @@ This is the older structured log (labor, delays, Column 4 issue). It is **not** 
 
 Try type **Safety hazard** or **Failed inspection** — blocking may default on.
 
-### 10. Field task, time, crew, collab
+**Speak:** tap **Speak** under Description or Blocking reason (English | Español). Words append; tap **Stop**, then type to fix. Opening **Camera** while listening stops Speak. Keyboard mic still works if you focus the field. There is no mic on Title, chips, or dates.
+
+### 10. Speak into a long-text field
+
+In-app Speak is only on long text. Keyboard/Gboard voice typing is the fallback everywhere else.
+
+1. **Tools → Issues → FAB +** → tap **Speak** under Description. Talk. **Stop**. Edit the text.
+2. Turn **Blocks work?** on → **Speak** into Blocking reason.
+3. Start Speak, then tap **Camera** — Speak should stop before the viewfinder.
+4. **Tools → Collaboration** → a topic → **Speak** a message → **Send**.
+5. **Plans** → open a pin → **Speak** a comment → **Add**.
+6. Start Speak on Description, then Speak on Blocking reason — the first take should stop.
+
+### 11. Field task, time, crew, collab
 
 **Field task**
 
@@ -207,25 +220,25 @@ Try type **Safety hazard** or **Failed inspection** — blocking may default on.
 
 **Collaboration**
 
-1. Tools → Collaboration → a topic → send a message, or FAB **New topic**.
+1. Tools → Collaboration → a topic → send a message (or tap **Speak**), or FAB **New topic**.
 
-### 11. Images views
+### 12. Images views
 
 1. Tools → Images.
 2. Switch **Grid / Timeline / Albums / Map**.
 3. Tap a photo. Toolbar: Share / Markup / Album / Delete / Create.
 4. **Map** pins captures on the Level 2 sheet (site drawing — no GPS in this build).
 
-### 12. Plan pins and comments
+### 13. Plan pins and comments
 
 1. Tap **Plans**.
 2. Open the Area B / Level 2 sheet.
 3. Pinch to zoom, pan while zoomed, double-tap to reset.
 4. Tap a pin → sheet with title / photo / comments.
-5. Add a comment → **Publish to team**.
+5. Add a comment (or tap **Speak**) → **Publish to team**.
 6. **Tools → Outbox** — the publish is queued.
 
-### 13. Tab stacks (don’t get lost)
+### 14. Tab stacks (don’t get lost)
 
 1. Tools → Field task → open a detail.
 2. Tap **Today**.
@@ -233,12 +246,12 @@ Try type **Safety hazard** or **Failed inspection** — blocking may default on.
 4. Tap **Tools** **again** — catalog.
 5. Third tap on the catalog does nothing.
 
-### 14. Switch project / logout
+### 15. Switch project / logout
 
 1. Header: tap the **project name**, or **⋮ → Switch project**, or avatar → **Switch project**. Demo data is kept.
 2. Avatar → **Logout** resets the demo session (fresh launch).
 
-### 15. Personas (same tabs, different Today)
+### 16. Personas (same tabs, different Today)
 
 **Tools → ⋮ → Settings → Demo: view as**
 
@@ -260,13 +273,13 @@ Flip back to **Foreman** when you’re done.
 
 **PE Draft RFI:** Project engineer view → **Draft RFI** → the Issue form opens already on *RFI / design clarification* → Save → it lands in the Issues tool, at the bottom of Open RFIs ("Opened today"), and in the Outbox.
 
-### 16. Outbox (offline demo)
+### 17. Outbox (offline demo)
 
 1. Do any save/publish (photo, record, time entry, pin comments).
 2. Tools → **Outbox** — items “waiting for signal.”
 3. Tap **Signal restored — send all**. They flip to sent. This is **not** a real server.
 
-### 17. What a placeholder looks like
+### 18. What a placeholder looks like
 
 1. Tools → **Drive** or **T & M** or **Scan**.
 2. You get a back arrow and sample rows, or an explanation.
@@ -276,7 +289,7 @@ Flip back to **Foreman** when you’re done.
 
 ## What this prototype does not do
 
-No real login, API, or database. No PDF plan engine. No live barcode/QR scan. No Gantt, cost codes, or OAC reports. No cloud sync (Outbox is the stand-in). Profile actions other than Switch project / Logout only explain.
+No real login, API, or database. No PDF plan engine. No live barcode/QR scan. No Gantt, cost codes, or OAC reports. No cloud sync (Outbox is the stand-in). Profile actions other than Switch project / Logout only explain. No Whisper/LLM. No mic on every form field (Speak is long-text only).
 
 ---
 

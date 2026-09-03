@@ -72,6 +72,8 @@ import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
 import com.solomondesign.app.ui.images.ImageThumbnail
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
+import com.solomondesign.app.ui.voicenote.SpeakableTextField
+import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -258,20 +260,19 @@ fun RecordCreateScreen(
                 tagPrefix = "recordImpact",
             )
 
-            OutlinedTextField(
+            SpeakableTextField(
                 value = RecordDraft.description,
                 onValueChange = { RecordDraft.description = it },
                 label = { Text("Description") },
                 minLines = 3,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("recordDescriptionField"),
+                fieldTestTag = "recordDescriptionField",
             )
 
             Text("Attachments", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(
                     onClick = {
+                        FieldDictationBroker.stopActive()
                         // Arm first: the camera deposits the saved photo's id on its way back.
                         CameraAttachmentInbox.arm()
                         onAttachCamera()
@@ -376,7 +377,7 @@ fun RecordCreateScreen(
             if (RecordDraft.blocksWork) {
                 Text("Blocking details", style = MaterialTheme.typography.titleSmall)
 
-                OutlinedTextField(
+                SpeakableTextField(
                     value = RecordDraft.blockingReason,
                     onValueChange = { RecordDraft.blockingReason = it },
                     label = { FieldRequiredLabel("Blocking reason") },
@@ -388,17 +389,15 @@ fun RecordCreateScreen(
                         )
                     },
                     minLines = 2,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(blockingReasonFocus)
-                        .onFocusChanged { state ->
-                            if (state.isFocused) {
-                                reasonHadFocus = true
-                            } else if (reasonHadFocus) {
-                                RecordDraft.blockingReasonTouched = true
-                            }
+                    fieldTestTag = "recordBlockingReason",
+                    focusRequester = blockingReasonFocus,
+                    fieldModifier = Modifier.onFocusChanged { state ->
+                        if (state.isFocused) {
+                            reasonHadFocus = true
+                        } else if (reasonHadFocus) {
+                            RecordDraft.blockingReasonTouched = true
                         }
-                        .testTag("recordBlockingReason"),
+                    },
                 )
 
                 RecordDropdownField(

@@ -40,10 +40,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -92,10 +90,10 @@ private enum class VoiceNoteStage { RECORDING, REVIEW }
  * with a one-tap toggle plus best-effort auto-detection; the finished note gets the same floating
  * toolbar treatment as the photo viewer (share / translate / re-record / delete / create), and
  * Create prefills an Issue, Incident, or Punch item with the note text in whichever language is
- * showing at that moment (original or translation — never both merged). Review preselects the
+ * showing at that moment (original or translation — never both merged). Review is editable so a
+ * mis-heard word can be typed; Pause/Resume on recording handles a noisy deck. Review preselects the
  * category and Blocks work from keywords, can attach a photo sequentially, and can Add to an
- * existing task or record instead of creating a new one. Confident title + location + category
- * can Save from a short confirm sheet; Edit details opens the full form.
+ * existing task or record instead of creating a new one. Create always opens the full form.
  *
  * The note itself is ephemeral by design (decided 2026-08-25): the records made from it are the
  * durable artifacts. No audio file is recorded — transcription-only sidesteps the known
@@ -209,7 +207,11 @@ private fun VoiceNoteFlow(
     }
 
     LaunchedEffect(stage) {
-        if (stage == VoiceNoteStage.RECORDING) dictation.start()
+        if (stage == VoiceNoteStage.RECORDING) {
+            dictation.start()
+        } else {
+            dictation.stop()
+        }
     }
 
     // Best-effort auto-detect: watch fresh recognizer text; when it clearly reads as the other
@@ -278,6 +280,12 @@ private fun VoiceNoteFlow(
             displayLanguage = displayLanguage,
             onSelectDisplayLanguage = { displayLanguage = it },
             onRetryTranslate = { translateRetryTick++ },
+            onNoteTextChange = {
+                noteText = it
+                translation = null
+                translationError = null
+            },
+            onTranslationChange = { translation = it },
             onShare = {
                 val send = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -361,10 +369,19 @@ private fun VoiceNoteRecordingStage(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 AppButton(
-                    text = "Cancel",
-                    onClick = onCancel,
+                    text = if (dictation.isListening) "Pause" else "Resume",
+                    onClick = {
+                        if (dictation.isListening) {
+                            dictation.stop()
+                        } else {
+                            dictation.start()
+                            showEmptyHint = false
+                        }
+                    },
                     type = AppButtonType.Secondary,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("voiceNotePause"),
                 )
                 AppButton(
                     text = "Done",
@@ -394,7 +411,7 @@ private fun VoiceNoteRecordingStage(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            LanguageToggle(selected = spokenLanguage, onSelect = onSelectLanguage)
+            VoiceLanguageToggle(selected = spokenLanguage, onSelect = onSelectLanguage)
             Spacer(Modifier.height(4.dp))
             Text(
                 text = if (autoSwitched) {
@@ -408,12 +425,25 @@ private fun VoiceNoteRecordingStage(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             Spacer(Modifier.height(24.dp))
-            ListeningPill()
+            if (dictation.isListening) {
+                ListeningPill()
+            } else {
+                Text(
+                    text = "Paused",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("voiceNotePaused"),
+                )
+            }
             Spacer(Modifier.height(24.dp))
 
             val liveText = "${dictation.transcript} ${dictation.partial}".trim()
             Text(
-                text = if (liveText.isBlank()) "Listening…" else "“$liveText”",
+                text = when {
+                    liveText.isNotBlank() -> "“$liveText”"
+                    dictation.isListening -> "Listening…"
+                    else -> "Paused — tap Resume to keep talking."
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 fontStyle = FontStyle.Italic,
                 textAlign = TextAlign.Center,
@@ -453,6 +483,8 @@ private fun VoiceNoteReviewStage(
     spokenLanguage: VoiceNoteLanguage,
     displayLanguage: VoiceNoteLanguage,
     onSelectDisplayLanguage: (VoiceNoteLanguage) -> Unit,
+    onNoteTextChange: (String) -> Unit,
+    onTranslationChange: (String) -> Unit,
     onRetryTranslate: () -> Unit,
     onShare: () -> Unit,
     onRerecord: () -> Unit,
@@ -532,7 +564,7 @@ private fun VoiceNoteReviewStage(
                 .testTag("voiceNoteReview"),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            LanguageToggle(selected = displayLanguage, onSelect = onSelectDisplayLanguage)
+            VoiceLanguageToggle(selected = displayLanguage, onSelect = onSelectDisplayLanguage)
             Spacer(Modifier.height(4.dp))
             Text(
                 text = buildString {
@@ -550,8 +582,24 @@ private fun VoiceNoteReviewStage(
 
             val showingTranslation = displayLanguage != spokenLanguage
             when {
-                !showingTranslation -> NoteBody(text = noteText)
-                translation != null -> NoteBody(text = translation)
+                !showingTranslation -> OutlinedTextField(
+                    value = noteText,
+                    onValueChange = onNoteTextChange,
+                    label = { Text("Transcript") },
+                    minLines = 4,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("voiceNoteBody"),
+                )
+                translation != null -> OutlinedTextField(
+                    value = translation,
+                    onValueChange = onTranslationChange,
+                    label = { Text("Transcript") },
+                    minLines = 4,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("voiceNoteBody"),
+                )
                 translating -> Text(
                     text = "Translating…",
                     style = MaterialTheme.typography.bodyLarge,
@@ -573,6 +621,14 @@ private fun VoiceNoteReviewStage(
                         type = AppButtonType.Secondary,
                     )
                 }
+            }
+            if (!showingTranslation || translation != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Type to fix a word, or Re-record for a new take.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             Spacer(Modifier.height(24.dp))
@@ -757,40 +813,6 @@ private fun VoiceNoteAddToSheet(
                         .clickable { dismiss { onPick(match) } }
                         .testTag("voiceNoteAddTo_${match.id}"),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoteBody(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "“$text”",
-        style = MaterialTheme.typography.bodyLarge,
-        fontStyle = FontStyle.Italic,
-        textAlign = TextAlign.Center,
-        modifier = modifier.testTag("voiceNoteBody"),
-    )
-}
-
-@Composable
-private fun LanguageToggle(
-    selected: VoiceNoteLanguage,
-    onSelect: (VoiceNoteLanguage) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        VoiceNoteLanguage.entries.forEachIndexed { index, language ->
-            SegmentedButton(
-                selected = selected == language,
-                onClick = { onSelect(language) },
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = VoiceNoteLanguage.entries.size,
-                ),
-                modifier = Modifier.testTag("voiceNoteLang_${language.name}"),
-            ) {
-                Text(language.displayName)
             }
         }
     }

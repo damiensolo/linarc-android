@@ -230,4 +230,35 @@ class DictationControllerTest {
         assertEquals("late result", controller.transcript)
         assertEquals(1, transcriber.startCount)
     }
+
+    @Test
+    fun start_whileAlreadyListening_isANoOp() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.start()
+        assertEquals(1, transcriber.startCount)
+
+        controller.start()
+
+        assertEquals(1, transcriber.startCount)
+        assertEquals(1, transcriber.sessionStartedCount)
+    }
+
+    @Test
+    fun stopThenStart_keepsTranscript_forPauseResume() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueFinal("first pass")
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.start()
+        assertEquals("first pass", controller.transcript)
+
+        controller.stop()
+        transcriber.enqueueFinal("after the truck passed")
+        controller.start()
+
+        assertEquals("first pass after the truck passed", controller.transcript)
+        assertEquals(2, transcriber.sessionStartedCount)
+    }
 }

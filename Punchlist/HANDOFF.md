@@ -130,15 +130,16 @@ Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`,
 
 - In-app **CameraX** (flip, torch, tap-focus, pinch-zoom). Photo default; video capped (~90s).
 - Quick chips on the camera (usable if camera permission is denied): **Voice note**, **Issue**.
-- Voice note: bilingual EN/ES, live transcript, on-device translate, Create → record form. **No audio file** (transcription-only). Create is a **full handoff** (form Save returns to where capture began, not the recorder).
+- Voice note: bilingual EN/ES, live transcript, **Pause / Resume**, editable review, on-device translate, Create → record form. **No audio file** (transcription-only). Create is a **full handoff** (form Save returns to where capture began, not the recorder). Sequential mic with the camera.
 - Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Markup optional; baked into the JPEG.
 - Video: describe (skippable) → review → optional file-as-issue. Videos are videos; filed issues are titled as **issues**, not “observations.”
+- **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak.
 
 ### Forms
 
-Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels.
+Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels. Description and Blocking reason have an explicit **Speak** control (EN/ES); do not put a mic on Title, chips, dropdowns, dates, or hours.
 
-Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column.
+Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column. Collaboration composer and plan pin comment use the same compact Speak control.
 
 ### Visual
 
@@ -179,7 +180,8 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 | Plan + pins | `ui/plan/` |
 | Tools catalog + Settings | `ui/tools/` (`PlatformTools.catalogFor` for persona order) |
 | Camera / photo / video | `ui/capture/camera/` |
-| Voice note | `ui/voicenote/` |
+| Voice note | `ui/voicenote/` (`SpeakableTextField`, `VoiceNoteScreen`) |
+| Field dictation (one take at a time) | `ui/voicelog/audio/FieldDictationBroker.kt`, `DictationController.kt` |
 | Voice-to-Log (scripted demo) | `ui/voicelog/` — entry: Settings → Demo |
 | Records (issue/incident/punch) | `ui/records/` |
 | Images, markup, zoom | `ui/images/`, `ui/markup/`, `ui/designsystem/ZoomableContainer.kt` |

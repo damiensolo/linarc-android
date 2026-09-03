@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +33,8 @@ import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
 import com.solomondesign.app.ui.designsystem.PersonAvatar
+import com.solomondesign.app.ui.voicenote.SpeakableTextField
+import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
 
 /** Pattern B — topic list. Contextual FAB starts a new topic. */
 @Composable
@@ -143,26 +144,25 @@ fun CollabTopicScreen(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
+                SpeakableTextField(
                     value = draft,
                     onValueChange = { draft = it },
                     placeholder = { Text("Message") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("collabComposer"),
+                    fieldTestTag = "collabComposer",
+                    compact = true,
                 )
                 AppButton(
                     text = "Send",
                     size = AppButtonSize.Small,
                     enabled = draft.isNotBlank(),
                     onClick = {
+                        FieldDictationBroker.stopActive()
                         CollabRepository.postMessage(topicId, draft)
                         draft = ""
                     },
