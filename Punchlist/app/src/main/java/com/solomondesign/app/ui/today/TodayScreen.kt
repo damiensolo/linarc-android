@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -109,6 +111,14 @@ fun TodayScreen(
     val isForemanView =
         !isCrewView && !isSuperView && !isPmView && !isPeView && !isOwnerView && !isSubView
     var crewExpanded by remember(persona) { mutableStateOf(isForemanView) }
+    // Every Today section collapses like the roster (2026-09-03): per-section expansion keyed
+    // by section id, default expanded (the roster keeps its own demoted-collapsed default),
+    // reset on persona switch exactly like crewExpanded.
+    val expandedSections = remember(persona) { mutableStateMapOf<String, Boolean>() }
+    fun sectionExpanded(key: String): Boolean = expandedSections[key] ?: true
+    fun toggleSection(key: String) {
+        expandedSections[key] = !sectionExpanded(key)
+    }
     val crewViewMember = DemoProjectRepository.crewViewMember
     val myTasks = crewViewMember?.let { member ->
         FieldTaskRepository.tasks.filter { it.assigneeId == member.id }
@@ -205,28 +215,35 @@ fun TodayScreen(
                     memberTrade = crewViewMember?.trade.orEmpty(),
                 )
             }
-            item { FieldSectionLabel("My assignment") }
-            if (myTasks.isEmpty()) {
-                item {
-                    Text(
-                        text = "No tasks assigned to you today.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(myTasks, key = { it.id }) { task ->
-                    // Rows open the same Field task detail the tool uses — status control,
-                    // checklist and all — so the assignment never dead-ends on Today.
-                    FieldWorkRow(
-                        title = task.title,
-                        subtitle = "${task.location} · ${task.status.label()} · ${task.dueLabel}",
-                        statusColor = task.status.statusColor(),
-                        enabled = true,
-                        onClick = { onOpenTask(task.id) },
-                        modifier = Modifier.testTag("myTask_${task.id}"),
-                    )
+            collapsibleSection(
+                key = "myAssignment",
+                title = "My assignment",
+                count = myTasks.size,
+                expanded = sectionExpanded("myAssignment"),
+                onToggle = { toggleSection("myAssignment") },
+            ) {
+                if (myTasks.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No tasks assigned to you today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(myTasks, key = { it.id }) { task ->
+                        // Rows open the same Field task detail the tool uses — status control,
+                        // checklist and all — so the assignment never dead-ends on Today.
+                        FieldWorkRow(
+                            title = task.title,
+                            subtitle = "${task.location} · ${task.status.label()} · ${task.dueLabel}",
+                            statusColor = task.status.statusColor(),
+                            enabled = true,
+                            onClick = { onOpenTask(task.id) },
+                            modifier = Modifier.testTag("myTask_${task.id}"),
+                        )
+                    }
                 }
             }
         } else if (isPmView) {
@@ -977,6 +994,31 @@ private fun StartMyDaySheetContent(
         AppButton(text = "Confirm", onClick = onConfirm)
         Spacer(Modifier.height(24.dp))
     }
+}
+
+/**
+ * One collapsible Today section (2026-09-03): the same header treatment as the crew roster
+ * ([FieldCollapsibleSectionHeader] — title, live count, chevron), with [content] emitted only
+ * while expanded. The caller owns the expanded state; sections default expanded.
+ */
+private fun LazyListScope.collapsibleSection(
+    key: String,
+    title: String,
+    count: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: LazyListScope.() -> Unit,
+) {
+    item(key = "sectionHeader_$key") {
+        FieldCollapsibleSectionHeader(
+            title = title,
+            count = count,
+            expanded = expanded,
+            onToggleExpanded = onToggle,
+            modifier = Modifier.testTag("sectionHeader_$key"),
+        )
+    }
+    if (expanded) content()
 }
 
 private fun formatTimestamp(millis: Long): String =

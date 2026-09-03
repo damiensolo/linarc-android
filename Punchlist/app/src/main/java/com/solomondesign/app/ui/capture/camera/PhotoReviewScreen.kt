@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Draw
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,7 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonType
 import com.solomondesign.app.ui.designsystem.DesignTokens
+import com.solomondesign.app.ui.designsystem.TagEditor
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
+import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.markup.MarkupEditorScreen
 import com.solomondesign.app.ui.records.RecordCategory
 import com.solomondesign.app.ui.records.RecordChooserSheet
@@ -60,7 +59,6 @@ private val suggestedTags = listOf("Framing", "Area B", "Progress")
  * title/description/tags untouched — the field states live above the branch, so swapping the
  * rendered surface never resets them.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PhotoReviewScreen(
     photo: Bitmap,
@@ -176,22 +174,14 @@ fun PhotoReviewScreen(
                     .fillMaxWidth()
                     .testTag("photoDescriptionField"),
             )
-            Text("Suggested tags", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                suggestedTags.forEach { tag ->
-                    FilterChip(
-                        selected = tag in selectedTags,
-                        onClick = {
-                            selectedTags = if (tag in selectedTags) {
-                                selectedTags - tag
-                            } else {
-                                selectedTags + tag
-                            }
-                        },
-                        label = { Text(tag) },
-                    )
-                }
-            }
+            // Suggestions stay one-tap chips; the search field finds any existing project tag
+            // or mints a new one (2026-09-03) — suggestions are no longer the only option.
+            TagEditor(
+                selectedTags = selectedTags,
+                suggestedTags = suggestedTags,
+                allTags = ProjectImageRepository.visibleTags(),
+                onSelectedTagsChange = { selectedTags = it },
+            )
             AppButton(
                 text = "Save & create…",
                 type = AppButtonType.Secondary,
