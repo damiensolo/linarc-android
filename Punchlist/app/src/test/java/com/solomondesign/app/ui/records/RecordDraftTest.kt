@@ -91,7 +91,7 @@ class RecordDraftTest {
 
     @Test
     fun beginForIssue_drainsTheDictatedHandOff_butExplicitSeedsWin() {
-        IssueDraftHolder.set(IssueDraft(title = "Crack — Column 4", location = "Column 4", note = "dictated"))
+        IssueDraftHolder.set(IssueDraft(location = "Column 4", note = "dictated"))
 
         RecordDraft.begin(RecordCategory.ISSUE, nowMillis = 1L, seedDescription = "typed instead")
 
@@ -104,12 +104,12 @@ class RecordDraftTest {
 
     @Test
     fun beginForNonIssue_leavesTheDictatedHandOffAlone() {
-        IssueDraftHolder.set(IssueDraft(title = "Crack", location = null, note = ""))
+        IssueDraftHolder.set(IssueDraft(location = null, note = "dictated crack note"))
 
         RecordDraft.begin(RecordCategory.PUNCH, nowMillis = 1L)
 
-        assertEquals("", RecordDraft.title)
-        assertEquals("Crack", IssueDraftHolder.take()?.title)
+        assertEquals("", RecordDraft.description)
+        assertEquals("dictated crack note", IssueDraftHolder.take()?.note)
     }
 
     @Test

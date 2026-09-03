@@ -1,6 +1,7 @@
 package com.solomondesign.app.ui.voicelog.audio
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -32,7 +33,7 @@ class DictationController(private val transcriber: SpeechTranscriber) {
      * run this and a second audio consumer (e.g. [com.solomondesign.app.ui.voicelog.audio.AudioRecorder])
      * on the mic at once; a caller can use this to offer dropping the other consumer.
      */
-    var consecutiveNoMatchCount by mutableStateOf(0)
+    var consecutiveNoMatchCount by mutableIntStateOf(0)
         private set
 
     /** BCP-47 hint passed to every (re-)arm of the recognizer; null = device default. */

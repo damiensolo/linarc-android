@@ -502,16 +502,8 @@ fun CameraCaptureScreen(
                 )
                 if (fileIssue) {
                     // The clip is already published; the issue form opens prefilled with the
-                    // dictated note and location — but never a title (decided 2026-09-03):
-                    // transcript-derived titles were junk the reporter had to delete, so the
-                    // reporter names the issue on the form.
-                    IssueDraftHolder.set(
-                        IssueDraft(
-                            title = "",
-                            location = location,
-                            note = note,
-                        ),
-                    )
+                    // dictated note and location — never a title (see IssueDraft).
+                    IssueDraftHolder.set(IssueDraft(location = location, note = note))
                     onQuickIssue()
                 } else {
                     onVideoSaved()

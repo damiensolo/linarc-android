@@ -667,10 +667,10 @@ class FeatureAreaDataTest {
 
     @Test
     fun issueDraftHandOffIsOneShot() {
-        IssueDraftHolder.set(IssueDraft(title = "Crack", location = "Column 4", note = "note"))
+        IssueDraftHolder.set(IssueDraft(location = "Column 4", note = "note"))
 
-        assertEquals("Crack", IssueDraftHolder.take()?.title)
-        assertNull("a second visit to Quick issue must start blank", IssueDraftHolder.take())
+        assertEquals("note", IssueDraftHolder.take()?.note)
+        assertNull("a second visit to the issue form must start blank", IssueDraftHolder.take())
     }
 
     @Test

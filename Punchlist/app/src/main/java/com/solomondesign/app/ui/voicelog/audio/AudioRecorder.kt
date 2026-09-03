@@ -2,7 +2,6 @@ package com.solomondesign.app.ui.voicelog.audio
 
 import android.content.Context
 import android.media.MediaRecorder
-import android.os.Build
 import java.io.File
 
 /** Real microphone capture — abstracted so the recording flow is testable without hardware. */
@@ -26,8 +25,8 @@ class MediaRecorderAudioRecorder(private val context: Context) : AudioRecorder {
 
     override fun start(outputFile: File) {
         outputFile.parentFile?.mkdirs()
-        @Suppress("DEPRECATION")
-        val newRecorder = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(context) else MediaRecorder()
+        // minSdk is above the context-taking constructor's API 31 floor — no legacy branch.
+        val newRecorder = MediaRecorder(context)
         newRecorder.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
@@ -41,15 +40,11 @@ class MediaRecorderAudioRecorder(private val context: Context) : AudioRecorder {
     }
 
     override fun pause() {
-        if (Build.VERSION.SDK_INT >= 24) {
-            runCatching { recorder?.pause() }
-        }
+        runCatching { recorder?.pause() }
     }
 
     override fun resume() {
-        if (Build.VERSION.SDK_INT >= 24) {
-            runCatching { recorder?.resume() }
-        }
+        runCatching { recorder?.resume() }
     }
 
     override fun stop() {

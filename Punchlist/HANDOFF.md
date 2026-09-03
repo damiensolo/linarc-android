@@ -53,7 +53,7 @@ Bar:   Today | Capture | Plans | Tools
 Jobs:  now   | shutter | map   | modules
 ```
 
-- **Today** — persona-specific focus. Crew, blockers, captures (Foreman). Not a launcher.
+- **Today** — persona-specific focus. Crew, blockers, captures (Foreman). Not a launcher. Every list section header is **collapsible** (title + live count + chevron, default expanded; the demoted roster defaults collapsed).
 - **Capture** — action. `selected = false`. No back stack. Opens the in-app CameraX camera.
 - **Plans** — Area B sheets + pins. Same list from the Plans tab or **Tools → Plans**. Not a PDF/CAD engine.
 - **Tools** — platform modules. **Create lives here** (contextual FAB / card `+`), never as a global Capture FAB or a fourth tab.
@@ -76,7 +76,7 @@ Creating an issue **logs work**; it does **not** stop the job. **Blocks work?** 
 
 ### Offline-first (product, not engine)
 
-Every publish-style action queues in **Outbox** (“waiting for signal”). **Signal restored — send all** is a demo drain. Production should keep this mental model (queue, then send) even when the transport is real.
+Every publish-style action queues in **Outbox** (“waiting for signal”). **Signal restored — send all** is a demo drain. Production should keep this mental model (queue, then send) even when the transport is real. Outbox rows are **receipts, not dead-ends**: each links back to what it published (photo → viewer, record → detail, etc.) and photo-backed rows carry thumbnails.
 
 ### Persona rule
 
@@ -131,8 +131,10 @@ Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`,
 - In-app **CameraX** (flip, torch, tap-focus, pinch-zoom). Photo default; video capped (~90s).
 - Quick chips on the camera (usable if camera permission is denied): **Voice note**, **Issue**.
 - Voice note: bilingual EN/ES, live transcript, **Pause / Resume**, editable review, on-device translate, Create → record form. **No audio file** (transcription-only). Create is a **full handoff** (form Save returns to where capture began, not the recorder). Sequential mic with the camera.
-- Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Markup optional; baked into the JPEG.
-- Video: describe (skippable) → review → optional file-as-issue. Videos are videos; filed issues are titled as **issues**, not “observations.”
+- **Dictation reliability (copy this contract):** transient recognizer errors (`ERROR_CLIENT`/`ERROR_RECOGNIZER_BUSY` — fired by any stop/re-arm race, including the language toggle and Pause) self-heal by recycling the `SpeechRecognizer`, capped before a plain-language message. A manual language pick is **authoritative** — it turns auto-detect off for the take. Re-record cancels the in-flight utterance (late results never resurrect); review edits re-translate automatically.
+- **Dictated text never fills a title** (2026-09-03): voice note and video-issue seeds carry description/location/photos only; the reporter types the title on the form's required, empty field. No transcript-derived titles until parsing is genuinely smarter.
+- Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Tags: suggested chips **plus search-or-add** (`TagEditor` over the project tag vocabulary). Markup optional; baked into the JPEG.
+- Video: describe (skippable) → review → optional file-as-issue (location/note prefilled, title empty — see above).
 - **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak.
 
 ### Forms
@@ -185,7 +187,7 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 | Voice-to-Log (scripted demo) | `ui/voicelog/` — entry: Settings → Demo |
 | Records (issue/incident/punch) | `ui/records/` |
 | Images, markup, zoom | `ui/images/`, `ui/markup/`, `ui/designsystem/ZoomableContainer.kt` |
-| Design system | `ui/designsystem/` — `TaskFlowScaffold`, `BrowseScaffold`, `FieldPageHeader`, `FieldForm`, `AppButton` |
+| Design system | `ui/designsystem/` — `TaskFlowScaffold`, `BrowseScaffold`, `FieldPageHeader`, `FieldForm`, `AppButton`, `TagEditor`, `FieldCollapsibleSectionHeader` |
 | Demo seed + fan-out | `ui/demo/DemoProjectRepository.kt`, `DemoSession.kt` |
 | Personas | `ui/persona/FieldPersona.kt` |
 

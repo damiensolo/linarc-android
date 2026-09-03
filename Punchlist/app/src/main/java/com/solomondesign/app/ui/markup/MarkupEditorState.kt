@@ -1,6 +1,7 @@
 package com.solomondesign.app.ui.markup
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -24,7 +25,7 @@ class MarkupEditorState {
 
     var tool by mutableStateOf(MarkupTool.PEN)
         private set
-    var colorArgb by mutableStateOf(MarkupPalette.DEFAULT)
+    var colorArgb by mutableLongStateOf(MarkupPalette.DEFAULT)
         private set
     var elements by mutableStateOf(listOf<MarkupElement>())
         private set

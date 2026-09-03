@@ -1,6 +1,7 @@
 package com.solomondesign.app.ui.records
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.solomondesign.app.ui.capture.IssueDraftHolder
@@ -25,7 +26,7 @@ object RecordDraft {
         private set
     var description by mutableStateOf("")
     var location by mutableStateOf(RECORD_LOCATIONS.first())
-    var eventDateMillis by mutableStateOf(0L)
+    var eventDateMillis by mutableLongStateOf(0L)
     var assigneeIds by mutableStateOf(listOf<String>())
         private set
     var attachments by mutableStateOf(listOf<RecordAttachment>())
@@ -118,9 +119,8 @@ object RecordDraft {
     ) {
         val dictated = if (newCategory == RecordCategory.ISSUE) IssueDraftHolder.take() else null
         category = newCategory
-        // Only an explicit seed (e.g. the photo viewer's image title) fills the title. The
-        // dictated hand-off never does (decided 2026-09-03): transcript-derived titles were
-        // junk the reporter had to delete, so its title is ignored even if a producer sets one.
+        // Only an explicit seed (e.g. the photo viewer's image title) fills the title — the
+        // dictated hand-off carries no title at all (see IssueDraft, decided 2026-09-03).
         title = seedTitle
         description = seedDescription.ifBlank { dictated?.note.orEmpty() }
         location = (seedLocation ?: dictated?.location)

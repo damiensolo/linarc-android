@@ -72,7 +72,7 @@ Resolved per route in `AppChrome.kt` via `resolveChrome()`.
 | Pattern | What it is | Bottom bar | Stack behavior |
 |---|---|---|---|
 | **B — nested browsing** | Tool lists/details (including **Tools → Plans**), outbox, voice-log history | **Visible** | Lives *inside* the tab graph. Saved/restored on tab switch. Reselect pops to tab root. System Back pops one level. |
-| **A — full-screen task** | Camera + photo review, quick issue, tool create, image viewer, plan sheet viewer | Hidden | Lives at the **nav-graph root**, not inside a tab, so a tab’s saved stack cannot clobber another’s. Close/Cancel; warn before discard only if unsaved edits exist (a captured-but-unsaved photo counts). |
+| **A — full-screen task** | Camera + photo review, record create, tool create, image viewer, plan sheet viewer | Hidden | Lives at the **nav-graph root**, not inside a tab, so a tab’s saved stack cannot clobber another’s. Close/Cancel; warn before discard only if unsaved edits exist (a captured-but-unsaved photo counts). |
 | **C — modal sheet** | Profile, new time entry, new topic, image source | Unchanged (under the sheet) | Not a nav destination. Scrim or swipe dismiss. |
 | Tab roots | Today / Plan / Tools home | Visible, Capture action in the bar | Start destinations of each nested graph. No FAB — the FAB is contextual to tool screens. |
 

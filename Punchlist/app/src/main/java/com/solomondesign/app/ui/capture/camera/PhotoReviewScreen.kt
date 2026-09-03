@@ -72,9 +72,9 @@ fun PhotoReviewScreen(
         continueToVoice: Boolean,
     ) -> Unit,
     onAnnotated: (Bitmap) -> Unit,
+    modifier: Modifier = Modifier,
     /** Hide when the camera was opened to attach a photo (voice review or a record form). */
     allowContinueToVoice: Boolean = true,
-    modifier: Modifier = Modifier,
 ) {
     var title by remember { mutableStateOf("Progress photo") }
     var description by remember { mutableStateOf("") }
