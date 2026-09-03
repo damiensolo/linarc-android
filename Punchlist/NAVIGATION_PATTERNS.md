@@ -8,7 +8,7 @@ This is a required navigation pattern for the Punchlist chassis, not an implemen
 
 A foreman is rarely in one module for a whole session. Typical loop:
 
-1. Open **Tools → Time cards** (or Field task, Crew, Images, …) for a fact.
+1. Open **Tools → Time cards** (or Field task, Crew, Images, **Plans**, …) for a fact.
 2. Switch to **Today** or **Plan** to place that fact in context.
 3. Return to **Tools** expecting the same screen, still scrolled to the same crew member or task.
 
@@ -31,7 +31,7 @@ This is most visible on Tools because that is the nested-browsing tab. The same 
 Recommended behavior this prototype follows:
 
 1. **Destinations are siblings.** Today, Plan, and Tools are peers. Switching tabs must not look like a hierarchical push (no horizontal slide). The chassis crossfades tab-to-tab.
-2. **The bar stays visible** while the user drills into a destination that still belongs to that tab (Pattern B: tool lists, details, outbox, voice-log history). Hiding the bar would imply they left the chassis.
+2. **The bar stays visible** while the user drills into a destination that still belongs to that tab (Pattern B: tool lists — including **Tools → Plans** — details, outbox, voice-log history). Hiding the bar would imply they left the chassis.
 3. **Tapping a different destination restores that destination’s hierarchy** (multiple back stacks), so returning to Tools restores Field task / Time cards / etc.
 4. **Tapping the already-selected destination returns to the top of that destination’s hierarchy.** That is the second press: Tools → catalog.
 
@@ -71,12 +71,12 @@ Resolved per route in `AppChrome.kt` via `resolveChrome()`.
 
 | Pattern | What it is | Bottom bar | Stack behavior |
 |---|---|---|---|
-| **B — nested browsing** | Tool lists/details, outbox, voice-log history | **Visible** | Lives *inside* the tab graph. Saved/restored on tab switch. Reselect pops to tab root. System Back pops one level. |
+| **B — nested browsing** | Tool lists/details (including **Tools → Plans**), outbox, voice-log history | **Visible** | Lives *inside* the tab graph. Saved/restored on tab switch. Reselect pops to tab root. System Back pops one level. |
 | **A — full-screen task** | Camera + photo review, quick issue, tool create, image viewer, plan sheet viewer | Hidden | Lives at the **nav-graph root**, not inside a tab, so a tab’s saved stack cannot clobber another’s. Close/Cancel; warn before discard only if unsaved edits exist (a captured-but-unsaved photo counts). |
 | **C — modal sheet** | Profile, new time entry, new topic, image source | Unchanged (under the sheet) | Not a nav destination. Scrim or swipe dismiss. |
 | Tab roots | Today / Plan / Tools home | Visible, Capture action in the bar | Start destinations of each nested graph. No FAB — the FAB is contextual to tool screens. |
 
-Layout rule in `AppNavHost.kt`: Pattern B destinations live inside their tab’s graph; Pattern A / immersive destinations live at the root. `daily_log_detail` is at root on purpose — it is reachable from both Today and Tools; nesting it would make one tab’s saved stack overwrite the other.
+Layout rule in `AppNavHost.kt`: Pattern B destinations live inside their tab’s graph; Pattern A / immersive destinations live at the root. `daily_log_detail` and `plan_viewer` sit at root on purpose — they are reachable from more than one tab; nesting either would make one tab’s saved stack overwrite the other. The Plans **list** is the exception that needs *two* Pattern B/tab-root routes: `plan_home` (Plans tab) and `plans` (`PLAN_LIST`, Tools catalog) so tapping the catalog card does not jump to the Plans tab or clobber that tab’s stack.
 
 ## What this is not
 
@@ -91,13 +91,15 @@ Layout rule in `AppNavHost.kt`: Pattern B destinations live inside their tab’s
 
 - `switchingTabs_preservesEachTabsOwnBackStack` — Tools → Field task → Today → Tools still shows the task.
 - `reselectingActiveTab_returnsThatTabToItsRoot` — Tools → Field task → tap Tools again → catalog.
+- `tools_plansCardOpensTheLivePlanList` — Tools → Plans is the real sheet list, not `tool/plans` placeholder samples.
 
-If you change tab `onClick`, those two tests are the contract.
+If you change tab `onClick`, those first two tests are the contract. If you change the Plans catalog card, the third is.
 
 ## Manual check
 
-1. Tools → Field task (or Time cards).
-2. Today. Confirm the task is gone from view (you’re on Today).
+1. Tools → Field task (or Time cards, or **Plans**).
+2. Today. Confirm that screen is gone from view (you’re on Today).
 3. Tap **Tools** once → you should be back in that tool, not the grid.
 4. Tap **Tools** again → catalog.
 5. Tap **Tools** a third time on the catalog → nothing happens.
+6. Tools → **Plans** → real sheets (A-101 / Level 2). Footer **Plans** tab still has its own list. Back from the Tools card returns to the catalog.

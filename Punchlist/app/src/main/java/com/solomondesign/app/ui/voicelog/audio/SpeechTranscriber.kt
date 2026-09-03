@@ -9,8 +9,17 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 
-/** A speech-recognition error. [recoverable] errors (silence/no-match) should just restart listening. */
-data class SpeechError(val message: String, val recoverable: Boolean)
+/**
+ * A speech-recognition error. [recoverable] errors should just restart listening. Two flavors:
+ * silence (no-match/timeout — normal during a quiet take, retry forever) and [clientRetry]
+ * (CLIENT/BUSY — the recognizer service hiccupped or a stop raced a re-arm; retry a few times,
+ * then give up so a genuinely broken service can't spin the loop).
+ */
+data class SpeechError(
+    val message: String,
+    val recoverable: Boolean,
+    val clientRetry: Boolean = false,
+)
 
 /**
  * Converts live microphone speech to text — one *single utterance* per [start] call, matching
@@ -42,7 +51,17 @@ interface SpeechTranscriber {
      */
     fun sessionEnded() {}
 
+    /** Finalize the in-flight utterance: its result (if any) is still delivered. */
     fun stop()
+
+    /**
+     * Abandon the in-flight utterance: nothing further is delivered. Used by reset paths so a
+     * late result can't resurrect discarded words. Defaults to [stop] for fakes that don't care.
+     */
+    fun cancel() {
+        stop()
+    }
+
     fun destroy()
 }
 
@@ -107,6 +126,13 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
                 override fun onError(error: Int) {
                     val speechError = toSpeechError(error)
                     Log.d("VoiceLogSpeech", "onError: code=$error -> ${speechError.message} (recoverable=${speechError.recoverable})")
+                    if (speechError.clientRetry) {
+                        // CLIENT/BUSY leave the recognizer connection in a bad state on many
+                        // devices — recycling it is what makes the retry actually succeed
+                        // instead of re-hitting the same error forever.
+                        recognizer?.destroy()
+                        recognizer = null
+                    }
                     onError(speechError)
                 }
 
@@ -140,6 +166,10 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
 
     override fun stop() {
         recognizer?.stopListening()
+    }
+
+    override fun cancel() {
+        recognizer?.cancel()
     }
 
     override fun destroy() {
@@ -180,14 +210,32 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
     private fun toSpeechError(error: Int): SpeechError = when (error) {
         SpeechRecognizer.ERROR_NO_MATCH -> SpeechError("No speech recognized", recoverable = true)
         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> SpeechError("No speech detected", recoverable = true)
-        SpeechRecognizer.ERROR_AUDIO -> SpeechError("Audio recording error", recoverable = false)
-        SpeechRecognizer.ERROR_CLIENT -> SpeechError("Speech recognition client error", recoverable = false)
+        // CLIENT and BUSY are routine transients on real devices, not real failures: CLIENT
+        // fires whenever stopListening() lands with nothing captured (exactly what the
+        // language toggle and Pause do), and BUSY when a re-arm races the previous utterance's
+        // teardown. Both used to kill the whole take with a raw error — the recycle-and-retry
+        // above plus recoverable here is what makes the toggle and Pause/Resume reliable.
+        SpeechRecognizer.ERROR_CLIENT ->
+            SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true)
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY ->
+            SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true)
+        SpeechRecognizer.ERROR_AUDIO -> SpeechError(
+            "Couldn't access the microphone — close other recording apps and tap Resume.",
+            recoverable = false,
+        )
         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
-            SpeechError("Missing microphone permission", recoverable = false)
-        SpeechRecognizer.ERROR_NETWORK -> SpeechError("Network error", recoverable = false)
-        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> SpeechError("Network timeout", recoverable = false)
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> SpeechError("Speech recognizer is busy", recoverable = false)
-        SpeechRecognizer.ERROR_SERVER -> SpeechError("Speech recognition server error", recoverable = false)
-        else -> SpeechError("Unknown speech recognition error", recoverable = false)
+            SpeechError("Microphone permission is missing.", recoverable = false)
+        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> SpeechError(
+            "The speech service needs a connection — check the internet and tap Resume.",
+            recoverable = false,
+        )
+        SpeechRecognizer.ERROR_SERVER -> SpeechError(
+            "The speech service had a problem — tap Resume to try again.",
+            recoverable = false,
+        )
+        else -> SpeechError(
+            "Something interrupted dictation — tap Resume to try again.",
+            recoverable = false,
+        )
     }
 }

@@ -34,9 +34,9 @@ Run the app as Foreman. Follow this order; it matches how the product is meant t
 | 2 | **Today** → Confirm **Start My Day** | Home is “what needs me now,” not a module menu. Nothing dead-ends. |
 | 3 | Bar: **Today \| Capture \| Plans \| Tools** | Capture never shows selected. Primary pill is for the selected *tab* only. |
 | 4 | **Capture** → photo → Save | Fan-out: Today row, Plan pin, Images. |
-| 5 | Capture → **Voice note** (works without camera permission) → Create → Issue | Note is ephemeral; the **record** is durable. Form Save is sticky. |
+| 5 | Capture → **Voice note** (works without camera permission) → Pause/Resume if needed → type on review → Create → Issue | Note is ephemeral; the **record** is durable. Form Save is sticky. Speak is on Description, not Title. |
 | 6 | **Tools → Field task** → switch to Today → tap **Tools** once → tap Tools again | First tap restores place; second tap is catalog. Required nav contract. |
-| 7 | **Plans** → open sheet → pinch/zoom → pin → comment → Publish | Drawing is the shared map. Comments queue in Outbox. |
+| 7 | **Plans** *or* **Tools → Plans** → open sheet → pinch/zoom → pin → comment (or Speak) → Publish | Same sheet list either way. From Tools, Back is the catalog. Comments queue in Outbox. |
 | 8 | Tools **⋮ → Settings → Demo: view as** | Same bar. Profile avatar stays Alex Rivera. Only Today/Tools (and Super’s Plan shortcut) change. |
 | 9 | Flip **Crew → Superintendent → PM → Project engineer → Owner (dashboard) → Subcontractor** | Reorder, don’t fork. Owner is the one persona that **removes** labor/voice surfaces. |
 
@@ -55,7 +55,7 @@ Jobs:  now   | shutter | map   | modules
 
 - **Today** — persona-specific focus. Crew, blockers, captures (Foreman). Not a launcher.
 - **Capture** — action. `selected = false`. No back stack. Opens the in-app CameraX camera.
-- **Plans** — one Area B sheet + pins. Not a PDF/CAD engine.
+- **Plans** — Area B sheets + pins. Same list from the Plans tab or **Tools → Plans**. Not a PDF/CAD engine.
 - **Tools** — platform modules. **Create lives here** (contextual FAB / card `+`), never as a global Capture FAB or a fourth tab.
 
 **Do not resurrect:** 5-tab bar, Capture tab, Reports tab, Stream-as-home, nested Project Space, a global `+` tab.
@@ -88,8 +88,8 @@ Same three tabs, same objects, **reordered**. Workers do not switch roles in pro
 | Crew | My shift, my assignment (Hector Ortiz) | Field task, Time card, Images… | Shift start/end logs a real queued time entry |
 | Superintendent | Blockers, open issues (`attentionOrder`) | Issues, Punch, Incidents… | Plans: **Pinned work** shortcut to the pin sheet |
 | Project manager | Aging RFIs **oldest first**, delays, collab | RFIs, Collaboration… | Age is urgency (inversion of newest-first) |
-| Project engineer | **RFI desk** (count + oldest age, Draft RFI), Open RFIs, Coordination & quality, collab | RFIs, Issues, Plans… | Works the same RFI objects the PM overviews; Draft RFI stages the Issue form on the RFI type |
-| Owner | Progress photos + **four decision topics** + delays | Images, Plans… | **Omits** time cards, voice logs, crew ops |
+| Project engineer | **RFI desk** (count + oldest age, Draft RFI), Open RFIs, Coordination & quality, collab | RFIs, Issues, **Plans** (live sheets)… | Works the same RFI objects the PM overviews; Draft RFI stages the Issue form on the RFI type |
+| Owner | Progress photos + **four decision topics** + delays | Images, **Plans** (live sheets)… | **Omits** time cards, voice logs, crew ops |
 | Subcontractor | Request inspection + my work (Sam Reyes / plumbing trade) | Field task, Checklist, Punch… | Inspection request is a **message**, not a record |
 
 Profile identity (**Alex Rivera**) never changes with view-as.
@@ -105,7 +105,7 @@ Resolved per route in `ui/navigation/AppChrome.kt` via `resolveChrome()`.
 | Pattern | Use | Chrome | Stack |
 |---|---|---|---|
 | **A — task** | Camera, record create, viewers, voice | Bar hidden. Close left, Save/Done right | Graph **root** (must not live inside a tab) |
-| **B — browse** | Tool lists/details, Settings, Outbox | Bar **stays**. Back one level | Inside the tab graph; saved/restored |
+| **B — browse** | Tool lists/details (including **Tools → Plans**), Settings, Outbox | Bar **stays**. Back one level | Inside the tab graph; saved/restored |
 | **C — sheet** | Profile, Start My Day, new time entry, new topic | Bar unchanged under the sheet | Not a destination |
 
 **Tab roots** (Today/Plan/Tools home): bar visible, large **in-content** titles (`FieldPageHeader`), no Material top app bar. FAB only on screens that own a create action.
@@ -124,21 +124,22 @@ Field users bounce to look something up. Leaving Tools must not wipe the module.
 - Tap the **already-selected** tab → pop to that tab’s **root**.
 - Capture is **not** in this system.
 
-Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`, `reselectingActiveTab_returnsThatTabToItsRoot`). Details: `NAVIGATION_PATTERNS.md`.
+Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`, `reselectingActiveTab_returnsThatTabToItsRoot`, `tools_plansCardOpensTheLivePlanList`). Details: `NAVIGATION_PATTERNS.md`.
 
 ### Capture UX
 
 - In-app **CameraX** (flip, torch, tap-focus, pinch-zoom). Photo default; video capped (~90s).
 - Quick chips on the camera (usable if camera permission is denied): **Voice note**, **Issue**.
-- Voice note: bilingual EN/ES, live transcript, on-device translate, Create → record form. **No audio file** (transcription-only). Create is a **full handoff** (form Save returns to where capture began, not the recorder).
+- Voice note: bilingual EN/ES, live transcript, **Pause / Resume**, editable review, on-device translate, Create → record form. **No audio file** (transcription-only). Create is a **full handoff** (form Save returns to where capture began, not the recorder). Sequential mic with the camera.
 - Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Markup optional; baked into the JPEG.
 - Video: describe (skippable) → review → optional file-as-issue. Videos are videos; filed issues are titled as **issues**, not “observations.”
+- **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak.
 
 ### Forms
 
-Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels.
+Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels. Description and Blocking reason have an explicit **Speak** control (EN/ES); do not put a mic on Title, chips, dropdowns, dates, or hours.
 
-Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column.
+Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column. Collaboration composer and plan pin comment use the same compact Speak control.
 
 ### Visual
 
@@ -164,7 +165,7 @@ Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or exten
 
 Rules already in `CLAUDE.md`: no network/persistence/business rules in Composables; ask before new dependencies; reuse design-system components.
 
-**Nav layout rule:** Pattern B lives **inside** `today_graph` / `plan_graph` / `tools_graph`. Pattern A / immersive routes live at the **nav-graph root** so one tab’s saved stack cannot clobber another’s. Shared destinations (e.g. daily-log playback) also sit at root for the same reason.
+**Nav layout rule:** Pattern B lives **inside** `today_graph` / `plan_graph` / `tools_graph`. Pattern A / immersive routes live at the **nav-graph root** so one tab’s saved stack cannot clobber another’s. Shared destinations (e.g. daily-log playback, the plan sheet viewer) also sit at root for the same reason. The Plans **list** is dual-entry on purpose: `plan_home` is the tab root; `plans` (`PLAN_LIST`) is Pattern B inside the Tools graph so **Tools → Plans** does not jump tabs or overwrite the Plans tab stack.
 
 ---
 
@@ -176,10 +177,11 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 |---|---|
 | Shell, tabs, Capture action | `ui/navigation/AppNavHost.kt`, `AppChrome.kt`, `AppRoutes.kt` |
 | Today (all personas) | `ui/today/` (`TodayScreen`, `OwnerDashboard`, `OwnerTodaySections`) |
-| Plan + pins | `ui/plan/` |
+| Plan + pins | `ui/plan/` (`PlansScreen` is the tab *and* the Tools card; `PLAN_LIST` vs `PLAN_HOME`) |
 | Tools catalog + Settings | `ui/tools/` (`PlatformTools.catalogFor` for persona order) |
 | Camera / photo / video | `ui/capture/camera/` |
-| Voice note | `ui/voicenote/` |
+| Voice note | `ui/voicenote/` (`SpeakableTextField`, `VoiceNoteScreen`) |
+| Field dictation (one take at a time) | `ui/voicelog/audio/FieldDictationBroker.kt`, `DictationController.kt` |
 | Voice-to-Log (scripted demo) | `ui/voicelog/` — entry: Settings → Demo |
 | Records (issue/incident/punch) | `ui/records/` |
 | Images, markup, zoom | `ui/images/`, `ui/markup/`, `ui/designsystem/ZoomableContainer.kt` |
@@ -189,7 +191,7 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 
 **What’s fully built vs placeholder**
 
-- **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration, Images, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, seven personas.
+- **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration, Images, **Plans (tab and Tools card)**, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, seven personas.
 - **Catalog only / placeholder:** RFIs (as a tool — PM “RFIs” are Issues of type “RFI / design clarification”), T&M, Checklist, Drive, Toolbox Talks, Scan (no live scanner), Accounts on the project picker.
 
 ---
@@ -212,7 +214,7 @@ Before calling work done in this repo:
 ./gradlew assembleDebug
 ```
 
-Voice mic path: `VOICE_LOG_TESTING.md`.
+Voice mic path (Voice-to-Log, Voice note, Speak): `VOICE_LOG_TESTING.md`.
 
 ---
 

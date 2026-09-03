@@ -43,7 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -88,6 +87,8 @@ import com.solomondesign.app.ui.designsystem.ZoomableContainer
 import com.solomondesign.app.ui.images.ImageThumbnail
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.images.imageIdOfPin
+import com.solomondesign.app.ui.voicenote.SpeakableTextField
+import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -293,24 +294,23 @@ private fun PinSheetContent(
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
         ) {
-            OutlinedTextField(
+            SpeakableTextField(
                 value = draft,
                 onValueChange = { draft = it },
                 label = { Text("Add a comment") },
                 singleLine = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("pinCommentField"),
+                fieldTestTag = "pinCommentField",
+                compact = true,
             )
             TextButton(
                 onClick = {
+                    FieldDictationBroker.stopActive()
                     if (DemoProjectRepository.addPinComment(pin.id, draft)) draft = ""
                 },
                 enabled = draft.isNotBlank(),

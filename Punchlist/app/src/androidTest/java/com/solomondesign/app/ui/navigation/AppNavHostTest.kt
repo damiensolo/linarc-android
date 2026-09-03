@@ -160,6 +160,17 @@ class AppNavHostTest {
         composeTestRule.onNodeWithTag("imageTile_img-yesterday").assertDoesNotExist()
     }
 
+    /** Tools → Plans is the live sheet list, not the generic placeholder. */
+    @Test
+    fun tools_plansCardOpensTheLivePlanList() {
+        launchAndOpenTool("toolCard_plans")
+
+        composeTestRule.onNodeWithTag("planScreen").assertExists()
+        composeTestRule.onNodeWithTag("planSheetRow_a-102").assertExists()
+        composeTestRule.onNodeWithText("Plans · sample 1").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").assertExists()
+    }
+
     @Test
     fun bottomNav_showsThreeTabs_andSwitchingTabsShowsThatTabsContent() {
         composeTestRule.setContent {
@@ -420,10 +431,10 @@ class AppNavHostTest {
             }
         }
 
-        // punch_list is still a placeholder tool, so it keeps the generic list/detail behaviour.
+        // RFIs stays a placeholder tool (the real RFI flow is Issues of that type).
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
-        composeTestRule.onNodeWithTag("toolCard_punch_list").performClick()
-        composeTestRule.onNodeWithText("Punch list · sample 1").assertExists()
+        composeTestRule.onNodeWithTag("toolCard_rfis").performClick()
+        composeTestRule.onNodeWithText("RFIs · sample 1").assertExists()
         composeTestRule.onNodeWithContentDescription("Back").performClick()
 
         composeTestRule.onNodeWithTag("toolQuickCreate_rfis").performClick()

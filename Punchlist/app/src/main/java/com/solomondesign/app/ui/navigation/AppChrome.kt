@@ -187,6 +187,10 @@ private val chromeByRoute: Map<String, ScreenChrome> = mapOf(
 
     // Images — grid is Pattern B; the viewer is Pattern A with a floating footer toolbar.
     AppRoutes.IMAGE_GRID to ScreenChrome(NavPattern.BROWSE, ADD_IMAGE_FAB),
+
+    // Plans — tab root is [PLAN_HOME]; the Tools card uses this Pattern B list so Back
+    // returns to the catalog. The sheet viewer stays Pattern A (full screen) either way.
+    AppRoutes.PLAN_LIST to ScreenChrome(NavPattern.BROWSE),
     AppRoutes.IMAGE_VIEWER to ScreenChrome(NavPattern.TASK_FLOW),
     // The markup editor owns its whole surface (camera-style black chrome, its own top row).
     AppRoutes.IMAGE_MARKUP to ScreenChrome(NavPattern.IMMERSIVE),
@@ -194,7 +198,6 @@ private val chromeByRoute: Map<String, ScreenChrome> = mapOf(
     // Video playback draws its own Pattern A chrome, like daily-log playback.
     AppRoutes.VIDEO_PLAYBACK to ScreenChrome(NavPattern.IMMERSIVE),
 
-    // Plans — the list is the tab root; the sheet viewer is Pattern A, full screen.
     AppRoutes.PLAN_VIEWER to ScreenChrome(NavPattern.TASK_FLOW),
 )
 

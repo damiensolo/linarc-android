@@ -76,6 +76,7 @@ import com.solomondesign.app.ui.plan.PlansScreen
 import com.solomondesign.app.ui.profile.ProfileSheet
 import com.solomondesign.app.ui.projects.ProjectListScreen
 import com.solomondesign.app.ui.records.CameraAttachmentInbox
+import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
 import com.solomondesign.app.ui.records.RECORD_LOCATIONS
 import com.solomondesign.app.ui.records.RFI_ISSUE_TYPE
 import com.solomondesign.app.ui.records.RecordCategory
@@ -600,6 +601,16 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     )
                 }
 
+                // Same sheet list as the Plans tab; Pattern B so Tools stays selected.
+                composable(AppRoutes.PLAN_LIST) {
+                    PlansScreen(
+                        onOpenSheet = { sheetId ->
+                            navController.navigate(AppRoutes.planViewer(sheetId))
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+
                 // ---- Record tools: Issues / Incidents / Punch list (Pattern B lists) ----
                 composable(AppRoutes.RECORD_LIST_ISSUES) {
                     RecordListScreen(
@@ -672,6 +683,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         }
                     },
                     onAddPhoto = {
+                        FieldDictationBroker.stopActive()
                         CameraAttachmentInbox.arm()
                         navController.navigate(AppRoutes.CAMERA)
                     },

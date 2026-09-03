@@ -71,6 +71,11 @@ private class FakeSpeechTranscriber(private val available: Boolean = true) : Spe
         pendingOnFinal = null
     }
 
+    /** Real cancel drops the in-flight utterance without delivering anything. */
+    override fun cancel() {
+        pendingOnFinal = null
+    }
+
     override fun destroy() = Unit
 }
 
@@ -185,6 +190,82 @@ class DictationControllerTest {
         assertEquals(0, transcriber.sessionStartedCount)
     }
 
+    /** CLIENT/BUSY are transient: the loop re-arms instead of dying (the old toggle-kill bug). */
+    @Test
+    fun clientRetryError_rearmsAndRecoversWhenSpeechArrives() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueError(
+            SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true),
+        )
+        transcriber.enqueueFinal("still listening")
+        val controller = DictationController(transcriber)
+
+        controller.start()
+
+        assertEquals("still listening", controller.transcript)
+        assertNull(controller.errorMessage)
+    }
+
+    /** …but a service that only ever errors gives up with a plain-language message, no spin. */
+    @Test
+    fun clientRetryErrors_capOut_withAFriendlyMessage() {
+        val transcriber = FakeSpeechTranscriber()
+        repeat(10) {
+            transcriber.enqueueError(
+                SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true),
+            )
+        }
+        val controller = DictationController(transcriber)
+
+        controller.start()
+
+        assertEquals(
+            "The microphone stopped responding — tap Resume to try again.",
+            controller.errorMessage,
+        )
+        // Initial arm + 5 retries, then the cap trips — never all 10 scripted errors.
+        assertEquals(6, transcriber.startCount)
+        assertEquals(1, transcriber.sessionEndedCount)
+    }
+
+    /** Silence no-matches between client retries keep the retry budget fresh. */
+    @Test
+    fun silenceBetweenClientErrors_resetsTheRetryStreak() {
+        val transcriber = FakeSpeechTranscriber()
+        repeat(4) {
+            transcriber.enqueueError(
+                SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true),
+            )
+        }
+        transcriber.enqueueError(SpeechError("No speech detected", recoverable = true))
+        repeat(4) {
+            transcriber.enqueueError(
+                SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true),
+            )
+        }
+        transcriber.enqueueFinal("made it through")
+        val controller = DictationController(transcriber)
+
+        controller.start()
+
+        assertEquals("made it through", controller.transcript)
+        assertNull(controller.errorMessage)
+    }
+
+    /** Re-record must actually discard: a late result from the canceled take is ignored. */
+    @Test
+    fun reset_dropsTheInFlightUtterance_soLateResultsAreIgnored() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.start()
+
+        controller.reset()
+        transcriber.lastOnFinal?.invoke("stale words from the thrown-away take")
+
+        assertEquals("", controller.transcript)
+    }
+
     @Test
     fun setLanguage_midDictation_rearmsTheRecognizerInTheNewLanguage() {
         val transcriber = FakeSpeechTranscriber()
@@ -229,5 +310,36 @@ class DictationControllerTest {
 
         assertEquals("late result", controller.transcript)
         assertEquals(1, transcriber.startCount)
+    }
+
+    @Test
+    fun start_whileAlreadyListening_isANoOp() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.start()
+        assertEquals(1, transcriber.startCount)
+
+        controller.start()
+
+        assertEquals(1, transcriber.startCount)
+        assertEquals(1, transcriber.sessionStartedCount)
+    }
+
+    @Test
+    fun stopThenStart_keepsTranscript_forPauseResume() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueFinal("first pass")
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.start()
+        assertEquals("first pass", controller.transcript)
+
+        controller.stop()
+        transcriber.enqueueFinal("after the truck passed")
+        controller.start()
+
+        assertEquals("first pass after the truck passed", controller.transcript)
+        assertEquals(2, transcriber.sessionStartedCount)
     }
 }

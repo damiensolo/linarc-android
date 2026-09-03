@@ -39,7 +39,25 @@ class DictationController(private val transcriber: SpeechTranscriber) {
     var languageTag: String? = null
         private set
 
+    /** True while the recognizer loop is armed — Compose snapshot so the Speak UI recomposes. */
+    var isListening by mutableStateOf(false)
+        private set
+
     private var active = false
+
+    /**
+     * Increments on [reset]; utterance callbacks armed under an older take are ignored, so a
+     * late result from a canceled take can never resurrect discarded words into the fresh one.
+     * [stop] deliberately does NOT bump it — a Pause's in-flight words should still land.
+     */
+    private var takeId = 0
+
+    /**
+     * Consecutive CLIENT/BUSY retries with nothing recognized in between. Unlike silence
+     * no-matches (fine forever), these mean the recognizer service itself is struggling — after
+     * [MAX_CLIENT_RETRIES] the loop gives up with a plain-language message instead of spinning.
+     */
+    private var clientRetryStreak = 0
 
     /**
      * Switches the recognition language mid-dictation. The in-flight utterance is stopped so it
@@ -52,15 +70,26 @@ class DictationController(private val transcriber: SpeechTranscriber) {
         if (active) transcriber.stop()
     }
 
-    /** Clears all accumulated state for a fresh take (re-record). Doesn't start listening. */
+    /**
+     * Clears all accumulated state for a fresh take (re-record). Doesn't start listening.
+     * Cancels rather than stops the in-flight utterance — its result must be dropped, not
+     * finalized into the take the user just threw away.
+     */
     fun reset() {
-        stop()
+        active = false
+        isListening = false
+        partial = ""
+        takeId++
+        transcriber.cancel()
+        transcriber.sessionEnded()
         transcript = ""
         errorMessage = null
         consecutiveNoMatchCount = 0
+        clientRetryStreak = 0
     }
 
     fun start() {
+        if (isListening) return
         if (!transcriber.isAvailable()) {
             errorMessage = "Speech recognition isn't available on this device."
             return
@@ -69,43 +98,75 @@ class DictationController(private val transcriber: SpeechTranscriber) {
         // then silent re-arms until the matching sessionEnded (stop, reset, or fatal error).
         transcriber.sessionStarted()
         active = true
+        isListening = true
         errorMessage = null
+        // A fresh Resume gets a fresh retry budget — a capped-out take shouldn't poison it.
+        clientRetryStreak = 0
         listenOnce()
     }
 
     fun stop() {
         active = false
+        isListening = false
         partial = ""
         transcriber.stop()
         transcriber.sessionEnded()
     }
 
     private fun listenOnce() {
+        val take = takeId
         transcriber.start(
             onPartial = { text ->
-                if (text.isNotBlank()) consecutiveNoMatchCount = 0
+                if (take != takeId) return@start
+                if (text.isNotBlank()) {
+                    consecutiveNoMatchCount = 0
+                    clientRetryStreak = 0
+                }
                 partial = text
             },
             onFinal = { text ->
+                if (take != takeId) return@start
                 if (text.isNotBlank()) {
                     transcript = if (transcript.isBlank()) text else "$transcript $text"
                     consecutiveNoMatchCount = 0
+                    clientRetryStreak = 0
                 }
                 partial = ""
                 if (active) listenOnce()
             },
             onError = { error ->
+                if (take != takeId) return@start
                 partial = ""
-                if (active && error.recoverable) {
-                    consecutiveNoMatchCount++
-                    listenOnce()
-                } else if (active) {
-                    active = false
-                    errorMessage = error.message
-                    transcriber.sessionEnded()
+                when {
+                    !active -> Unit
+                    error.recoverable && error.clientRetry -> {
+                        clientRetryStreak++
+                        if (clientRetryStreak > MAX_CLIENT_RETRIES) {
+                            fail("The microphone stopped responding — tap Resume to try again.")
+                        } else {
+                            listenOnce()
+                        }
+                    }
+                    error.recoverable -> {
+                        clientRetryStreak = 0
+                        consecutiveNoMatchCount++
+                        listenOnce()
+                    }
+                    else -> fail(error.message)
                 }
             },
             languageTag = languageTag,
         )
+    }
+
+    private fun fail(message: String) {
+        active = false
+        isListening = false
+        errorMessage = message
+        transcriber.sessionEnded()
+    }
+
+    private companion object {
+        const val MAX_CLIENT_RETRIES = 5
     }
 }

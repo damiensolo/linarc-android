@@ -85,6 +85,7 @@ class AppChromeTest {
             AppRoutes.CREW_DETAIL,
             AppRoutes.COLLAB_TOPIC_DETAIL,
             AppRoutes.RECORD_DETAIL,
+            AppRoutes.PLAN_LIST,
         ).forEach { assertNull(it, resolveChrome(it).fab) }
     }
 
@@ -170,6 +171,7 @@ class AppChromeTest {
             AppRoutes.COLLAB_TOPIC_LIST to true,
             AppRoutes.COLLAB_TOPIC_DETAIL to true,
             AppRoutes.IMAGE_GRID to true,
+            AppRoutes.PLAN_LIST to true,
             // Pattern A: the viewers are full-screen; the markup editor is immersive.
             AppRoutes.IMAGE_VIEWER to false,
             AppRoutes.IMAGE_MARKUP to false,
