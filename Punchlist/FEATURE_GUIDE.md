@@ -28,7 +28,7 @@ Placeholders are intentional. They show the full Tools catalog without faking br
 |---|---|---|
 | Splash | Functional | Brand animation, then project list |
 | Project list | Semi-functional | Search works. **Any** row loads the same seeded job. Only Riverside Medical is “the” project. **Accounts** tab is a placeholder |
-| Today | Functional | Persona-specific; rows open the real photo, video, record, task, or log |
+| Today | Functional | Persona-specific; rows open the real photo, video, record, task, or log. Every section header collapses (tap it — same as the crew roster) |
 | Capture (bar button) | Functional | Action, not a tab — never stays selected |
 | Plans (tab) | Functional | One Area B sheet + pins. Compose drawing, not a PDF engine |
 | Tools catalog | Functional | Grid/list switch. Built tools open real screens; others open placeholders |
@@ -124,7 +124,7 @@ Start each flow from **Today** unless a step says otherwise. Use a **device or e
 
 1. Tap **Capture** (camera icon between Today and Plans). It should **not** stay highlighted.
 2. Stay on **Photo**. Tap the shutter.
-3. Add a title if you want → **Save**.
+3. Add a title if you want. Tags: tap the suggested chips, or use **Search or add a tag** — type to find any existing project tag, or add a brand-new one → **Save**.
 4. Check **Today** → Recent captures (tap the row → full-screen viewer).
 5. Check **Plans** → open the sheet → tap the new pin.
 6. Check **Tools → Images** — the photo is in the grid.

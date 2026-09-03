@@ -250,20 +250,27 @@ fun TodayScreen(
             // Aging RFIs first — the Project manager's whole reason to open the app. Oldest
             // first, because an unanswered RFI gets more urgent with age, and every row
             // carries its age. Rows open the record detail the Issues tool owns.
-            item { FieldSectionLabel("Aging RFIs") }
-            if (agingRfis.isEmpty()) {
-                item {
-                    Text(
-                        text = "No open RFIs. Issues filed as RFI / design clarification land here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                val nowMillis = System.currentTimeMillis()
-                items(agingRfis, key = { "rfi_${it.id}" }) { record ->
-                    AgingRfiRow(record = record, nowMillis = nowMillis, onOpenRecord = onOpenRecord)
+            collapsibleSection(
+                key = "agingRfis",
+                title = "Aging RFIs",
+                count = agingRfis.size,
+                expanded = sectionExpanded("agingRfis"),
+                onToggle = { toggleSection("agingRfis") },
+            ) {
+                if (agingRfis.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No open RFIs. Issues filed as RFI / design clarification land here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    val nowMillis = System.currentTimeMillis()
+                    items(agingRfis, key = { "rfi_${it.id}" }) { record ->
+                        AgingRfiRow(record = record, nowMillis = nowMillis, onOpenRecord = onOpenRecord)
+                    }
                 }
             }
         } else if (isPeView) {
@@ -280,42 +287,56 @@ fun TodayScreen(
                 )
             }
             // The same aging queue the PM reads as an overview is the PE's working list.
-            item { FieldSectionLabel("Open RFIs") }
-            if (agingRfis.isEmpty()) {
-                item {
-                    Text(
-                        text = "No open RFIs. Draft one above, or file an Issue as " +
-                            "RFI / design clarification.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                val nowMillis = System.currentTimeMillis()
-                items(agingRfis, key = { "rfi_${it.id}" }) { record ->
-                    AgingRfiRow(record = record, nowMillis = nowMillis, onOpenRecord = onOpenRecord)
+            collapsibleSection(
+                key = "openRfis",
+                title = "Open RFIs",
+                count = agingRfis.size,
+                expanded = sectionExpanded("openRfis"),
+                onToggle = { toggleSection("openRfis") },
+            ) {
+                if (agingRfis.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No open RFIs. Draft one above, or file an Issue as " +
+                                "RFI / design clarification.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    val nowMillis = System.currentTimeMillis()
+                    items(agingRfis, key = { "rfi_${it.id}" }) { record ->
+                        AgingRfiRow(record = record, nowMillis = nowMillis, onOpenRecord = onOpenRecord)
+                    }
                 }
             }
             // The technical records behind the questions: coordination/quality issues and
             // punch items, attention-ordered — the same record objects the tools own.
-            item { FieldSectionLabel("Coordination & quality") }
-            if (technicalRecords.isEmpty()) {
-                item {
-                    Text(
-                        text = "No open technical records. Issues and punch items land here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(technicalRecords, key = { "tech_${it.id}" }) { record ->
-                    OpenRecordRow(
-                        record = record,
-                        onOpenRecord = onOpenRecord,
-                        modifier = Modifier.testTag("techRecord_${record.id}"),
-                    )
+            collapsibleSection(
+                key = "coordinationQuality",
+                title = "Coordination & quality",
+                count = technicalRecords.size,
+                expanded = sectionExpanded("coordinationQuality"),
+                onToggle = { toggleSection("coordinationQuality") },
+            ) {
+                if (technicalRecords.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No open technical records. Issues and punch items land here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(technicalRecords, key = { "tech_${it.id}" }) { record ->
+                        OpenRecordRow(
+                            record = record,
+                            onOpenRecord = onOpenRecord,
+                            modifier = Modifier.testTag("techRecord_${record.id}"),
+                        )
+                    }
                 }
             }
         } else if (isClassicOwnerView) {
@@ -323,31 +344,45 @@ fun TodayScreen(
             // dashboard: progress photos, then the flat Decisions & discussions topic list.
             // Delays (shared rows, relabeled) and the collapsed roster render below via the
             // shared sections, which re-include this variant.
-            item { FieldSectionLabel("Progress photos") }
-            if (progressMedia.isEmpty()) {
-                item {
-                    Text(
-                        text = "No progress photos yet. Captured photos and videos land here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(progressMedia, key = { it.id }) { item ->
-                    CaptureStreamRow(
-                        item = item,
-                        onOpenVoiceLog = onOpenVoiceLog,
-                        onOpenImage = onOpenImage,
-                        onOpenVideo = onOpenVideo,
-                        onOpenRecord = onOpenRecord,
-                        onOpenTask = onOpenTask,
-                    )
+            collapsibleSection(
+                key = "progressPhotos",
+                title = "Progress photos",
+                count = progressMedia.size,
+                expanded = sectionExpanded("progressPhotos"),
+                onToggle = { toggleSection("progressPhotos") },
+            ) {
+                if (progressMedia.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No progress photos yet. Captured photos and videos land here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(progressMedia, key = { it.id }) { item ->
+                        CaptureStreamRow(
+                            item = item,
+                            onOpenVoiceLog = onOpenVoiceLog,
+                            onOpenImage = onOpenImage,
+                            onOpenVideo = onOpenVideo,
+                            onOpenRecord = onOpenRecord,
+                            onOpenTask = onOpenTask,
+                        )
+                    }
                 }
             }
-            item { FieldSectionLabel("Decisions & discussions") }
-            items(decisionTopics, key = { "topic_${it.id}" }) { topic ->
-                DecisionTopicRow(topic = topic, onOpenTopic = onOpenTopic)
+            collapsibleSection(
+                key = "decisions",
+                title = "Decisions & discussions",
+                count = decisionTopics.size,
+                expanded = sectionExpanded("decisions"),
+                onToggle = { toggleSection("decisions") },
+            ) {
+                items(decisionTopics, key = { "topic_${it.id}" }) { topic ->
+                    DecisionTopicRow(topic = topic, onOpenTopic = onOpenTopic)
+                }
             }
         } else if (isOwnerView) {
             // Owner focus: confidence, not operations — progress photos, then exactly four
@@ -380,26 +415,33 @@ fun TodayScreen(
                     onRequest = { showRequestInspection = true },
                 )
             }
-            item { FieldSectionLabel("My work") }
-            if (subTasks.isEmpty()) {
-                item {
-                    Text(
-                        text = "No tasks for your trade today.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(subTasks, key = { "subTask_${it.id}" }) { task ->
-                    FieldWorkRow(
-                        title = task.title,
-                        subtitle = "${task.location} · ${task.status.label()} · ${task.dueLabel}",
-                        statusColor = task.status.statusColor(),
-                        enabled = true,
-                        onClick = { onOpenTask(task.id) },
-                        modifier = Modifier.testTag("subTask_${task.id}"),
-                    )
+            collapsibleSection(
+                key = "myWork",
+                title = "My work",
+                count = subTasks.size,
+                expanded = sectionExpanded("myWork"),
+                onToggle = { toggleSection("myWork") },
+            ) {
+                if (subTasks.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No tasks for your trade today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(subTasks, key = { "subTask_${it.id}" }) { task ->
+                        FieldWorkRow(
+                            title = task.title,
+                            subtitle = "${task.location} · ${task.status.label()} · ${task.dueLabel}",
+                            statusColor = task.status.statusColor(),
+                            enabled = true,
+                            onClick = { onOpenTask(task.id) },
+                            modifier = Modifier.testTag("subTask_${task.id}"),
+                        )
+                    }
                 }
             }
         } else if (isForemanView && !dayStarted) {
@@ -469,46 +511,49 @@ fun TodayScreen(
         // own enriched Delays section (DelayBlockerCard) inside ownerTodayContent, so this
         // shared one skips that variant only.
         if (!isOwnerView || isClassicOwnerView) {
-            item {
-                FieldSectionLabel(
-                    when {
-                        isPmView -> "Delays & blockers"
-                        isClassicOwnerView -> "Delays"
-                        else -> "Blockers"
-                    },
-                )
-            }
-            if (blockers.isEmpty()) {
-                item {
-                    Text(
-                        text = "No blockers. Issues land here only when marked as blocking work.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(blockers, key = { it.id }) { item ->
-                    // Every blocker opens the thing behind it: record-backed rows open the
-                    // record detail in its tool; voice-log rows open the daily log they came
-                    // from.
-                    FieldWorkRow(
-                        title = item.title,
-                        subtitle = item.subtitle + " · " + formatTimestamp(item.timestampMillis),
-                        statusColor = if (item.kind == StreamKind.ISSUE) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.tertiary
-                        },
-                        enabled = item.relatedFieldRecordId != null || item.relatedRecordId != null,
-                        onClick = {
-                            when {
-                                item.relatedFieldRecordId != null -> onOpenRecord(item.relatedFieldRecordId)
-                                item.relatedRecordId != null -> onOpenVoiceLog(item.relatedRecordId)
-                            }
-                        },
-                        modifier = Modifier.testTag("streamItem_${item.id}"),
-                    )
+            collapsibleSection(
+                key = "blockers",
+                title = when {
+                    isPmView -> "Delays & blockers"
+                    isClassicOwnerView -> "Delays"
+                    else -> "Blockers"
+                },
+                count = blockers.size,
+                expanded = sectionExpanded("blockers"),
+                onToggle = { toggleSection("blockers") },
+            ) {
+                if (blockers.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No blockers. Issues land here only when marked as blocking work.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(blockers, key = { it.id }) { item ->
+                        // Every blocker opens the thing behind it: record-backed rows open the
+                        // record detail in its tool; voice-log rows open the daily log they came
+                        // from.
+                        FieldWorkRow(
+                            title = item.title,
+                            subtitle = item.subtitle + " · " + formatTimestamp(item.timestampMillis),
+                            statusColor = if (item.kind == StreamKind.ISSUE) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.tertiary
+                            },
+                            enabled = item.relatedFieldRecordId != null || item.relatedRecordId != null,
+                            onClick = {
+                                when {
+                                    item.relatedFieldRecordId != null -> onOpenRecord(item.relatedFieldRecordId)
+                                    item.relatedRecordId != null -> onOpenVoiceLog(item.relatedRecordId)
+                                }
+                            },
+                            modifier = Modifier.testTag("streamItem_${item.id}"),
+                        )
+                    }
                 }
             }
         }
@@ -516,23 +561,30 @@ fun TodayScreen(
         if (isSuperView) {
             // Open issues / inspections first — the Superintendent's whole reason to open the
             // app. Rows open the same record detail the tools own, so nothing dead-ends.
-            item { FieldSectionLabel("Open issues & inspections") }
-            if (openRecords.isEmpty()) {
-                item {
-                    Text(
-                        text = "No open records. New issues, incidents, and punch items land here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                }
-            } else {
-                items(openRecords, key = { "openRecord_${it.id}" }) { record ->
-                    OpenRecordRow(
-                        record = record,
-                        onOpenRecord = onOpenRecord,
-                        modifier = Modifier.testTag("openRecord_${record.id}"),
-                    )
+            collapsibleSection(
+                key = "openRecords",
+                title = "Open issues & inspections",
+                count = openRecords.size,
+                expanded = sectionExpanded("openRecords"),
+                onToggle = { toggleSection("openRecords") },
+            ) {
+                if (openRecords.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No open records. New issues, incidents, and punch items land here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(openRecords, key = { "openRecord_${it.id}" }) { record ->
+                        OpenRecordRow(
+                            record = record,
+                            onOpenRecord = onOpenRecord,
+                            modifier = Modifier.testTag("openRecord_${record.id}"),
+                        )
+                    }
                 }
             }
         }
@@ -543,23 +595,37 @@ fun TodayScreen(
             // med-gas and headwall threads ARE the conversations behind their open RFIs. (The
             // Owner shares this section too but renders it up top, before delays — see the
             // owner lead branch.)
-            item { FieldSectionLabel("Decisions & discussions") }
-            items(decisionTopics, key = { "topic_${it.id}" }) { topic ->
-                DecisionTopicRow(topic = topic, onOpenTopic = onOpenTopic)
+            collapsibleSection(
+                key = "decisions",
+                title = "Decisions & discussions",
+                count = decisionTopics.size,
+                expanded = sectionExpanded("decisions"),
+                onToggle = { toggleSection("decisions") },
+            ) {
+                items(decisionTopics, key = { "topic_${it.id}" }) { topic ->
+                    DecisionTopicRow(topic = topic, onOpenTopic = onOpenTopic)
+                }
             }
         }
 
         if (!isOwnerView) {
-            item { FieldSectionLabel("Recent captures") }
-            items(captures, key = { it.id }) { item ->
-                CaptureStreamRow(
-                    item = item,
-                    onOpenVoiceLog = onOpenVoiceLog,
-                    onOpenImage = onOpenImage,
-                    onOpenVideo = onOpenVideo,
-                    onOpenRecord = onOpenRecord,
-                    onOpenTask = onOpenTask,
-                )
+            collapsibleSection(
+                key = "recentCaptures",
+                title = "Recent captures",
+                count = captures.size,
+                expanded = sectionExpanded("recentCaptures"),
+                onToggle = { toggleSection("recentCaptures") },
+            ) {
+                items(captures, key = { it.id }) { item ->
+                    CaptureStreamRow(
+                        item = item,
+                        onOpenVoiceLog = onOpenVoiceLog,
+                        onOpenImage = onOpenImage,
+                        onOpenVideo = onOpenVideo,
+                        onOpenRecord = onOpenRecord,
+                        onOpenTask = onOpenTask,
+                    )
+                }
             }
         }
 
