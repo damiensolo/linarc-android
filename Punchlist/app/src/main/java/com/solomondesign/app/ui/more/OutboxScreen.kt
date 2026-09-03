@@ -23,11 +23,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.solomondesign.app.ui.collab.CollabRepository
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.demo.OutboxItem
 import com.solomondesign.app.ui.demo.OutboxStatus
 import com.solomondesign.app.ui.demo.statusLine
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
+import com.solomondesign.app.ui.images.ImageThumbnail
+import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.records.AttachmentKind
+import com.solomondesign.app.ui.records.RecordRepository
+import com.solomondesign.app.ui.tasks.FieldTaskRepository
+import com.solomondesign.app.ui.video.VideoRepository
+import com.solomondesign.app.ui.voicelog.DailyLogRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -37,10 +46,25 @@ import kotlinx.coroutines.launch
  * blocking on connectivity. "Signal restored — send all" drains the queue one entry at a time
  * so the story is visible on stage; no bytes actually leave the device (a real sync engine is
  * an explicit prototype non-goal).
+ *
+ * Rows are receipts, not dead-ends: an entry linked to what it published (see
+ * [OutboxItem]) taps through to the owning tool's detail, and photo-backed entries — a
+ * published photo, or a record carrying a photo attachment — lead with its thumbnail, same as
+ * the record lists.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OutboxScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun OutboxScreen(
+    onBack: () -> Unit,
+    onOpenImage: (String) -> Unit,
+    onOpenVideo: (String) -> Unit,
+    onOpenRecord: (String) -> Unit,
+    onOpenLog: (String) -> Unit,
+    onOpenTask: (String) -> Unit,
+    onOpenTopic: (String) -> Unit,
+    onOpenTimeCard: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val items = DemoProjectRepository.outboxItems.toList()
     val queuedCount = DemoProjectRepository.queuedOutboxCount
     val sentCount = items.size - queuedCount
@@ -107,6 +131,39 @@ fun OutboxScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 )
             }
             items(items, key = { it.id }) { item ->
+                // Resolve rather than trust: a linked target can be gone (e.g. the photo was
+                // deleted from the Images grid), and a stale link must not render a tappable row.
+                val image = item.relatedImageId?.let { ProjectImageRepository.find(it) }
+                val record = item.relatedFieldRecordId?.let { RecordRepository.find(it) }
+                val recordPhoto = record?.attachments
+                    ?.firstOrNull { it.kind == AttachmentKind.PHOTO }
+                    ?.let { ProjectImageRepository.find(it.ref) }
+                val onOpen: (() -> Unit)? = when {
+                    image != null -> {
+                        { onOpenImage(image.id) }
+                    }
+                    record != null -> {
+                        { onOpenRecord(record.id) }
+                    }
+                    item.relatedVideoId?.let(VideoRepository::find) != null -> {
+                        { onOpenVideo(item.relatedVideoId!!) }
+                    }
+                    item.relatedLogId?.let(DailyLogRepository::find) != null -> {
+                        { onOpenLog(item.relatedLogId!!) }
+                    }
+                    item.relatedTaskId?.let(FieldTaskRepository::find) != null -> {
+                        { onOpenTask(item.relatedTaskId!!) }
+                    }
+                    item.relatedTopicId?.let(CollabRepository::findTopic) != null -> {
+                        { onOpenTopic(item.relatedTopicId!!) }
+                    }
+                    item.relatedCrewMemberId
+                        ?.let(DemoProjectRepository::crewMember) != null -> {
+                        { onOpenTimeCard(item.relatedCrewMemberId!!) }
+                    }
+                    else -> null
+                }
+                val thumbnail = image ?: recordPhoto
                 FieldWorkRow(
                     title = item.title,
                     subtitle = item.statusLine(),
@@ -114,6 +171,10 @@ fun OutboxScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         OutboxStatus.QUEUED -> MaterialTheme.colorScheme.tertiary
                         OutboxStatus.SENT -> MaterialTheme.colorScheme.primary
                     },
+                    leading = thumbnail?.let { img -> { ImageThumbnail(image = img) } },
+                    enabled = onOpen != null,
+                    onClick = { onOpen?.invoke() },
+                    modifier = Modifier.testTag("outboxRow_${item.id}"),
                 )
             }
         }

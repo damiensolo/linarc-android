@@ -2,7 +2,7 @@
 
 This is the **single source of truth** for the field Android prototype. Do not resurrect older IA (5-tab bar, Capture tab, Reports tab, Stream-as-home, nested Project Space, OAC/dashboards). If a screen is not in this spec, do not build it.
 
-Lead mobile developer handoff (walkthrough + how to use this app as a production reference): `HANDOFF.md`. Stakeholder demo: `DEMO_SCRIPT.md`. Tab stacks: `NAVIGATION_PATTERNS.md`.
+Lead mobile developer handoff (walkthrough + how to use this app as a production reference): `HANDOFF.md`. What is built vs placeholder, and step-by-step try-it paths: `FEATURE_GUIDE.md`. Stakeholder demo: `DEMO_SCRIPT.md`. Tab stacks: `NAVIGATION_PATTERNS.md`.
 
 ## Purpose
 

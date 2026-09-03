@@ -99,9 +99,37 @@ object DemoProjectRepository {
     val queuedOutboxCount: Int
         get() = outboxItems.count { it.status == OutboxStatus.QUEUED }
 
-    /** Every publish-style action funnels here: it commits locally, then waits for signal. */
-    fun queueOutbox(id: String, title: String, detail: String = "") {
-        outboxItems.add(OutboxItem(id = id, title = title, detail = detail))
+    /**
+     * Every publish-style action funnels here: it commits locally, then waits for signal.
+     * Publishers pass the one related id matching what they queued (see [OutboxItem]) so the
+     * Outbox row can deep-link back into the owning tool's detail.
+     */
+    fun queueOutbox(
+        id: String,
+        title: String,
+        detail: String = "",
+        relatedImageId: String? = null,
+        relatedVideoId: String? = null,
+        relatedFieldRecordId: String? = null,
+        relatedLogId: String? = null,
+        relatedTaskId: String? = null,
+        relatedTopicId: String? = null,
+        relatedCrewMemberId: String? = null,
+    ) {
+        outboxItems.add(
+            OutboxItem(
+                id = id,
+                title = title,
+                detail = detail,
+                relatedImageId = relatedImageId,
+                relatedVideoId = relatedVideoId,
+                relatedFieldRecordId = relatedFieldRecordId,
+                relatedLogId = relatedLogId,
+                relatedTaskId = relatedTaskId,
+                relatedTopicId = relatedTopicId,
+                relatedCrewMemberId = relatedCrewMemberId,
+            ),
+        )
     }
 
     /**
@@ -203,6 +231,7 @@ object DemoProjectRepository {
             id = "outbox-log-${record.id}",
             title = "Voice daily log",
             detail = record.transcript.ifBlank { "Submitted from voice" }.take(60),
+            relatedLogId = record.id,
         )
     }
 
@@ -273,6 +302,7 @@ object DemoProjectRepository {
             id = "outbox-$photoId",
             title = "Photo: ${title.ifBlank { "Site photo" }}",
             detail = subtitle,
+            relatedImageId = photoId,
         )
         return photoId
     }
@@ -327,7 +357,12 @@ object DemoProjectRepository {
                 yFraction = 0.44f,
             ),
         )
-        queueOutbox(id = "outbox-$videoId", title = "Video: $title", detail = subtitle)
+        queueOutbox(
+            id = "outbox-$videoId",
+            title = "Video: $title",
+            detail = subtitle,
+            relatedVideoId = videoId,
+        )
         return videoId
     }
 
@@ -393,6 +428,7 @@ object DemoProjectRepository {
             id = "outbox-${record.id}",
             title = "${record.category.label}: ${record.title}",
             detail = record.location,
+            relatedFieldRecordId = record.id,
         )
         if (record.blocksWork) {
             addIssue(
@@ -443,6 +479,7 @@ object DemoProjectRepository {
             id = "outbox-inspect-$now",
             title = "Inspection request: ${task.title}",
             detail = task.location,
+            relatedTaskId = task.id,
         )
         lastInspectionRequestTitle = task.title
     }
@@ -560,8 +597,20 @@ object DemoProjectRepository {
         )
         outboxItems.addAll(
             listOf(
-                OutboxItem("outbox-1", "Photo: Area B framing", "Area B"),
-                OutboxItem("outbox-2", "Issue: Missing guardrail", "Level 2"),
+                // Linked to real seeds (ProjectImageRepository / RecordRepository) so the queue
+                // taps through to detail from first launch — an Outbox row never dead-ends.
+                OutboxItem(
+                    "outbox-1",
+                    "Photo: Area B framing",
+                    "Area B",
+                    relatedImageId = "img-corridor-c",
+                ),
+                OutboxItem(
+                    "outbox-2",
+                    "Issue: Missing guardrail",
+                    "Level 2",
+                    relatedFieldRecordId = "rec-seed-guardrail",
+                ),
             ),
         )
     }

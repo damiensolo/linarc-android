@@ -84,6 +84,29 @@ object RecordRepository {
                     severity = RecordSeverity.HIGH,
                     impact = RecordImpact.SAFETY,
                 ),
+                // The seeded Outbox's "Issue: Missing guardrail" entry deep-links here — the
+                // queue must tap through to detail from first launch. Logged, not blocking:
+                // Safety hazard defaults to blocks-work on the create form, but the reporter
+                // cleared it because the opening is barricaded and no scheduled work stops —
+                // same documented-and-contained story as the near-miss seed above. (Blocking
+                // would also rank it in the Owner's Decisions needed, which the dashboard
+                // seeds pin to exactly one critical row.)
+                FieldRecord(
+                    id = "rec-seed-guardrail",
+                    category = RecordCategory.ISSUE,
+                    title = "Missing guardrail",
+                    type = "Safety hazard",
+                    description = "Guardrail section removed at the slab edge for material " +
+                        "hoisting; opening is taped off and coned. Reinstall before deck work resumes.",
+                    location = "Level 2",
+                    eventDateMillis = now - 6 * hour,
+                    assigneeIds = listOf("dave-miller"),
+                    attachments = emptyList(),
+                    createdAtMillis = now - 6 * hour,
+                    authorName = "Alex Rivera",
+                    severity = RecordSeverity.HIGH,
+                    impact = RecordImpact.SAFETY,
+                ),
                 // Today's seeded "Frame inspection" row deep-links to this record
                 // (DemoProjectRepository.seed sets relatedFieldRecordId = this id).
                 FieldRecord(

@@ -3,6 +3,7 @@
 This Android prototype is the **reference implementation** for Linarc Onsite’s field product. Use it to learn the information architecture, UX contracts, and interaction patterns — then rebuild them in the production app. Do not treat demo persistence, missing modules, or strategy-only screens as production requirements.
 
 **Source of truth:** `Mobile Structure Validated v1.md`. If this handoff and the spec disagree, follow the spec.  
+**What works vs placeholder + how to try each flow:** `FEATURE_GUIDE.md`.  
 **Walkthrough for stakeholders:** `DEMO_SCRIPT.md`.  
 **Tab-stack contract:** `NAVIGATION_PATTERNS.md`.
 

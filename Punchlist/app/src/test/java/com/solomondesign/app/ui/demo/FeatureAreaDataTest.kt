@@ -130,6 +130,7 @@ class FeatureAreaDataTest {
         assertEquals(4.0, TimeCardRepository.totalHours("sam-reyes"), 0.001)
         assertEquals("te-test", TimeCardRepository.entries.first().id)
         assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
+        assertEquals("sam-reyes", DemoProjectRepository.outboxItems.last().relatedCrewMemberId)
     }
 
     // ---- collaboration ----
@@ -392,6 +393,63 @@ class FeatureAreaDataTest {
         assertEquals("Queued · waiting for signal", OutboxItem("y", "Message").statusLine())
     }
 
+    /** An Outbox row never dead-ends: the seeded entries link to real seeded targets. */
+    @Test
+    fun seededOutboxRowsResolveToRealTargets() {
+        val photoRow = DemoProjectRepository.outboxItems.first { it.id == "outbox-1" }
+        assertNotNull(
+            "the seeded photo entry must resolve to a seeded image",
+            ProjectImageRepository.find(photoRow.relatedImageId!!),
+        )
+        val issueRow = DemoProjectRepository.outboxItems.first { it.id == "outbox-2" }
+        assertEquals("rec-seed-guardrail", issueRow.relatedFieldRecordId)
+        assertEquals("Missing guardrail", RecordRepository.find("rec-seed-guardrail")?.title)
+    }
+
+    /** Every publisher stamps its Outbox entry with a link back to what it published. */
+    @Test
+    fun publishersLinkOutboxEntriesBackToWhatTheyPublished() {
+        val photoId = DemoProjectRepository.addPhoto(
+            title = "Header strap",
+            subtitle = "Area B",
+            createIssue = false,
+        )
+        assertEquals(photoId, DemoProjectRepository.outboxItems.last().relatedImageId)
+
+        val videoId = DemoProjectRepository.addCapturedVideo(
+            title = "Slab pour walk",
+            note = "",
+            videoPath = "video/test.mp4",
+            transcript = "",
+            durationSeconds = 12,
+        )
+        assertEquals(videoId, DemoProjectRepository.outboxItems.last().relatedVideoId)
+
+        DemoProjectRepository.addRecord(
+            FieldRecord(
+                id = "rec-link-test",
+                category = RecordCategory.ISSUE,
+                title = "Linked issue",
+                type = "Quality",
+                description = "",
+                location = "Area B",
+                eventDateMillis = 1_000L,
+                assigneeIds = emptyList(),
+                attachments = emptyList(),
+                createdAtMillis = 2_000L,
+                authorName = CurrentUser.NAME,
+            ),
+        )
+        assertEquals("rec-link-test", DemoProjectRepository.outboxItems.last().relatedFieldRecordId)
+
+        CollabRepository.postMessage("topic-col4-medgas", "Re-route agreed")
+        assertEquals("topic-col4-medgas", DemoProjectRepository.outboxItems.last().relatedTopicId)
+
+        val task = FieldTaskRepository.tasks.first()
+        DemoProjectRepository.requestInspection(task)
+        assertEquals(task.id, DemoProjectRepository.outboxItems.last().relatedTaskId)
+    }
+
     /** Photos, videos, and voice logs queue too — the offline story covers every capture type. */
     @Test
     fun everyCaptureTypeQueuesOneOutboxEntry() {
@@ -426,6 +484,7 @@ class FeatureAreaDataTest {
         )
         assertEquals(before + 3, DemoProjectRepository.queuedOutboxCount)
         assertEquals("Voice daily log", DemoProjectRepository.outboxItems.last().title)
+        assertEquals("log-test", DemoProjectRepository.outboxItems.last().relatedLogId)
     }
 
     // ---- records (issues / incidents / punch items) ----

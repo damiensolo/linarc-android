@@ -451,7 +451,32 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     }
                 }
                 composable(AppRoutes.OUTBOX) {
-                    OutboxScreen(onBack = { navController.popBackStack() })
+                    // Queue receipts tap through to the same detail destinations the owning
+                    // tools use — an Outbox row never dead-ends.
+                    OutboxScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenImage = { imageId ->
+                            navController.navigate(AppRoutes.imageViewer(imageId))
+                        },
+                        onOpenVideo = { videoId ->
+                            navController.navigate(AppRoutes.videoPlayback(videoId))
+                        },
+                        onOpenRecord = { recordId ->
+                            navController.navigate(AppRoutes.recordDetail(recordId))
+                        },
+                        onOpenLog = { recordId ->
+                            navController.navigate(dailyLogDetailRoute(recordId))
+                        },
+                        onOpenTask = { taskId ->
+                            navController.navigate(AppRoutes.fieldTaskDetail(taskId))
+                        },
+                        onOpenTopic = { topicId ->
+                            navController.navigate(AppRoutes.collabTopic(topicId))
+                        },
+                        onOpenTimeCard = { crewMemberId ->
+                            navController.navigate(AppRoutes.timeCardDetail(crewMemberId))
+                        },
+                    )
                 }
 
                 // ---- Field Tasks ----

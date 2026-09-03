@@ -63,6 +63,7 @@ object CollabRepository {
         DemoProjectRepository.queueOutbox(
             id = "outbox-msg-$nextId",
             title = "Message: ${_topics[index].title}",
+            relatedTopicId = topicId,
         )
     }
 

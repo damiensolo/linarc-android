@@ -26,6 +26,7 @@
 ## Field prototype (source of truth)
 - Product spec: `Mobile Structure Validated v1.md`. Follow it; do not invent parallel IA.
 - Lead mobile developer handoff (how to walk the prototype and use it as a production reference): `HANDOFF.md`.
+- Functional vs placeholder tools and step-by-step try-it workflows: `FEATURE_GUIDE.md`.
 - Bottom navigation is Today, Capture, Plans, Tools — and **Capture is an action, not a destination** (decided 2026-08-24, superseding the earlier FAB + sheet rule): it opens the full-screen in-app CameraX camera, never shows a selected state, and never owns a back stack. Do not add further tabs.
 - Voice note (bilingual EN/ES voice capture → creates Issue/Incident/Punch item) and Quick issue stay one tap away as quick chips on the camera screen; they must remain usable even when camera permission is denied. The Voice note chip replaced the Voice daily log chip on 2026-08-25 — do not re-add voice daily log to the Capture UI.
 - The FAB is contextual-only (New time entry, New topic, Add image, New issue/incident/punch item on the record tool lists). Never reintroduce a global Capture FAB or a capture bottom sheet.
