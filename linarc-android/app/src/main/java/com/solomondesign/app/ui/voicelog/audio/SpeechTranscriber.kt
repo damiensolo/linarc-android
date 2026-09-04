@@ -77,6 +77,9 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
     /** Streams this class muted itself (never ones the user already had muted). */
     private val mutedStreams = mutableListOf<Int>()
 
+    /** Language the live [recognizer] was last armed with — see [start]. */
+    private var recognizerLanguageTag: String? = null
+
     override fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
     override fun sessionStarted() {
@@ -103,6 +106,17 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
         // recognition service. Left unfixed, those leaked bindings pile up over a single
         // recording and the service stops returning real results — "Listening…" forever with
         // nothing ever transcribed, even though audio is genuinely reaching the device.
+        //
+        // The one exception is a language change: the language toggle cancels the in-flight
+        // utterance and re-arms immediately, and re-using the connection there is exactly the
+        // stop-races-re-arm case that yields CLIENT/BUSY — and some recognizer services keep
+        // serving the language a bound connection first started with. A fresh recognizer per
+        // language makes the switch take effect on the very next utterance.
+        if (recognizer != null && languageTag != recognizerLanguageTag) {
+            recognizer?.destroy()
+            recognizer = null
+        }
+        recognizerLanguageTag = languageTag
         val activeRecognizer = recognizer ?: SpeechRecognizer.createSpeechRecognizer(context).also { recognizer = it }
         activeRecognizer.setRecognitionListener(
             object : RecognitionListener {

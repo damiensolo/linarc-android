@@ -47,8 +47,9 @@ class DictationController(private val transcriber: SpeechTranscriber) {
     private var active = false
 
     /**
-     * Increments on [reset]; utterance callbacks armed under an older take are ignored, so a
-     * late result from a canceled take can never resurrect discarded words into the fresh one.
+     * Increments on [reset] and on a mid-take [setLanguage]; utterance callbacks armed under an
+     * older arm are ignored, so a late result from a canceled take can never resurrect discarded
+     * words into the fresh one, and a stale old-language utterance can't re-arm the loop twice.
      * [stop] deliberately does NOT bump it — a Pause's in-flight words should still land.
      */
     private var takeId = 0
@@ -61,14 +62,27 @@ class DictationController(private val transcriber: SpeechTranscriber) {
     private var clientRetryStreak = 0
 
     /**
-     * Switches the recognition language mid-dictation. The in-flight utterance is stopped so it
-     * finalizes in its old language; the loop then re-arms with [tag]. Already-accumulated
-     * transcript is kept — dictation may legitimately mix languages.
+     * Switches the recognition language. While dictating, the loop re-arms with [tag] right away
+     * instead of waiting for the in-flight utterance to finalize: on real devices, stopping the
+     * recognizer with nothing captured yet frequently delivers no callback at all (or only after
+     * its own long timeout), which left the loop armed in the old language — the toggle looked
+     * like it did nothing. The in-flight partial (what the user already sees) is committed to
+     * the transcript so no words vanish; already-accumulated transcript is kept — dictation may
+     * legitimately mix languages. While stopped, the tag simply applies to the next [start].
      */
     fun setLanguage(tag: String?) {
         if (tag == languageTag) return
         languageTag = tag
-        if (active) transcriber.stop()
+        if (!active) return
+        if (partial.isNotBlank()) {
+            transcript = if (transcript.isBlank()) partial else "$transcript $partial"
+            partial = ""
+        }
+        // Disown the old-language arm before canceling it, so its late result/error can neither
+        // land words nor trigger a second re-arm alongside the one below.
+        takeId++
+        transcriber.cancel()
+        listenOnce()
     }
 
     /**
