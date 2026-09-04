@@ -2,6 +2,7 @@ package com.solomondesign.app.ui.voicelog.audio
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -47,9 +48,15 @@ private class FakeSpeechTranscriber(private val available: Boolean = true) : Spe
         script.add { _, _, onError -> onError(error) }
     }
 
-    /** Leaves the next utterance open (no scripted result) so stop() has something to finalize. */
-    fun enqueueOpenUtterance() {
-        script.add { _, onFinal, _ -> pendingOnFinal = onFinal }
+    /**
+     * Leaves the next utterance open (no scripted result) so stop() has something to finalize.
+     * [partial] is delivered first, like a recognizer that has heard words but not finalized yet.
+     */
+    fun enqueueOpenUtterance(partial: String? = null) {
+        script.add { onPartial, onFinal, _ ->
+            if (partial != null) onPartial(partial)
+            pendingOnFinal = onFinal
+        }
     }
 
     override fun isAvailable(): Boolean = available
@@ -277,8 +284,69 @@ class DictationControllerTest {
 
         controller.setLanguage("es-US")
 
-        // The in-flight utterance was stopped and finalized, so the loop re-armed — in Spanish.
+        // Re-armed in Spanish immediately — without waiting on the old utterance to call back.
         assertEquals(listOf<String?>("en-US", "es-US"), transcriber.startLanguageTags)
+        assertTrue(controller.isListening)
+    }
+
+    @Test
+    fun setLanguage_midDictation_keepsTheWordsAlreadyOnScreen() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueFinal("first sentence")
+        transcriber.enqueueOpenUtterance(partial = "segunda frase")
+        val controller = DictationController(transcriber)
+        controller.setLanguage("en-US")
+        controller.start()
+        assertEquals("segunda frase", controller.partial)
+
+        controller.setLanguage("es-US")
+
+        // The in-flight partial is committed rather than dropped with the canceled utterance.
+        assertEquals("first sentence segunda frase", controller.transcript)
+        assertEquals("", controller.partial)
+    }
+
+    @Test
+    fun setLanguage_midDictation_ignoresTheOldLanguageUtteranceWhenItFinallyCallsBack() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueOpenUtterance()
+        val controller = DictationController(transcriber)
+        controller.setLanguage("en-US")
+        controller.start()
+        val staleOnFinal = transcriber.lastOnFinal!!
+
+        controller.setLanguage("es-US")
+        staleOnFinal("late english words")
+
+        // No words from the disowned arm, and no second re-arm racing the Spanish one.
+        assertEquals("", controller.transcript)
+        assertEquals(2, transcriber.startCount)
+    }
+
+    @Test
+    fun setLanguage_whileStopped_appliesToTheNextStart() {
+        val transcriber = FakeSpeechTranscriber()
+        val controller = DictationController(transcriber)
+        controller.setLanguage("en-US")
+
+        controller.setLanguage("es-US")
+        controller.start()
+
+        assertEquals(listOf<String?>("es-US"), transcriber.startLanguageTags)
+    }
+
+    @Test
+    fun setLanguage_sameLanguage_doesNotDisturbTheTake() {
+        val transcriber = FakeSpeechTranscriber()
+        transcriber.enqueueOpenUtterance(partial = "still talking")
+        val controller = DictationController(transcriber)
+        controller.setLanguage("en-US")
+        controller.start()
+
+        controller.setLanguage("en-US")
+
+        assertEquals(1, transcriber.startCount)
+        assertEquals("still talking", controller.partial)
     }
 
     @Test

@@ -25,6 +25,17 @@ class DemoProjectRepositoryTest {
     }
 
     @Test
+    fun speakOnForms_defaultsOff_andClearResetsIt() {
+        assertFalse(DemoProjectRepository.speakOnForms)
+
+        DemoProjectRepository.speakOnForms = true
+        assertTrue(DemoProjectRepository.speakOnForms)
+
+        DemoProjectRepository.clear()
+        assertFalse(DemoProjectRepository.speakOnForms)
+    }
+
+    @Test
     fun projects_seedsRiversideMedicalFirstWithUniqueIds() {
         val projects = DemoProjectRepository.projects
 

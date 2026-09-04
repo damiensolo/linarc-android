@@ -188,12 +188,13 @@ This is the older structured log (labor, delays, Column 4 issue). It is **not** 
 
 Try type **Safety hazard** or **Failed inspection** — blocking may default on.
 
-**Speak:** tap **Speak** under Description or Blocking reason (English | Español). Words append; tap **Stop**, then type to fix. Opening **Camera** while listening stops Speak. Keyboard mic still works if you focus the field. There is no mic on Title, chips, or dates.
+**Speak** (turn on **Settings → Voice input → Voice input on forms** first; off by default): tap **Speak** under Description or Blocking reason (English | Español). Words append; tap **Stop**, then type to fix. Opening **Camera** while listening stops Speak. Keyboard mic still works if you focus the field. There is no mic on Title, chips, or dates.
 
 ### 10. Speak into a long-text field
 
-In-app Speak is only on long text. Keyboard/Gboard voice typing is the fallback everywhere else.
+In-app Speak is only on long text and is **off by default**. Keyboard/Gboard voice typing is the fallback everywhere else.
 
+0. **Tools → Settings → Voice input → Voice input on forms** → on. (Off, the fields below are plain text fields.)
 1. **Tools → Issues → FAB +** → tap **Speak** under Description. Talk. **Stop**. Edit the text.
 2. Turn **Blocks work?** on → **Speak** into Blocking reason.
 3. Start Speak, then tap **Camera** — Speak should stop before the viewfinder.
