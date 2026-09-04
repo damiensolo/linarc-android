@@ -59,6 +59,7 @@ fun SettingsScreen(
 ) {
     val persona = DemoProjectRepository.persona
     val darkTheme = DemoProjectRepository.darkTheme
+    val speakOnForms = DemoProjectRepository.speakOnForms
     var showViewAs by remember { mutableStateOf(false) }
     var showSplashPicker by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -82,45 +83,32 @@ fun SettingsScreen(
             ) {
                 item { FieldSectionLabel("Appearance") }
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                            .testTag("themeToggleRow"),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Dark theme", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                text = if (darkTheme) "On · dark chrome" else "Off · light chrome",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = muted,
-                            )
-                        }
-                        val colors = MaterialTheme.colorScheme
-                        Switch(
-                            checked = darkTheme,
-                            onCheckedChange = { DemoProjectRepository.darkTheme = it },
-                            modifier = Modifier.testTag("themeToggle"),
-                            thumbContent = {
-                                Icon(
-                                    imageVector = if (darkTheme) Icons.Filled.Check else Icons.Filled.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                )
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = colors.onPrimary,
-                                checkedTrackColor = colors.primary,
-                                checkedBorderColor = colors.primary,
-                                checkedIconColor = colors.primary,
-                                uncheckedThumbColor = colors.outline,
-                                uncheckedTrackColor = colors.surfaceContainerHighest,
-                                uncheckedBorderColor = colors.outline,
-                                uncheckedIconColor = colors.surfaceContainerHighest,
-                            ),
-                        )
-                    }
+                    SettingsSwitchRow(
+                        title = "Dark theme",
+                        subtitle = if (darkTheme) "On · dark chrome" else "Off · light chrome",
+                        checked = darkTheme,
+                        onCheckedChange = { DemoProjectRepository.darkTheme = it },
+                        rowTag = "themeToggleRow",
+                        switchTag = "themeToggle",
+                    )
+                }
+                item { FieldSectionLabel("Voice input") }
+                item {
+                    // Off by default (2026-09-04): on dense forms the Speak button and EN/ES
+                    // toggle competed with the rest of the UI. Voice note on Capture is not
+                    // affected — this only governs the shared Speak control on long-text fields.
+                    SettingsSwitchRow(
+                        title = "Voice input on forms",
+                        subtitle = if (speakOnForms) {
+                            "On · Speak + English/Español on Description, Blocking reason, messages, pin comments"
+                        } else {
+                            "Off · plain fields; keyboard voice typing still works"
+                        },
+                        checked = speakOnForms,
+                        onCheckedChange = { DemoProjectRepository.speakOnForms = it },
+                        rowTag = "speakOnFormsRow",
+                        switchTag = "speakOnFormsToggle",
+                    )
                 }
                 item { FieldSectionLabel("Demo") }
                 item {
@@ -271,5 +259,56 @@ fun SettingsScreen(
             }
             Column(modifier = Modifier.padding(24.dp)) { }
         }
+    }
+}
+
+/** One titled on/off setting with the app's check/close thumb treatment, shared by every Switch row here. */
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    rowTag: String,
+    switchTag: String,
+) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .testTag(rowTag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.testTag(switchTag),
+            thumbContent = {
+                Icon(
+                    imageVector = if (checked) Icons.Filled.Check else Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = colors.onPrimary,
+                checkedTrackColor = colors.primary,
+                checkedBorderColor = colors.primary,
+                checkedIconColor = colors.primary,
+                uncheckedThumbColor = colors.outline,
+                uncheckedTrackColor = colors.surfaceContainerHighest,
+                uncheckedBorderColor = colors.outline,
+                uncheckedIconColor = colors.surfaceContainerHighest,
+            ),
+        )
     }
 }

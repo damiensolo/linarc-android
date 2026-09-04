@@ -135,11 +135,11 @@ Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`,
 - **Dictated text never fills a title** (2026-09-03): voice note and video-issue seeds carry description/location/photos only; the reporter types the title on the form's required, empty field. No transcript-derived titles until parsing is genuinely smarter.
 - Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Tags: suggested chips **plus search-or-add** (`TagEditor` over the project tag vocabulary). Markup optional; baked into the JPEG.
 - Video: describe (skippable) → review → optional file-as-issue (location/note prefilled, title empty — see above).
-- **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak.
+- **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak. **Opt-in, off by default** (2026-09-04): Settings → Voice input → "Voice input on forms" shows the control; off, those fields are plain. Voice note on Capture is not gated.
 
 ### Forms
 
-Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels. Description and Blocking reason have an explicit **Speak** control (EN/ES); do not put a mic on Title, chips, dropdowns, dates, or hours.
+Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels. Description and Blocking reason have an explicit **Speak** control (EN/ES) when "Voice input on forms" is on in Settings; do not put a mic on Title, chips, dropdowns, dates, or hours.
 
 Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column. Collaboration composer and plan pin comment use the same compact Speak control.
 

@@ -46,6 +46,15 @@ object DemoProjectRepository {
 
     var darkTheme by mutableStateOf(true)
 
+    /**
+     * Whether long-text fields on forms (record Description / Blocking reason, collab message,
+     * plan pin comment) show the in-app Speak control with its EN/ES toggle. Off by default
+     * (2026-09-04): on dense forms the controls competed with the rest of the UI, so they are
+     * opt-in from Settings → Voice input. Voice note on Capture is never gated by this; keyboard
+     * voice typing keeps working on every field regardless.
+     */
+    var speakOnForms by mutableStateOf(false)
+
     /** Launch-brand treatment. Kept across [clear] so A/B picks survive logout. */
     var splashVariant by mutableStateOf(SplashVariant.DEPTH)
 
@@ -590,6 +599,7 @@ object DemoProjectRepository {
     fun clear() {
         persona = FieldPersona.FOREMAN
         darkTheme = true
+        speakOnForms = false
         ownerTodayVariant = OwnerTodayVariant.DASHBOARD
         dayStarted = false
         shiftStartedAtMillis = null

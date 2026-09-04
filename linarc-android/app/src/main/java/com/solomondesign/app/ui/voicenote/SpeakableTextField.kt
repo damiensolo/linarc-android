@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonSize
 import com.solomondesign.app.ui.designsystem.AppButtonType
@@ -44,6 +45,10 @@ import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
  * Long-text field with an explicit **Speak** control. Keyboard voice typing still works if the
  * user focuses the field; Speak is the gloves-sized path. Only one take runs at a time (see
  * [FieldDictationBroker]); words append into this field and stay editable after Stop.
+ *
+ * The Speak control and its language toggle are opt-in via Settings → Voice input
+ * ([DemoProjectRepository.speakOnForms], off by default): when off this is a plain text field
+ * and no speech recognizer is created for it.
  */
 @Composable
 fun SpeakableTextField(
@@ -62,6 +67,28 @@ fun SpeakableTextField(
     fieldModifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
+    val fieldInputModifier = Modifier
+        .fillMaxWidth()
+        .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+        .then(fieldModifier)
+        .testTag(fieldTestTag)
+
+    if (!DemoProjectRepository.speakOnForms) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = label,
+            placeholder = placeholder,
+            minLines = minLines,
+            singleLine = singleLine,
+            isError = isError,
+            supportingText = supportingText,
+            enabled = enabled,
+            modifier = modifier.then(fieldInputModifier),
+        )
+        return
+    }
+
     val context = LocalContext.current
     val transcriber = remember { AndroidSpeechTranscriber(context) }
     val dictation = remember {
@@ -124,12 +151,6 @@ fun SpeakableTextField(
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        val fieldInputModifier = Modifier
-            .fillMaxWidth()
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .then(fieldModifier)
-            .testTag(fieldTestTag)
-
         OutlinedTextField(
             value = value,
             onValueChange = { typed ->
