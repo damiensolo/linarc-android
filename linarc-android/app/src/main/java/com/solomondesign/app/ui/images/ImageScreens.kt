@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,9 +39,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.PinKind
+import com.solomondesign.app.ui.designsystem.AppSegmentedRow
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.DesignTokens
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
@@ -118,24 +118,16 @@ fun ImageGridScreen(
         modifier = modifier,
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().testTag("imageGridScreen")) {
-            SingleChoiceSegmentedButtonRow(
+            AppSegmentedRow(
+                options = ImagesViewMode.entries,
+                selected = viewMode,
+                onSelect = { viewMode = it },
+                label = { it.label },
+                testTag = { "imagesView_${it.name}" },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                ImagesViewMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = viewMode == mode,
-                        onClick = { viewMode = mode },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = ImagesViewMode.entries.size,
-                        ),
-                        label = { Text(mode.label) },
-                        modifier = Modifier.testTag("imagesView_${mode.name}"),
-                    )
-                }
-            }
+            )
 
             when (viewMode) {
                 ImagesViewMode.GRID -> ImagesGridView(
@@ -380,7 +372,12 @@ fun ImageViewerScreen(
     onMarkup: (ProjectImage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val image = ProjectImageRepository.find(imageId)
+    // The photo that opened the viewer anchors a pager over the whole set (repository order —
+    // the Grid view's order), so swiping walks the photos the way the plan viewer walks sheets.
+    val images = ProjectImageRepository.images
+    val startIndex = remember(imageId) { images.indexOfFirst { it.id == imageId } }
+    val pagerState = rememberPagerState(initialPage = startIndex.coerceAtLeast(0)) { images.size }
+    val image = if (startIndex < 0) null else images.getOrNull(pagerState.currentPage)
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAlbumSheet by remember { mutableStateOf(false) }
@@ -443,57 +440,41 @@ fun ImageViewerScreen(
                 .testTag("imageViewerScreen"),
             contentAlignment = Alignment.Center,
         ) {
-            // Pinch-to-zoom for close inspection (the personas' most common viewer need) —
-            // the same ZoomableContainer the plan viewer uses, so the gesture ritual is one
-            // muscle memory app-wide. Zoom caps at VIEWER_MAX_ZOOM to stay inside what the
-            // VIEWER_DECODE_EDGE_PX decode keeps sharp; the transform is a graphicsLayer
-            // matrix, so no re-decode or re-layout happens per gesture frame. Captions and
-            // the toolbar stay outside the container and never scale.
-            ZoomableContainer(
-                resetKey = image.id,
-                maxScale = VIEWER_MAX_ZOOM,
-                modifier = Modifier.testTag("imageZoomContainer"),
-            ) {
-                val captured = (image.source as? ImageSource.Captured)
-                    ?.let { CapturedBitmapStore.get(it.captureKey) }
-                when (val source = image.source) {
-                    is ImageSource.Drawable -> Image(
-                        painter = painterResource(source.resId),
-                        contentDescription = image.title,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    is ImageSource.Captured -> if (captured != null) {
-                        Image(
-                            bitmap = captured.asImageBitmap(),
-                            contentDescription = image.title,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
-                    }
-
-                    is ImageSource.CapturedFile -> FilePhoto(
-                        absolutePath = source.absolutePath,
-                        contentDescription = image.title,
-                        maxEdgePx = VIEWER_DECODE_EDGE_PX,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                        fallback = {
-                            SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
-                        },
-                    )
-
-                    is ImageSource.Swatch -> SitePhotoSwatch(
-                        seed = source.seed,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+            HorizontalPager(
+                state = pagerState,
+                key = { images[it].id },
+                pageSpacing = 12.dp,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                val pageImage = images[page]
+                val isCurrent = pagerState.settledPage == page
+                // Pinch-to-zoom for close inspection (the personas' most common viewer need) —
+                // the same ZoomableContainer the plan viewer uses, so the gesture ritual is one
+                // muscle memory app-wide. At fit scale the drag belongs to the pager (swipe to
+                // the next photo); zoomed in, it pans. Zoom caps at VIEWER_MAX_ZOOM to stay
+                // inside what the VIEWER_DECODE_EDGE_PX decode keeps sharp; the transform is a
+                // graphicsLayer matrix, so no re-decode or re-layout happens per gesture frame.
+                // Captions and the toolbar stay outside the pager and never scale.
+                ZoomableContainer(
+                    active = isCurrent,
+                    resetKey = pageImage.id,
+                    maxScale = VIEWER_MAX_ZOOM,
+                    // Only the settled page carries the tag, so tests and tooling see one viewer.
+                    modifier = if (isCurrent) Modifier.testTag("imageZoomContainer") else Modifier,
+                ) {
+                    PhotoContent(pageImage)
                 }
             }
 
             Column(modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
+                if (images.size > 1) {
+                    Text(
+                        text = "${pagerState.currentPage + 1} of ${images.size}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("viewerPageIndicator"),
+                    )
+                }
                 Text(
                     text = "${image.area} · ${image.authorName}",
                     style = MaterialTheme.typography.labelMedium,
@@ -563,6 +544,48 @@ fun ImageViewerScreen(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             },
             modifier = Modifier.testTag("viewerDeleteDialog"),
+        )
+    }
+}
+
+/** One full-resolution photo, fit to its page; the pager page's ZoomableContainer scales it. */
+@Composable
+private fun PhotoContent(image: ProjectImage) {
+    val captured = (image.source as? ImageSource.Captured)
+        ?.let { CapturedBitmapStore.get(it.captureKey) }
+    when (val source = image.source) {
+        is ImageSource.Drawable -> Image(
+            painter = painterResource(source.resId),
+            contentDescription = image.title,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        is ImageSource.Captured -> if (captured != null) {
+            Image(
+                bitmap = captured.asImageBitmap(),
+                contentDescription = image.title,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
+        }
+
+        is ImageSource.CapturedFile -> FilePhoto(
+            absolutePath = source.absolutePath,
+            contentDescription = image.title,
+            maxEdgePx = VIEWER_DECODE_EDGE_PX,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+            fallback = {
+                SitePhotoSwatch(seed = image.id.hashCode(), modifier = Modifier.fillMaxSize())
+            },
+        )
+
+        is ImageSource.Swatch -> SitePhotoSwatch(
+            seed = source.seed,
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }

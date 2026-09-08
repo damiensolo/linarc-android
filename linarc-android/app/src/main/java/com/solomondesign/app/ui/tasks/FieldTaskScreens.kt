@@ -13,9 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.designsystem.AppSegmentedRow
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
 import com.solomondesign.app.ui.designsystem.FieldSectionLabel
@@ -132,21 +130,16 @@ fun FieldTaskDetailScreen(
                 .testTag("fieldTaskDetailScreen"),
         ) {
             FieldSectionLabel("STATUS")
-            SingleChoiceSegmentedButtonRow(
+            AppSegmentedRow(
+                options = TaskStatus.entries,
+                selected = task.status,
+                onSelect = { FieldTaskRepository.setStatus(task.id, it) },
+                label = { it.label() },
+                testTag = { "taskStatus_${it.name}" },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-            ) {
-                TaskStatus.entries.forEachIndexed { index, status ->
-                    SegmentedButton(
-                        selected = task.status == status,
-                        onClick = { FieldTaskRepository.setStatus(task.id, status) },
-                        shape = SegmentedButtonDefaults.itemShape(index, TaskStatus.entries.size),
-                        label = { Text(status.label()) },
-                        modifier = Modifier.testTag("taskStatus_${status.name}"),
-                    )
-                }
-            }
+            )
 
             FieldSectionLabel("ASSIGNED TO")
             if (assignee == null) {

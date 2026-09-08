@@ -8,12 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -37,6 +33,7 @@ import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonSize
 import com.solomondesign.app.ui.designsystem.AppButtonType
+import com.solomondesign.app.ui.designsystem.AppSegmentedRow
 import com.solomondesign.app.ui.voicelog.audio.AndroidSpeechTranscriber
 import com.solomondesign.app.ui.voicelog.audio.DictationController
 import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
@@ -238,7 +235,6 @@ private fun beginSpeak(
     dictation.start()
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceLanguageToggle(
     selected: VoiceNoteLanguage,
@@ -246,19 +242,12 @@ fun VoiceLanguageToggle(
     modifier: Modifier = Modifier,
     testTagPrefix: String = "voiceNoteLang",
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        VoiceNoteLanguage.entries.forEachIndexed { index, language ->
-            SegmentedButton(
-                selected = selected == language,
-                onClick = { onSelect(language) },
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = VoiceNoteLanguage.entries.size,
-                ),
-                modifier = Modifier.testTag("${testTagPrefix}_${language.name}"),
-            ) {
-                Text(language.displayName)
-            }
-        }
-    }
+    AppSegmentedRow(
+        options = VoiceNoteLanguage.entries,
+        selected = selected,
+        onSelect = onSelect,
+        label = { it.displayName },
+        testTag = { "${testTagPrefix}_${it.name}" },
+        modifier = modifier,
+    )
 }
