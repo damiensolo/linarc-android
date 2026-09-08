@@ -50,7 +50,7 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | **Time card** | Crew list, member detail, new entry (FAB) | Tools → Time card |
 | **Crew** | Roster → member detail | Tools → Crew |
 | **Collaboration** | Topics → thread (Speak on message), new topic (FAB or +) | Tools → Collaboration |
-| **Images** | Grid / Timeline / Albums / Map, viewer, markup, album, create-from-photo | Tools → Images |
+| **Images** | Grid / Timeline / Albums / Map, swipeable zoom viewer, markup, album, create-from-photo | Tools → Images |
 | **Plans** | Same sheet list + pins as the Plans tab | Tools → Plans, or the Plans tab |
 | **Issues** | List, detail, create (FAB or +; Speak on Description / Blocking reason) | Tools → Issues |
 | **Incidents** | Same record system as Issues | Tools → Incidents |
@@ -226,7 +226,8 @@ In-app Speak is only on long text and is **off by default**. Keyboard/Gboard voi
 
 1. Tools → Images.
 2. Switch **Grid / Timeline / Albums / Map**.
-3. Tap a photo. Toolbar: Share / Markup / Album / Delete / Create.
+3. Tap a photo. **Swipe left/right** to move through the whole set (the “3 of 12” counter top-left tracks your place); pinch to zoom the current photo, double-tap to reset — while zoomed, a drag pans instead of paging. Toolbar (acts on the photo on screen): Share / Markup / Album / Delete / Create.
+   The Grid / Timeline / Albums / Map segments must each stay on one line — they use the shared `AppSegmentedRow`, which shrinks a label before it would wrap.
 4. **Map** pins captures on the Level 2 sheet (site drawing — no GPS in this build).
 
 ### 13. Plan pins and comments
@@ -235,7 +236,7 @@ The **Plans tab** and **Tools → Plans** open the **same** sheet list. From Too
 
 1. Tap **Plans**, *or* **Tools → Plans**.
 2. Open the Area B / Level 2 sheet (A-102). You should **not** see “Plans · sample 1”.
-3. Pinch to zoom, pan while zoomed, double-tap to reset. At fit scale, swipe left/right for the next or previous photo (the "3 of 12" counter top-left tracks your place).
+3. Pinch to zoom, pan while zoomed, double-tap to reset.
 4. Tap a pin → sheet with title / photo / comments.
 5. Add a comment (or tap **Speak**) → **Publish to team**.
 6. **Tools → Outbox** — the publish is queued.

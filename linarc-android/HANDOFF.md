@@ -135,6 +135,7 @@ Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`,
 - **Dictated text never fills a title** (2026-09-03): voice note and video-issue seeds carry description/location/photos only; the reporter types the title on the form's required, empty field. No transcript-derived titles until parsing is genuinely smarter.
 - Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Tags: suggested chips **plus search-or-add** (`TagEditor` over the project tag vocabulary). Markup optional; baked into the JPEG.
 - Video: describe (skippable) → review → optional file-as-issue (location/note prefilled, title empty — see above).
+- **Photo viewer** (2026-09-04): a `HorizontalPager` over the whole Images set, anchored on the tapped photo — swipe between photos exactly like the plan sheet viewer. Each page is its own `ZoomableContainer` (fit scale swipes, zoomed drags pan; zoom resets on swipe-away); the title, captions, “N of M” counter, and toolbar follow the current page. Close still exits in one tap.
 - **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak. **Opt-in, off by default** (2026-09-04): Settings → Voice input → "Voice input on forms" shows the control; off, those fields are plain. Voice note on Capture is not gated.
 
 ### Forms
@@ -148,6 +149,7 @@ Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or exten
 - Material 3; semantic tokens (`DesignTokens`, theme), not one-off colors.
 - Selected nav: **filled primary pill** behind the icon (Linarc Onsite). Capture uses **unselected** colors.
 - Dark theme default; Appearance toggle in Settings.
+- **Segmented controls** always go through `AppSegmentedRow` (design system) — never a raw Material `SegmentedButton`. It keeps every label on one line (auto-shrinks to an 11sp floor before wrapping) and drops the selected check icon on rows of four or more, because a four-segment row (“Timeline”, “In progress”) wrapped to two lines on a Pixel and broke the row height.
 - Prefer Android conventions when they conflict with a literal Figma copy.
 - Loading / empty / error / offline / disabled / validation where relevant. Explain unbuilt actions — **don’t fake a broken UI**.
 
@@ -186,8 +188,8 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 | Field dictation (one take at a time) | `ui/voicelog/audio/FieldDictationBroker.kt`, `DictationController.kt` |
 | Voice-to-Log (scripted demo) | `ui/voicelog/` — entry: Settings → Demo |
 | Records (issue/incident/punch) | `ui/records/` |
-| Images, markup, zoom | `ui/images/`, `ui/markup/`, `ui/designsystem/ZoomableContainer.kt` |
-| Design system | `ui/designsystem/` — `TaskFlowScaffold`, `BrowseScaffold`, `FieldPageHeader`, `FieldForm`, `AppButton`, `TagEditor`, `FieldCollapsibleSectionHeader` |
+| Images, markup, zoom | `ui/images/` (viewer = pager over the set), `ui/markup/`, `ui/designsystem/ZoomableContainer.kt` |
+| Design system | `ui/designsystem/` — `TaskFlowScaffold`, `BrowseScaffold`, `FieldPageHeader`, `FieldForm`, `AppButton`, `AppSegmentedRow`, `TagEditor`, `FieldCollapsibleSectionHeader` |
 | Demo seed + fan-out | `ui/demo/DemoProjectRepository.kt`, `DemoSession.kt` |
 | Personas | `ui/persona/FieldPersona.kt` |
 

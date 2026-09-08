@@ -94,7 +94,7 @@ Show the bar: **Today, Capture, Plans, Tools.**
 ### Beat 2 — Capture is one tap (2.5 min)
 
 1. Tap **Capture** (next to Today).
-2. **Photo** path (if time is tight, skip markup): shoot → Save. Then: Today row, Plan pin, Images — “one save, three surfaces.”
+2. **Photo** path (if time is tight, skip markup): shoot → Save. Then: Today row, Plan pin, Images — “one save, three surfaces.” Open it from Images and swipe: the viewer pages through every photo, same gesture as the plans.
 3. Back to Capture → **Voice note** chip: speak a short Spanish line *or* English defect. Pause/Resume if needed. Toggle EN/ES → type to fix a word on review → **Create → Issue** → Save. Point: “Works even if camera permission is denied. The note is disposable; the record is the artifact.”
 4. Optional if you have 30s: **Issue** chip → sticky Save on the form. **Speak** is on Description / Blocking reason, not every field.
 
