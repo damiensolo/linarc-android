@@ -66,6 +66,7 @@ import com.solomondesign.app.ui.designsystem.fieldNavigationBarItemColors
 import com.solomondesign.app.ui.images.ImageGridScreen
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ImageSourceSheet
+import com.solomondesign.app.ui.images.ImageViewerScope
 import com.solomondesign.app.ui.images.ImageViewerScreen
 import com.solomondesign.app.ui.images.ProjectImage
 import com.solomondesign.app.ui.images.ProjectImageRepository
@@ -716,9 +717,13 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     sheetId = decodeArg(entry.arguments?.getString("sheetId")),
                     onClose = { navController.popBackStack() },
                     // A capture pin's photo opens in the same full-screen viewer as everywhere
-                    // else; it stacks on the plan viewer so Back returns to the sheet.
+                    // else; it stacks on the plan viewer so Back returns to the sheet. Scoped
+                    // to pinned photos: swiping here is about this plan's locations, not the
+                    // whole Images set.
                     onOpenImage = { imageId ->
-                        navController.navigate(AppRoutes.imageViewer(imageId))
+                        navController.navigate(
+                            AppRoutes.imageViewer(imageId, ImageViewerScope.PLAN_PINS),
+                        )
                     },
                 )
             }
@@ -795,10 +800,17 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
             }
             composable(
                 route = AppRoutes.IMAGE_VIEWER,
-                arguments = listOf(navArgument("imageId") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("imageId") { type = NavType.StringType },
+                    navArgument("scope") {
+                        type = NavType.StringType
+                        defaultValue = ImageViewerScope.ALL.routeValue
+                    },
+                ),
             ) { entry ->
                 ImageViewerScreen(
                     imageId = decodeArg(entry.arguments?.getString("imageId")),
+                    scope = ImageViewerScope.fromRoute(entry.arguments?.getString("scope")),
                     onClose = { navController.popBackStack() },
                     // The chooser picked a category; stage the form with this photo attached
                     // and its metadata seeded, then stack the form so Back returns here.

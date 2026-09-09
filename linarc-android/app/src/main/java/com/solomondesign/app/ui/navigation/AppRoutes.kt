@@ -1,5 +1,6 @@
 package com.solomondesign.app.ui.navigation
 
+import com.solomondesign.app.ui.images.ImageViewerScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Architecture
 import androidx.compose.material.icons.filled.Handyman
@@ -85,7 +86,7 @@ object AppRoutes {
      * Literal "viewer" segment on purpose: a bare `images/{imageId}` would be ambiguous with
      * [IMAGE_GRID]'s own children in the route matcher.
      */
-    const val IMAGE_VIEWER = "images/viewer/{imageId}"
+    const val IMAGE_VIEWER = "images/viewer/{imageId}?scope={scope}"
 
     /** Markup editor over one captured image — immersive, like the camera it grew out of. */
     const val IMAGE_MARKUP = "images/markup/{imageId}"
@@ -103,7 +104,9 @@ object AppRoutes {
 
     fun collabTopic(topicId: String) = "collaboration/${encode(topicId)}"
 
-    fun imageViewer(imageId: String) = "images/viewer/${encode(imageId)}"
+    /** [scope] limits what swiping reaches; a plan pin passes [ImageViewerScope.PLAN_PINS]. */
+    fun imageViewer(imageId: String, scope: ImageViewerScope = ImageViewerScope.ALL) =
+        "images/viewer/${encode(imageId)}?scope=${scope.routeValue}"
 
     fun imageMarkup(imageId: String) = "images/markup/${encode(imageId)}"
 

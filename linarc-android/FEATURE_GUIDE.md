@@ -237,7 +237,7 @@ The **Plans tab** and **Tools → Plans** open the **same** sheet list. From Too
 1. Tap **Plans**, *or* **Tools → Plans**.
 2. Open the Area B / Level 2 sheet (A-102). You should **not** see “Plans · sample 1”.
 3. Pinch to zoom, pan while zoomed, double-tap to reset.
-4. Tap a pin → sheet with title / photo / comments.
+4. Tap a pin → sheet with title / photo / comments. Tapping the photo opens the viewer **scoped to pinned photos only** — swiping moves between this plan’s pinned captures, never unrelated album shots.
 5. Add a comment (or tap **Speak**) → **Publish to team**.
 6. **Tools → Outbox** — the publish is queued.
 
