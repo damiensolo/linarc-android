@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.designsystem.AppCheckbox
 import com.solomondesign.app.ui.designsystem.AppSegmentedRow
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
@@ -176,7 +176,7 @@ fun FieldTaskDetailScreen(
                         enabled = true,
                         onClick = { FieldTaskRepository.toggleCheckItem(task.id, item.id) },
                         trailing = {
-                            Checkbox(
+                            AppCheckbox(
                                 checked = item.done,
                                 onCheckedChange = {
                                     FieldTaskRepository.toggleCheckItem(task.id, item.id)

@@ -14,14 +14,14 @@ class DemoProjectRepositoryTest {
     }
 
     @Test
-    fun darkTheme_togglesAndClearResetsToDark() {
-        assertTrue(DemoProjectRepository.darkTheme)
-
-        DemoProjectRepository.darkTheme = false
+    fun darkTheme_defaultsOff_togglesAndClearResetsToLight() {
         assertFalse(DemoProjectRepository.darkTheme)
 
-        DemoProjectRepository.clear()
+        DemoProjectRepository.darkTheme = true
         assertTrue(DemoProjectRepository.darkTheme)
+
+        DemoProjectRepository.clear()
+        assertFalse(DemoProjectRepository.darkTheme)
     }
 
     @Test
