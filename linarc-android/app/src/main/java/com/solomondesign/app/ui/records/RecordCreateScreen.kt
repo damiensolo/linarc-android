@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -42,7 +41,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -65,6 +63,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.designsystem.AppCheckbox
+import com.solomondesign.app.ui.designsystem.AppSwitch
 import com.solomondesign.app.ui.designsystem.FieldFormActionBar
 import com.solomondesign.app.ui.designsystem.FieldRequiredLabel
 import com.solomondesign.app.ui.designsystem.FieldRequiredNote
@@ -367,7 +367,7 @@ fun RecordCreateScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(
+                AppSwitch(
                     checked = RecordDraft.blocksWork,
                     onCheckedChange = { RecordDraft.setBlocking(it) },
                     modifier = Modifier.testTag("recordBlocksWork"),
@@ -482,7 +482,7 @@ fun RecordCreateScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(
+                    AppSwitch(
                         checked = RecordDraft.acknowledgementRequired,
                         onCheckedChange = { RecordDraft.acknowledgementRequired = it },
                         modifier = Modifier.testTag("recordAckRequired"),
@@ -568,7 +568,7 @@ fun RecordCreateScreen(
                                 }
                             },
                             leadingIcon = {
-                                Checkbox(
+                                AppCheckbox(
                                     checked = member.id in RecordDraft.assigneeIds,
                                     onCheckedChange = null,
                                 )

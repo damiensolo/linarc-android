@@ -1,5 +1,7 @@
 package com.solomondesign.app.ui.demo
 
+import com.solomondesign.app.ui.theme.LightPresenceAssigned
+import com.solomondesign.app.ui.theme.LightPresenceOnSite
 import com.solomondesign.app.ui.theme.PresenceAssigned
 import com.solomondesign.app.ui.theme.PresenceOffSite
 import com.solomondesign.app.ui.theme.PresenceOnSite
@@ -19,13 +21,28 @@ class CrewPresenceTest {
     }
 
     @Test
-    fun badgeColors_areDistinctPerPresence() {
+    fun badgeColors_areDistinctPerPresence_inBothThemes() {
+        try {
+            DemoProjectRepository.darkTheme = false
+            assertEquals(LightPresenceOnSite, CrewPresence.ON_SITE.badgeColor())
+            assertEquals(LightPresenceAssigned, CrewPresence.ASSIGNED.badgeColor())
+            assertEquals(PresenceOffSite, CrewPresence.OFF_SITE.badgeColor())
+            assertDistinct()
+
+            DemoProjectRepository.darkTheme = true
+            assertEquals(PresenceOnSite, CrewPresence.ON_SITE.badgeColor())
+            assertEquals(PresenceAssigned, CrewPresence.ASSIGNED.badgeColor())
+            assertEquals(PresenceOffSite, CrewPresence.OFF_SITE.badgeColor())
+            assertDistinct()
+        } finally {
+            DemoProjectRepository.clear()
+        }
+    }
+
+    private fun assertDistinct() {
         val onSite = CrewPresence.ON_SITE.badgeColor()
         val assigned = CrewPresence.ASSIGNED.badgeColor()
         val offSite = CrewPresence.OFF_SITE.badgeColor()
-        assertEquals(PresenceOnSite, onSite)
-        assertEquals(PresenceAssigned, assigned)
-        assertEquals(PresenceOffSite, offSite)
         assertNotEquals(onSite, assigned)
         assertNotEquals(assigned, offSite)
         assertNotEquals(onSite, offSite)

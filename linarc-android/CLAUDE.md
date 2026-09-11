@@ -19,6 +19,7 @@
 ## UI and design system
 - Reuse design-system components before creating screen-specific duplicates.
 - Segmented controls use `AppSegmentedRow` (one-line, auto-shrinking labels; no check icon at 4+ segments) — never compose Material `SegmentedButton` directly. Labels wrapped on a Pixel before this rule (2026-09-04).
+- **Selection state is monochrome, not blue** (2026-09-10): the selected bottom-nav pill, switches, checkboxes, radio buttons and the active segment render in `inverseSurface` / `inverseOnSurface` (white on dark, black on light). Use `AppSwitch` / `AppCheckbox` / `AppRadioButton` (`AppSelectionControls.kt`) — never raw Material `Switch` / `Checkbox` / `RadioButton`. `primary` blue and the status colors stay reserved for `AppButton` Primary, CTAs and status chips; `secondaryContainer` is a neutral gray.
 - Use semantic design tokens rather than hard-coded colors, spacing, or typography.
 - Support loading, empty, error, offline, disabled, and validation states where relevant.
 - Use accessible content descriptions and proper semantics.

@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.designsystem.AppSwitch
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.FieldSectionLabel
 import com.solomondesign.app.ui.designsystem.FieldWorkRow
@@ -288,7 +288,7 @@ private fun SettingsSwitchRow(
                 color = colors.onSurfaceVariant,
             )
         }
-        Switch(
+        AppSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             modifier = Modifier.testTag(switchTag),
@@ -299,16 +299,6 @@ private fun SettingsSwitchRow(
                     modifier = Modifier.size(SwitchDefaults.IconSize),
                 )
             },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = colors.onPrimary,
-                checkedTrackColor = colors.primary,
-                checkedBorderColor = colors.primary,
-                checkedIconColor = colors.primary,
-                uncheckedThumbColor = colors.outline,
-                uncheckedTrackColor = colors.surfaceContainerHighest,
-                uncheckedBorderColor = colors.outline,
-                uncheckedIconColor = colors.surfaceContainerHighest,
-            ),
         )
     }
 }

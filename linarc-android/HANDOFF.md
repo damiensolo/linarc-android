@@ -147,8 +147,8 @@ Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or exten
 ### Visual
 
 - Material 3; semantic tokens (`DesignTokens`, theme), not one-off colors.
-- Selected nav: **filled primary pill** behind the icon (Linarc Onsite). Capture uses **unselected** colors.
-- Dark theme default; Appearance toggle in Settings.
+- Selected nav: **filled monochrome pill** behind the icon (`inverseSurface`: white on dark, black on light). Capture uses **unselected** colors. Switches, checkboxes, radio buttons and the active segment of `AppSegmentedRow` use the same inverse black/white via `AppSwitch` / `AppCheckbox` / `AppRadioButton` — never raw Material `Switch` / `Checkbox` / `RadioButton`. Blue (`primary`) is reserved for `AppButton` Primary and other calls to action (2026-09-10).
+- Light theme default (dark off since 2026-09-10); the Appearance toggle in Settings turns dark on.
 - **Segmented controls** always go through `AppSegmentedRow` (design system) — never a raw Material `SegmentedButton`. It keeps every label on one line (auto-shrinks to an 11sp floor before wrapping) and drops the selected check icon on rows of four or more, because a four-segment row (“Timeline”, “In progress”) wrapped to two lines on a Pixel and broke the row height.
 - Prefer Android conventions when they conflict with a literal Figma copy.
 - Loading / empty / error / offline / disabled / validation where relevant. Explain unbuilt actions — **don’t fake a broken UI**.

@@ -44,7 +44,8 @@ object DemoProjectRepository {
     var persona by mutableStateOf(FieldPersona.FOREMAN)
         private set
 
-    var darkTheme by mutableStateOf(true)
+    /** Light chrome by default (2026-09-10); Settings → Appearance turns dark on. */
+    var darkTheme by mutableStateOf(false)
 
     /**
      * Whether long-text fields on forms (record Description / Blocking reason, collab message,
@@ -598,7 +599,7 @@ object DemoProjectRepository {
 
     fun clear() {
         persona = FieldPersona.FOREMAN
-        darkTheme = true
+        darkTheme = false
         speakOnForms = false
         ownerTodayVariant = OwnerTodayVariant.DASHBOARD
         dayStarted = false

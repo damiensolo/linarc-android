@@ -18,7 +18,7 @@ Launch → Splash (brand) → Project List → Today. This sits above the three-
 
 **Getting back to the picker:** three shortcuts, one handler. On every Today/Plan/Tools header: a tappable project-name chip (above the title) and a `⋮` overflow menu ("Switch project") next to the profile avatar — plus Profile → Switch project (see Profile, below). All three reset the Today/Plan/Tools back stack and re-show the Project List; none clear demo data. The picker's own footer nav cannot otherwise be reached from inside the chassis.
 
-**Selected-nav color:** every bottom `NavigationBar` in the app (this picker's Projects/Accounts, and the chassis's Today/Plan/Tools) uses the same blue filled pill behind the selected icon, matching the Linarc Onsite Figma file.
+**Selected-nav color:** every bottom `NavigationBar` in the app (this picker's Projects/Accounts, and the chassis's Today/Plan/Tools) uses the same filled monochrome pill behind the selected icon — white on the dark theme, black on the light theme (`inverseSurface`). It was the Linarc Onsite blue until 2026-09-10; blue is now reserved for calls to action so the selected tab no longer competes with the screen's primary button.
 
 **Motion:** Pattern B push/pop uses the standard Android parallax slide (new screen enters fully from the right, previous screen partially exits left, reversed on back); Pattern A immersive routes slide vertically like a task takeover; switching Today/Plan/Tools tabs crossfades rather than sliding, since tabs are siblings, not a stack. The Splash → Project List → Today handoff and the picker's own Projects/Accounts tab swap crossfade too.
 
