@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.solomondesign.punchlist", appContext.packageName)
+        assertEquals("io.linarc.android", appContext.packageName)
     }
 }

@@ -2,7 +2,7 @@
 
 **UX principle:** Field users bounce between Today, Plan, and Tools to *look something up*, not to start over. Leaving a tool must not wipe their place. Getting back to the Tools catalog must stay one obvious tap away.
 
-This is a required navigation pattern for the Punchlist chassis, not an implementation quirk. Product spec: `Mobile Structure Validated v1.md` (Pattern B). Implementation: `AppNavHost.kt` bottom-bar `onClick`.
+This is a required navigation pattern for the linarc-android chassis, not an implementation quirk. Product spec: `Mobile Structure Validated v1.md` (Pattern B). Implementation: `AppNavHost.kt` bottom-bar `onClick`.
 
 ## Why it exists
 

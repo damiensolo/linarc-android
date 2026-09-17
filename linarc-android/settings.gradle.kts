@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Punchlist"
+rootProject.name = "linarc-android"
 include(":app")
  
