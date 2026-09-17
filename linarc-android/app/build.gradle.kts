@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.solomondesign.punchlist"
+        applicationId = "io.linarc.android"
         minSdk = 33
         targetSdk = 37
         versionCode = 1

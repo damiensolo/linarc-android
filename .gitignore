@@ -1,0 +1,4 @@
+# Sibling Android Studio projects living beside linarc-android in this repo root.
+# Only linarc-android/ is versioned here.
+/droid-llm/
+/local-llm/

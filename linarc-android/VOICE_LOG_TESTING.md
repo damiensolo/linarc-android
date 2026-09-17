@@ -16,12 +16,12 @@ log must appear on **Today** and any issue (e.g. Column 4 spalling) must pin on
 
 ```bash
 export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
-cd Punchlist
+cd linarc-android
 ./gradlew installDebug
 
 # Pre-grant the mic permission so you skip the system dialog (optional — the app
 # will prompt for it on first use anyway if you skip this).
-adb shell pm grant com.solomondesign.punchlist android.permission.RECORD_AUDIO
+adb shell pm grant io.linarc.android android.permission.RECORD_AUDIO
 ```
 
 If you're on a **physical device**, plug it in, enable USB debugging, and swap
@@ -69,7 +69,7 @@ Studio version). Without that, `SpeechRecognizer` will hear only silence.
 ## 3. If something looks wrong
 
 - **Stuck on "Microphone access needed" after granting permission**: force-stop
-  and relaunch the app (`adb shell am force-stop com.solomondesign.punchlist`).
+  and relaunch the app (`adb shell am force-stop io.linarc.android`).
 - **Transcript never appears / stays "Listening…"**: the emulator's mic isn't
   routed to your host mic (see setup step above), or there's no network (the
   on-device model needs its language pack downloaded once; until then it falls
