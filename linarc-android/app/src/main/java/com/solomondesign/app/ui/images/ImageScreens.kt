@@ -371,10 +371,18 @@ fun ImageViewerScreen(
     onCreateRecord: (ProjectImage, RecordCategory) -> Unit,
     onMarkup: (ProjectImage) -> Unit,
     modifier: Modifier = Modifier,
+    /** What swiping reaches — the whole set, or only photos pinned on the plan (see [viewerImages]). */
+    scope: ImageViewerScope = ImageViewerScope.ALL,
 ) {
-    // The photo that opened the viewer anchors a pager over the whole set (repository order —
-    // the Grid view's order), so swiping walks the photos the way the plan viewer walks sheets.
-    val images = ProjectImageRepository.images
+    // The photo that opened the viewer anchors a pager over its scope, so swiping walks the
+    // photos the way the plan viewer walks sheets — but only within what makes sense for where
+    // the user came from (all photos from Images; pinned photos only from a plan pin).
+    val images = viewerImages(
+        scope = scope,
+        anchorImageId = imageId,
+        images = ProjectImageRepository.images,
+        pins = DemoProjectRepository.pins,
+    )
     val startIndex = remember(imageId) { images.indexOfFirst { it.id == imageId } }
     val pagerState = rememberPagerState(initialPage = startIndex.coerceAtLeast(0)) { images.size }
     val image = if (startIndex < 0) null else images.getOrNull(pagerState.currentPage)

@@ -5,6 +5,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -24,6 +25,9 @@ import androidx.compose.ui.unit.sp
  * container already marks the selection — so the label keeps its width.
  *
  * Use this for every segmented row in the app instead of composing `SegmentedButton` directly.
+ *
+ * The active segment is monochrome — inverse-surface fill, inverse-on-surface label — like the
+ * selected nav pill and [AppSwitch]; see [AppSwitch] for why selection never uses the accent.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +40,15 @@ fun <T> AppSegmentedRow(
     modifier: Modifier = Modifier,
     showSelectedIcon: Boolean = options.size <= MAX_OPTIONS_WITH_ICON,
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val colors = SegmentedButtonDefaults.colors(
+        activeContainerColor = scheme.inverseSurface,
+        activeContentColor = scheme.inverseOnSurface,
+        activeBorderColor = scheme.outline,
+        inactiveContainerColor = scheme.surface,
+        inactiveContentColor = scheme.onSurface,
+        inactiveBorderColor = scheme.outline,
+    )
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         options.forEachIndexed { index, option ->
             val isSelected = option == selected
@@ -49,6 +62,7 @@ fun <T> AppSegmentedRow(
                     {}
                 },
                 label = { SegmentedLabel(label(option)) },
+                colors = colors,
                 modifier = Modifier.testTag(testTag(option)),
             )
         }

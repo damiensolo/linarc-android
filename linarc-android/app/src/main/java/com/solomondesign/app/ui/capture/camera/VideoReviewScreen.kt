@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonType
+import com.solomondesign.app.ui.designsystem.AppSwitch
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
 import com.solomondesign.app.ui.video.IssueDraftParser
 import com.solomondesign.app.ui.video.VideoPlayerBox
@@ -113,7 +113,7 @@ fun VideoReviewScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(
+                AppSwitch(
                     checked = fileIssue,
                     onCheckedChange = { fileIssue = it },
                     modifier = Modifier.testTag("videoFileIssueSwitch"),

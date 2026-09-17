@@ -1,5 +1,7 @@
 package com.solomondesign.app.ui.images
 
+import com.solomondesign.app.ui.demo.PinKind
+import com.solomondesign.app.ui.demo.PlanPin
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -69,3 +71,53 @@ fun groupImagesByAlbum(images: List<ProjectImage>): List<ImageSection> {
  * so the Map view and the plan viewer's pin sheet invert that convention to find the photo.
  */
 fun imageIdOfPin(pinId: String): String = pinId.removePrefix("pin-")
+
+/**
+ * Which photos the full-screen viewer pages through. The viewer is one screen, but the two
+ * places that open it mean different things: the Images tool browses the whole set, while a
+ * plan pin is about *this location* — swiping there must only reach other photos pinned on
+ * the plan, never unrelated album shots.
+ */
+enum class ImageViewerScope(
+    /** Stable value carried in the nav route's `scope` argument. */
+    val routeValue: String,
+) {
+    /** Every photo, repository order (the Grid view's order). Images, Today, Outbox, records. */
+    ALL("all"),
+
+    /** Only photos with a capture pin on the plan, in pin order. Opened from a plan pin. */
+    PLAN_PINS("plan"),
+    ;
+
+    companion object {
+        /** Unknown or missing route values fall back to [ALL] — never a crash on a stale link. */
+        fun fromRoute(value: String?): ImageViewerScope =
+            entries.firstOrNull { it.routeValue == value } ?: ALL
+    }
+}
+
+/**
+ * The ordered set the viewer pages through for [scope], anchored on [anchorImageId]. The
+ * anchor is always included: if it exists but isn't in the scope (a photo opened from a pin
+ * that has since lost its pin), the viewer shows just that photo rather than jumping scopes.
+ */
+fun viewerImages(
+    scope: ImageViewerScope,
+    anchorImageId: String,
+    images: List<ProjectImage>,
+    pins: List<PlanPin>,
+): List<ProjectImage> {
+    val scoped = when (scope) {
+        ImageViewerScope.ALL -> images
+        ImageViewerScope.PLAN_PINS -> {
+            val byId = images.associateBy { it.id }
+            pins.asSequence()
+                .filter { it.kind == PinKind.PHOTO || it.kind == PinKind.VIDEO }
+                .mapNotNull { byId[imageIdOfPin(it.id)] }
+                .distinct()
+                .toList()
+        }
+    }
+    if (scoped.any { it.id == anchorImageId }) return scoped
+    return listOfNotNull(images.firstOrNull { it.id == anchorImageId })
+}

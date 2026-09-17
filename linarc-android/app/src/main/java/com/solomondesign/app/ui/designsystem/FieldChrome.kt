@@ -242,21 +242,22 @@ fun FieldCollapsibleSectionHeader(
 /**
  * Color roles for every bottom `NavigationBar` in the app.
  *
- * Material 3's default indicator uses `secondaryContainer` (a muted chip). That is the wrong
- * token: selected tabs must match [AppButton] Primary — saturated [ColorScheme.primary], white
- * icon. We draw that pill in [FieldNavItemIcon] and keep the M3 indicator transparent so it
- * cannot wash the accent out.
+ * The selected tab is monochrome: a filled [ColorScheme.inverseSurface] pill (white on dark,
+ * black on light) with an [ColorScheme.inverseOnSurface] icon, drawn in [FieldNavItemIcon]. It
+ * was `primary` blue until 2026-09-10, when it competed with the real call-to-action button on
+ * every screen; blue is reserved for [AppButton] Primary. Material 3's own `secondaryContainer`
+ * indicator stays transparent so it cannot draw a second shape behind the pill.
  *
  * Capture is an action, not a destination. It always uses the unselected
- * [ColorScheme.onSurfaceVariant] colors. Never tint it primary at rest — that made Capture look
- * selected while the real tab used a weaker blue.
+ * [ColorScheme.onSurfaceVariant] colors. Never tint it like a selected tab at rest — that made
+ * Capture look selected while the real tab was the one that should stand out.
  */
 @Composable
 fun fieldNavigationBarItemColors(): NavigationBarItemColors {
     val scheme = MaterialTheme.colorScheme
     return NavigationBarItemDefaults.colors(
-        selectedIconColor = scheme.onPrimary,
-        selectedTextColor = scheme.primary,
+        selectedIconColor = scheme.inverseOnSurface,
+        selectedTextColor = scheme.onSurface,
         indicatorColor = Color.Transparent,
         unselectedIconColor = scheme.onSurfaceVariant,
         unselectedTextColor = scheme.onSurfaceVariant,
@@ -266,7 +267,7 @@ fun fieldNavigationBarItemColors(): NavigationBarItemColors {
 private val NavSelectedPillWidth = 64.dp
 private val NavSelectedPillHeight = 32.dp
 
-/** Filled primary pill behind the selected nav icon; unselected icons stay on the bar surface. */
+/** Filled inverse-surface pill behind the selected nav icon; unselected icons stay on the bar surface. */
 @Composable
 fun FieldNavItemIcon(
     imageVector: ImageVector,
@@ -280,14 +281,14 @@ fun FieldNavItemIcon(
             .width(NavSelectedPillWidth)
             .height(NavSelectedPillHeight)
             .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) scheme.primary else Color.Transparent),
+            .background(if (selected) scheme.inverseSurface else Color.Transparent),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = imageVector,
             contentDescription = contentDescription,
             modifier = Modifier.size(24.dp),
-            tint = if (selected) scheme.onPrimary else scheme.onSurfaceVariant,
+            tint = if (selected) scheme.inverseOnSurface else scheme.onSurfaceVariant,
         )
     }
 }

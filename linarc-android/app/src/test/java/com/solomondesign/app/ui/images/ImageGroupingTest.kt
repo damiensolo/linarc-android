@@ -1,5 +1,7 @@
 package com.solomondesign.app.ui.images
 
+import com.solomondesign.app.ui.demo.PinKind
+import com.solomondesign.app.ui.demo.PlanPin
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -22,6 +24,63 @@ class ImageGroupingTest {
         source = ImageSource.Swatch(seed = 0),
         album = album,
     )
+
+    private fun pin(imageId: String, kind: PinKind = PinKind.PHOTO) = PlanPin(
+        id = "pin-$imageId",
+        kind = kind,
+        label = imageId,
+        snippet = "",
+        xFraction = 0.5f,
+        yFraction = 0.5f,
+    )
+
+    private val at = LocalDateTime.of(2026, 8, 24, 9, 0)
+
+    @Test
+    fun viewerImages_allScope_isTheWholeSetInRepositoryOrder() {
+        val all = listOf(image("a", at), image("b", at), image("c", at))
+
+        val result = viewerImages(ImageViewerScope.ALL, "b", all, pins = listOf(pin("c")))
+
+        assertEquals(listOf("a", "b", "c"), result.map { it.id })
+    }
+
+    @Test
+    fun viewerImages_planPinsScope_onlyPinnedPhotosInPinOrder() {
+        val all = listOf(image("album-shot", at), image("p1", at), image("p2", at), image("p3", at))
+        val pins = listOf(
+            pin("p3"),
+            PlanPin("issue-1", PinKind.ISSUE, "Issue", "", 0.1f, 0.1f),
+            pin("p1", kind = PinKind.VIDEO),
+            pin("gone"), // pin whose photo was deleted
+            pin("p3"), // duplicate pin for the same photo
+        )
+
+        val result = viewerImages(ImageViewerScope.PLAN_PINS, "p1", all, pins)
+
+        assertEquals(
+            "unpinned album photos never appear; order follows the pins",
+            listOf("p3", "p1"),
+            result.map { it.id },
+        )
+    }
+
+    @Test
+    fun viewerImages_planPinsScope_anchorWithoutAPin_showsJustThatPhoto() {
+        val all = listOf(image("loose", at), image("p1", at))
+
+        val result = viewerImages(ImageViewerScope.PLAN_PINS, "loose", all, pins = listOf(pin("p1")))
+
+        assertEquals(listOf("loose"), result.map { it.id })
+    }
+
+    @Test
+    fun viewerScope_fromRoute_fallsBackToAll() {
+        assertEquals(ImageViewerScope.PLAN_PINS, ImageViewerScope.fromRoute("plan"))
+        assertEquals(ImageViewerScope.ALL, ImageViewerScope.fromRoute("all"))
+        assertEquals(ImageViewerScope.ALL, ImageViewerScope.fromRoute(null))
+        assertEquals(ImageViewerScope.ALL, ImageViewerScope.fromRoute("bogus"))
+    }
 
     @Test
     fun timelineSections_labelTodayYesterdayThenDates_newestFirstThroughout() {
