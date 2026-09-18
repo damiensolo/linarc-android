@@ -116,7 +116,7 @@ Show the bar: **Today, Capture, Plans, Tools.**
 ### Beat 4 — Plan as shared truth (1 min)
 
 1. **Plans** *or* **Tools → Plans** (same sheets; from Tools, Back is the catalog) → open the Level 2 sheet → pinch/zoom → tap a pin (Column 4 if you ran Voice daily log; otherwise any capture pin).
-2. Comment (or **Speak**) → **Publish to team** → mention Outbox.
+2. Under **Discussion**, comment (or **Speak**) → **Send** → mention Outbox (one entry per message). On the Column 4 pin this is the same thread as the med-gas issue — say so.
 
 **Line:** “The drawing is the shared map. Pins are the work. Comments queue offline. The catalog card is the same Plans, not a placeholder.”
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.designsystem.AppSegmentedRow
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.DiscussionBubble
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
@@ -36,7 +38,8 @@ fun CollabTopicListScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val topics = CollabRepository.topics
+    var filter by rememberSaveable { mutableStateOf(TopicFilter.ALL) }
+    val topics = CollabRepository.topics.matching(filter, CollabRepository.authorIdentity().id)
 
     BrowseScaffold(
         title = "Collaboration",
@@ -44,41 +47,63 @@ fun CollabTopicListScreen(
         onBack = onBack,
         modifier = modifier,
     ) { padding ->
-        if (topics.isEmpty()) {
-            FieldEmptyState(
-                message = "No topics yet. Tap + to start one.",
-                modifier = Modifier.padding(padding),
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            AppSegmentedRow(
+                options = TopicFilter.entries,
+                selected = filter,
+                onSelect = { filter = it },
+                label = { it.label },
+                testTag = { "topicFilter_${it.name}" },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            return@BrowseScaffold
-        }
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .testTag("collabTopicListScreen"),
-        ) {
-            items(topics, key = { it.id }) { topic ->
-                // A linked thread names its object first — that is what the reader is looking
-                // for; a free-standing topic shows its latest words instead.
-                FieldWorkRow(
-                    title = topic.title,
-                    subtitle = CollabRepository.subjectLabel(topic.subject)
-                        ?: CollabRepository.lastMessagePreview(topic.id).ifBlank { topic.subtitle() },
-                    statusColor = if (topic.unreadCount > 0) {
-                        MaterialTheme.colorScheme.tertiary
-                    } else {
-                        MaterialTheme.colorScheme.outline
-                    },
-                    enabled = true,
-                    onClick = { onOpenTopic(topic.id) },
-                    modifier = Modifier.testTag("topicRow_${topic.id}"),
-                    trailing = if (topic.unreadCount > 0) {
-                        { Badge { Text(topic.unreadCount.toString()) } }
-                    } else {
-                        null
+            if (topics.isEmpty()) {
+                FieldEmptyState(
+                    message = when (filter) {
+                        TopicFilter.ALL -> "No topics yet. Tap + to start one."
+                        TopicFilter.MINE -> "You're not in any thread yet."
+                        TopicFilter.UNREAD -> "You're all caught up."
                     },
                 )
+                return@Column
             }
+            TopicRows(topics = topics, onOpenTopic = onOpenTopic)
+        }
+    }
+}
+
+@Composable
+private fun TopicRows(
+    topics: List<CollabTopic>,
+    onOpenTopic: (String) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("collabTopicListScreen"),
+    ) {
+        items(topics, key = { it.id }) { topic ->
+            // A linked thread names its object first — that is what the reader is looking
+            // for; a free-standing topic shows its latest words instead.
+            FieldWorkRow(
+                title = topic.title,
+                subtitle = CollabRepository.subjectLabel(topic.subject)
+                    ?: CollabRepository.lastMessagePreview(topic.id).ifBlank { topic.subtitle() },
+                statusColor = if (topic.unreadCount > 0) {
+                    MaterialTheme.colorScheme.tertiary
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
+                enabled = true,
+                onClick = { onOpenTopic(topic.id) },
+                modifier = Modifier.testTag("topicRow_${topic.id}"),
+                trailing = if (topic.unreadCount > 0) {
+                    { Badge { Text(topic.unreadCount.toString()) } }
+                } else {
+                    null
+                },
+            )
         }
     }
 }

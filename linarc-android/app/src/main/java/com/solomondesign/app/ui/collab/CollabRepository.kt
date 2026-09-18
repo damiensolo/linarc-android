@@ -2,6 +2,10 @@ package com.solomondesign.app.ui.collab
 
 import androidx.compose.runtime.mutableStateListOf
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.demo.PinKind
+import com.solomondesign.app.ui.demo.PlanPin
+import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.images.imageIdOfPin
 import com.solomondesign.app.ui.records.RecordRepository
 import com.solomondesign.app.ui.tasks.FieldTaskRepository
 
@@ -55,9 +59,27 @@ object CollabRepository {
             CollabSubject.Kind.RECORD -> RecordRepository.find(subject.id)?.title
             CollabSubject.Kind.TASK -> FieldTaskRepository.find(subject.id)?.title
             CollabSubject.Kind.PLAN_PIN -> DemoProjectRepository.pins.firstOrNull { it.id == subject.id }?.label
-            CollabSubject.Kind.IMAGE -> null
+            CollabSubject.Kind.IMAGE -> ProjectImageRepository.find(subject.id)?.title
         } ?: return null
         return "${subject.kind.label} · $title"
+    }
+
+    /**
+     * The thread a plan pin opens. A pin is a *location* for something, not a thing of its own,
+     * so a pin backed by a record shares the record's discussion and a photo pin shares the
+     * photo's — one conversation per object wherever it is reached. Only video and log pins,
+     * which have no discussable object behind them, get a thread of their own.
+     */
+    fun subjectForPin(pin: PlanPin): CollabSubject {
+        // Issue pins are minted as "pin-<recordId>"; older seeds set no relatedRecordId, so
+        // fall back to the id convention when it names a record that exists.
+        val recordId = pin.relatedRecordId
+            ?: pin.id.removePrefix("pin-").takeIf { pin.kind == PinKind.ISSUE && RecordRepository.find(it) != null }
+        return when {
+            recordId != null -> CollabSubject(CollabSubject.Kind.RECORD, recordId)
+            pin.kind == PinKind.PHOTO -> CollabSubject(CollabSubject.Kind.IMAGE, imageIdOfPin(pin.id))
+            else -> CollabSubject(CollabSubject.Kind.PLAN_PIN, pin.id)
+        }
     }
 
     fun createTopic(title: String, firstMessage: String, participantIds: List<String>): String? {
@@ -113,9 +135,11 @@ object CollabRepository {
                 queued = true,
             ),
         )
+        // Naming someone with @ pulls them into the thread: the author, plus every mention.
+        val mentioned = mentionedIds(body, DemoProjectRepository.crew.map { it.id to it.name })
         _topics[index] = _topics[index].copy(
             lastActivityMillis = now,
-            participantIds = (_topics[index].participantIds + author.id).distinct(),
+            participantIds = (_topics[index].participantIds + author.id + mentioned).distinct(),
         )
         DemoProjectRepository.queueOutbox(
             id = "outbox-msg-$nextId",

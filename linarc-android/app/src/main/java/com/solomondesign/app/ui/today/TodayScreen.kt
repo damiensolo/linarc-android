@@ -50,6 +50,8 @@ import com.solomondesign.app.ui.persona.FieldPersona
 import com.solomondesign.app.ui.profile.ProfileAvatarButton
 import com.solomondesign.app.ui.collab.CollabRepository
 import com.solomondesign.app.ui.collab.CollabTopic
+import com.solomondesign.app.ui.collab.TopicFilter
+import com.solomondesign.app.ui.collab.matching
 import com.solomondesign.app.ui.demo.StreamItem
 import com.solomondesign.app.ui.records.FieldRecord
 import com.solomondesign.app.ui.records.RecordRepository
@@ -133,6 +135,13 @@ fun TodayScreen(
     val agingRfis = if (isPmView || isPeView) RecordRepository.records.agingRfis() else emptyList()
     val decisionTopics =
         if (isPmView || isPeView || isOwnerView) CollabRepository.topics else emptyList()
+    // Crew focus: the threads Hector is actually in — his tasks' discussions and anywhere he
+    // was mentioned — most recently active first, same rows as the Collaboration list.
+    val myTopics = if (isCrewView) {
+        CollabRepository.topics.matching(TopicFilter.MINE, CollabRepository.authorIdentity().id)
+    } else {
+        emptyList()
+    }
     // Project engineer focus: the technical records behind the questions — non-RFI issues
     // and punch items, attention-ordered. Incidents stay with the Superintendent's oversight.
     val technicalRecords = if (isPeView) RecordRepository.records.technicalQueue() else emptyList()
@@ -243,6 +252,30 @@ fun TodayScreen(
                             onClick = { onOpenTask(task.id) },
                             modifier = Modifier.testTag("myTask_${task.id}"),
                         )
+                    }
+                }
+            }
+            // The conversations Hector is part of — his tasks' threads and anywhere he was
+            // mentioned. Rows open the same conversation the Collaboration tool owns.
+            collapsibleSection(
+                key = "myDiscussions",
+                title = "My discussions",
+                count = myTopics.size,
+                expanded = sectionExpanded("myDiscussions"),
+                onToggle = { toggleSection("myDiscussions") },
+            ) {
+                if (myTopics.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No threads yet. Discussions on your tasks land here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(myTopics, key = { "myTopic_${it.id}" }) { topic ->
+                        DecisionTopicRow(topic = topic, onOpenTopic = onOpenTopic)
                     }
                 }
             }

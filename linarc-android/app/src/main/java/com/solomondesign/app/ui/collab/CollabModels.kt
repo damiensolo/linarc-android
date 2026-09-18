@@ -41,6 +41,30 @@ data class CollabMessage(
 
 fun CollabTopic.subtitle(): String = "$location · ${participantIds.size} people"
 
+/** Collaboration list scope. Mine = threads the reader (lens identity) takes part in. */
+enum class TopicFilter(val label: String) { ALL("All"), MINE("Mine"), UNREAD("Unread") }
+
+/** Pure so it is JVM-unit-testable; [meId] is `CollabRepository.authorIdentity().id`. */
+fun List<CollabTopic>.matching(filter: TopicFilter, meId: String): List<CollabTopic> = when (filter) {
+    TopicFilter.ALL -> this
+    TopicFilter.MINE -> filter { meId in it.participantIds }
+    TopicFilter.UNREAD -> filter { it.unreadCount > 0 }
+}
+
+/**
+ * Crew ids named in [body] with an `@` — by full name ("@Hector Ortiz") or first name
+ * ("@Hector"), case-insensitive. [crew] pairs id to display name. Pure for testing; the
+ * repository adds the result to the thread's participants on every post.
+ */
+fun mentionedIds(body: String, crew: List<Pair<String, String>>): List<String> {
+    val lower = body.lowercase()
+    return crew.filter { (_, name) ->
+        val first = name.substringBefore(' ')
+        Regex("@${Regex.escape(name.lowercase())}\\b").containsMatchIn(lower) ||
+            Regex("@${Regex.escape(first.lowercase())}\\b").containsMatchIn(lower)
+    }.map { it.first }
+}
+
 /** The signed-in demo user. Kept here so Collaboration and Field tasks agree on "mine". */
 object CurrentUser {
     const val ID = "alex-rivera"

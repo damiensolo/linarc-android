@@ -2,11 +2,12 @@ package com.solomondesign.app.ui.demo
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.solomondesign.app.R
+import com.solomondesign.app.ui.collab.CollabRepository
+import com.solomondesign.app.ui.collab.CollabSubject
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ProjectImage
@@ -166,9 +167,6 @@ object DemoProjectRepository {
         outboxItems[index] = sent
         return sent
     }
-
-    /** Pin id -> its comment thread. A state map so the sheet viewer recomposes on new comments. */
-    private val pinComments = mutableStateMapOf<String, List<PinComment>>()
 
     val crew = listOf(
         CrewMember("Hector Ortiz", "Framing (Carpentry)", CrewPresence.ON_SITE, R.drawable.crew_hector),
@@ -419,6 +417,7 @@ object DemoProjectRepository {
         pins.add(
             PlanPin(
                 id = "pin-$issueId",
+                relatedRecordId = issueId,
                 kind = PinKind.ISSUE,
                 label = title,
                 snippet = location.ifBlank { note },
@@ -463,6 +462,7 @@ object DemoProjectRepository {
             pins.add(
                 PlanPin(
                     id = "pin-${record.id}",
+                    relatedRecordId = record.id,
                     kind = PinKind.ISSUE,
                     label = record.title,
                     snippet = listOf(record.location, record.description)
@@ -488,9 +488,20 @@ object DemoProjectRepository {
         val now = System.currentTimeMillis()
         val note = seeds.description.trim()
         if (note.isBlank()) return
+        // The spoken words become a message in the object's discussion (author and time kept,
+        // 2026-09-18) rather than text appended to a note or description. postToSubject queues
+        // the one Outbox entry; the Today row below deep-links to the object so it never
+        // dead-ends. Photos still attach to a record, since a thread can't hold them.
         when (match.kind) {
             VoiceNoteMatch.Kind.TASK -> {
-                FieldTaskRepository.appendNote(match.id, note)
+                val task = FieldTaskRepository.find(match.id) ?: return
+                CollabRepository.postToSubject(
+                    subject = CollabSubject(CollabSubject.Kind.TASK, task.id),
+                    title = task.title,
+                    location = task.location,
+                    participantIds = listOfNotNull(task.assigneeId),
+                    body = note,
+                )
                 streamItems.add(
                     0,
                     StreamItem(
@@ -502,24 +513,23 @@ object DemoProjectRepository {
                         relatedTaskId = match.id,
                     ),
                 )
-                queueOutbox(
-                    id = "outbox-voice-$now",
-                    title = "Voice note on ${match.title}",
-                    detail = note.take(60),
-                    relatedTaskId = match.id,
-                )
             }
             VoiceNoteMatch.Kind.RECORD -> {
                 val record = RecordRepository.find(match.id) ?: return
                 val extra = seeds.photoImageIds.map { imageId ->
                     RecordAttachment(id = "att-voice-$imageId-$now", kind = AttachmentKind.PHOTO, ref = imageId)
                 }.filter { next -> record.attachments.none { it.ref == next.ref } }
-                val updated = record.copy(
-                    description = if (record.description.isBlank()) note else "${record.description}\n\n$note",
-                    attachments = record.attachments + extra,
+                if (extra.isNotEmpty()) {
+                    RecordRepository.replace(record.copy(attachments = record.attachments + extra))
+                    extra.forEach { ProjectImageRepository.linkRecord(it.ref, record.id) }
+                }
+                CollabRepository.postToSubject(
+                    subject = CollabSubject(CollabSubject.Kind.RECORD, record.id),
+                    title = record.title,
+                    location = record.location,
+                    participantIds = record.assigneeIds,
+                    body = note,
                 )
-                RecordRepository.replace(updated)
-                extra.forEach { ProjectImageRepository.linkRecord(it.ref, record.id) }
                 streamItems.add(
                     0,
                     StreamItem(
@@ -530,12 +540,6 @@ object DemoProjectRepository {
                         timestampMillis = now,
                         relatedFieldRecordId = record.id,
                     ),
-                )
-                queueOutbox(
-                    id = "outbox-voice-$now",
-                    title = "Voice note on ${match.title}",
-                    detail = note.take(60),
-                    relatedFieldRecordId = record.id,
                 )
             }
         }
@@ -569,41 +573,6 @@ object DemoProjectRepository {
         lastInspectionRequestTitle = task.title
     }
 
-    fun pinCommentsFor(pinId: String): List<PinComment> = pinComments[pinId].orEmpty()
-
-    /** Adds a comment (as the signed-in user) to a pin's thread; blank text is rejected. */
-    fun addPinComment(pinId: String, text: String): Boolean {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return false
-        val comment = PinComment(
-            id = "pin-comment-${System.currentTimeMillis()}-${pinCommentsFor(pinId).size}",
-            authorName = CurrentUser.NAME,
-            text = trimmed,
-            timestampMillis = System.currentTimeMillis(),
-        )
-        pinComments[pinId] = pinCommentsFor(pinId) + comment
-        return true
-    }
-
-    /**
-     * Publishes a pin's unpublished comments to the team: flips them to published and queues ONE
-     * outbox entry for the batch (offline-first — the outbox is where "sent" things wait for
-     * signal). Returns how many were published; 0 means nothing changed and nothing was queued.
-     */
-    fun publishPinComments(pinId: String): Int {
-        val thread = pinCommentsFor(pinId)
-        val unpublishedCount = thread.count { !it.published }
-        if (unpublishedCount == 0) return 0
-        pinComments[pinId] = thread.map { it.copy(published = true) }
-        val label = pins.firstOrNull { it.id == pinId }?.label ?: "Plan pin"
-        queueOutbox(
-            // Size suffix keeps ids unique even for two publishes inside one millisecond.
-            id = "outbox-$pinId-${System.currentTimeMillis()}-${outboxItems.size}",
-            title = "Pin comments: $label",
-            detail = "$unpublishedCount comment${if (unpublishedCount == 1) "" else "s"}",
-        )
-        return unpublishedCount
-    }
 
     fun clear() {
         persona = FieldPersona.FOREMAN
@@ -617,7 +586,6 @@ object DemoProjectRepository {
         streamItems.clear()
         pins.clear()
         outboxItems.clear()
-        pinComments.clear()
         seed()
     }
 
@@ -674,6 +642,7 @@ object DemoProjectRepository {
         pins.add(
             PlanPin(
                 id = "pin-rec-seed-issue",
+                relatedRecordId = "rec-seed-issue",
                 kind = PinKind.ISSUE,
                 label = "Med-gas conflict at Column 4",
                 snippet = "Column 4",

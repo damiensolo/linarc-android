@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,7 +37,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +46,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -78,17 +75,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.solomondesign.app.ui.collab.CollabRepository
+import com.solomondesign.app.ui.collab.DiscussionSection
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.PinKind
 import com.solomondesign.app.ui.demo.PlanPin
-import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.DesignTokens
 import com.solomondesign.app.ui.designsystem.ZoomableContainer
 import com.solomondesign.app.ui.images.ImageThumbnail
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.images.imageIdOfPin
-import com.solomondesign.app.ui.voicenote.SpeakableTextField
-import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -106,6 +102,8 @@ fun PlanViewerScreen(
     onClose: () -> Unit,
     onOpenImage: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens a pin's discussion full screen in the Collaboration tool. */
+    onOpenTopic: ((String) -> Unit)? = null,
 ) {
     val sheets = PlanSheetRepository.sheets
     val startIndex = PlanSheetRepository.indexOf(sheetId).coerceAtLeast(0)
@@ -195,11 +193,10 @@ fun PlanViewerScreen(
                     selectedPin = null
                     onOpenImage(imageId)
                 },
-                onPublished = { count ->
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            "$count comment${if (count == 1) "" else "s"} queued for the team — see Outbox",
-                        )
+                onOpenTopic = onOpenTopic?.let { open ->
+                    { topicId ->
+                        selectedPin = null
+                        open(topicId)
                     }
                 },
             )
@@ -208,19 +205,20 @@ fun PlanViewerScreen(
 }
 
 /**
- * A pin's detail: what it marks (with the photo attached when the pin came from a capture),
- * its comment thread, and Publish — which queues the unpublished comments to the Outbox, this
- * prototype's stand-in for sending anything off-device.
+ * A pin's detail: what it marks (with the photo attached when the pin came from a capture) and
+ * its discussion — the same thread as the record or photo behind the pin (see
+ * [CollabRepository.subjectForPin]), so a comment left on the drawing is the comment on the
+ * issue. Each Send queues one Outbox entry; the old batch "Publish to team" step is gone
+ * (2026-09-18).
  */
 @Composable
 private fun PinSheetContent(
     pin: PlanPin,
     onOpenImage: (String) -> Unit,
-    onPublished: (Int) -> Unit,
+    onOpenTopic: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val comments = DemoProjectRepository.pinCommentsFor(pin.id)
-    var draft by remember(pin.id) { mutableStateOf("") }
+    val subject = CollabRepository.subjectForPin(pin)
     val linkedImage = if (pin.kind == PinKind.PHOTO || pin.kind == PinKind.VIDEO) {
         ProjectImageRepository.find(imageIdOfPin(pin.id))
     } else {
@@ -265,70 +263,19 @@ private fun PinSheetContent(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-        Text("Comments", style = MaterialTheme.typography.titleMedium)
-        if (comments.isEmpty()) {
-            Text(
-                text = "No comments yet — add context for the team.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        comments.forEach { comment ->
-            Column(modifier = Modifier.padding(top = 10.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(comment.authorName, style = MaterialTheme.typography.labelMedium)
-                    if (!comment.published) {
-                        Text(
-                            text = "Not published",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary,
-                        )
-                    }
-                }
-                Text(comment.text, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            SpeakableTextField(
-                value = draft,
-                onValueChange = { draft = it },
-                label = { Text("Add a comment") },
-                singleLine = true,
-                fieldTestTag = "pinCommentField",
-                compact = true,
-            )
-            TextButton(
-                onClick = {
-                    FieldDictationBroker.stopActive()
-                    if (DemoProjectRepository.addPinComment(pin.id, draft)) draft = ""
-                },
-                enabled = draft.isNotBlank(),
-                modifier = Modifier.testTag("pinCommentAdd"),
-            ) {
-                Text("Add")
-            }
-        }
-
-        AppButton(
-            text = "Publish to team",
-            enabled = comments.any { !it.published },
-            onClick = { onPublished(DemoProjectRepository.publishPinComments(pin.id)) },
-            modifier = Modifier
-                .padding(top = 12.dp)
-                .testTag("pinPublish"),
+        Text(
+            text = "Discussion",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
         )
-        Spacer(Modifier.height(8.dp))
+        DiscussionSection(
+            subject = subject,
+            topicTitle = pin.label,
+            location = pin.snippet,
+            participantIds = emptyList(),
+            testTagPrefix = "pinDiscussion",
+            onOpenTopic = onOpenTopic,
+        )
     }
 }
 
