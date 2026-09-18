@@ -42,6 +42,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.solomondesign.app.ui.collab.CollabSubject
+import com.solomondesign.app.ui.collab.DiscussionSection
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
@@ -180,6 +182,7 @@ fun RecordDetailScreen(
     onBack: () -> Unit,
     onOpenImage: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenTopic: ((String) -> Unit)? = null,
 ) {
     val record = RecordRepository.find(recordId)
     if (record == null) {
@@ -304,6 +307,17 @@ fun RecordDetailScreen(
                     }
                 }
             }
+            // The record's own thread — the conversation behind the issue lives with the
+            // issue, not in a separate inbox. Assignees and the reporter start as participants.
+            Text("Discussion", style = MaterialTheme.typography.titleMedium)
+            DiscussionSection(
+                subject = CollabSubject(CollabSubject.Kind.RECORD, record.id),
+                topicTitle = record.title,
+                location = record.location,
+                participantIds = record.assigneeIds,
+                testTagPrefix = "recordDiscussion",
+                onOpenTopic = onOpenTopic,
+            )
         }
     }
 }

@@ -983,11 +983,9 @@ private fun DecisionTopicRow(
 ) {
     FieldWorkRow(
         title = topic.title,
-        subtitle = topic.location + if (topic.unreadCount > 0) {
-            " · ${topic.unreadCount} unread"
-        } else {
-            ""
-        },
+        // A linked thread names its object (the decision is about that record or task).
+        subtitle = (CollabRepository.subjectLabel(topic.subject) ?: topic.location) +
+            if (topic.unreadCount > 0) " · ${topic.unreadCount} unread" else "",
         statusColor = if (topic.unreadCount > 0) {
             MaterialTheme.colorScheme.tertiary
         } else {

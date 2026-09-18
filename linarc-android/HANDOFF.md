@@ -195,7 +195,7 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 
 **What’s fully built vs placeholder**
 
-- **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration, Images, **Plans (tab and Tools card)**, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, seven personas.
+- **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration (topics plus per-object discussions inline on record and task detail — one thread per object, created on the first message, indexed in the Collaboration tool), Images, **Plans (tab and Tools card)**, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, seven personas.
 - **Catalog only / placeholder:** RFIs (as a tool — PM “RFIs” are Issues of type “RFI / design clarification”), T&M, Checklist, Drive, Toolbox Talks, Scan (no live scanner), Accounts on the project picker.
 
 ---

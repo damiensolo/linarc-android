@@ -94,6 +94,14 @@ object DemoProjectRepository {
 
     private const val SUB_VIEW_MEMBER_ID = "sam-reyes"
 
+    /**
+     * Whoever the current Demo: view as lens views the project through — [crewViewMember] or
+     * [subcontractorMember] — or null when the reader is the signed-in user. Discussion
+     * messages post as this identity so threads and task lists agree about who "me" is.
+     */
+    val lensMember: CrewMember?
+        get() = crewViewMember ?: subcontractorMember
+
     /** Title of the most recent inspection request this session — the card's receipt line. */
     var lastInspectionRequestTitle by mutableStateOf<String?>(null)
         private set
