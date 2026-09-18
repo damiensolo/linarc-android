@@ -49,7 +49,7 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | **Field task** | List, filters, detail, status, checklist | Tools → Field task |
 | **Time card** | Crew list, member detail, new entry (FAB) | Tools → Time card |
 | **Crew** | Roster → member detail | Tools → Crew |
-| **Collaboration** | Topics → thread (Speak on message), new topic (FAB or +) | Tools → Collaboration |
+| **Collaboration** | Topics → thread (Speak on message), new topic (FAB or +); linked threads open their record or task; **Discussion** section on every record and task detail | Tools → Collaboration, or any record / task detail |
 | **Images** | Grid / Timeline / Albums / Map, swipeable zoom viewer, markup, album, create-from-photo | Tools → Images |
 | **Plans** | Same sheet list + pins as the Plans tab | Tools → Plans, or the Plans tab |
 | **Issues** | List, detail, create (FAB or +; Speak on Description / Blocking reason) | Tools → Issues |
@@ -221,6 +221,9 @@ In-app Speak is only on long text and is **off by default**. Keyboard/Gboard voi
 **Collaboration**
 
 1. Tools → Collaboration → a topic → send a message (or tap **Speak**), or FAB **New topic**.
+2. Open **Column 4 med gas conflict** → its top row reads "Record · Med-gas conflict at Column 4" → tap it to open the issue. Scroll to **Discussion** on the issue: the same thread, with a composer. Send from there, then **Open in Collaboration** returns to the full conversation.
+3. Tools → Field task → any task → **DISCUSSION** → send a message. A new thread appears at the top of Tools → Collaboration, named after the task; the Outbox holds one entry per message.
+4. Settings → Demo: view as → Crew, then send on any thread: the message posts as Hector Ortiz (the lens identity), not Alex.
 
 ### 12. Images views
 

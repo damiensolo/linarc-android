@@ -21,7 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.solomondesign.app.ui.collab.CollabSubject
 import com.solomondesign.app.ui.collab.CurrentUser
+import com.solomondesign.app.ui.collab.DiscussionSection
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.AppCheckbox
 import com.solomondesign.app.ui.designsystem.AppSegmentedRow
@@ -101,6 +103,7 @@ fun FieldTaskDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenCrewMember: ((String) -> Unit)? = null,
+    onOpenTopic: ((String) -> Unit)? = null,
 ) {
     val task = FieldTaskRepository.find(taskId)
 
@@ -198,6 +201,18 @@ fun FieldTaskDetailScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
             }
+
+            // The task's own thread; the assignee starts as a participant.
+            FieldSectionLabel("DISCUSSION")
+            DiscussionSection(
+                subject = CollabSubject(CollabSubject.Kind.TASK, task.id),
+                topicTitle = task.title,
+                location = task.location,
+                participantIds = listOfNotNull(task.assigneeId),
+                testTagPrefix = "taskDiscussion",
+                onOpenTopic = onOpenTopic,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
         }
     }
 }

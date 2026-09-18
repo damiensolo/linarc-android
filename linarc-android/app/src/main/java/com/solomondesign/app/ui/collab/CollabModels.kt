@@ -1,5 +1,21 @@
 package com.solomondesign.app.ui.collab
 
+/**
+ * What a conversation is about. Conversation is one primitive in this app: a topic either
+ * stands alone (subject `null`, started from the Collaboration tool) or is *the* discussion
+ * for one object — a record, a task, a plan pin, a photo. Object detail screens render that
+ * discussion inline through `DiscussionSection`; the Collaboration tool is the index of every
+ * thread in the project. Never add a second comment model beside this one.
+ */
+data class CollabSubject(val kind: Kind, val id: String) {
+    enum class Kind(val label: String) {
+        RECORD("Record"),
+        TASK("Task"),
+        PLAN_PIN("Plan pin"),
+        IMAGE("Photo"),
+    }
+}
+
 data class CollabTopic(
     val id: String,
     val title: String,
@@ -8,6 +24,8 @@ data class CollabTopic(
     val participantIds: List<String>,
     val unreadCount: Int = 0,
     val lastActivityMillis: Long,
+    /** The object this thread belongs to; null for a free-standing topic. At most one topic per subject. */
+    val subject: CollabSubject? = null,
 )
 
 data class CollabMessage(

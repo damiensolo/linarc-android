@@ -2,6 +2,11 @@ package com.solomondesign.app.ui.collab
 
 import androidx.compose.runtime.mutableStateListOf
 import com.solomondesign.app.ui.demo.DemoProjectRepository
+import com.solomondesign.app.ui.records.RecordRepository
+import com.solomondesign.app.ui.tasks.FieldTaskRepository
+
+/** Who a message is posted as — see [CollabRepository.authorIdentity]. */
+data class CollabAuthor(val id: String, val name: String)
 
 /** In-memory demo store for collaboration topics and messages. Snapshot state, no ViewModel. */
 object CollabRepository {
@@ -19,28 +24,76 @@ object CollabRepository {
 
     fun findTopic(id: String): CollabTopic? = _topics.firstOrNull { it.id == id }
 
+    /** The one thread for [subject], or null until someone posts the first message. */
+    fun topicFor(subject: CollabSubject): CollabTopic? = _topics.firstOrNull { it.subject == subject }
+
     fun messagesFor(topicId: String): List<CollabMessage> =
         _messages.filter { it.topicId == topicId }.sortedBy { it.timestampMillis }
 
     fun lastMessagePreview(topicId: String): String =
         messagesFor(topicId).lastOrNull()?.body.orEmpty()
 
+    /**
+     * Messages post as whoever the Demo: view as lens views the project through — Hector in the
+     * Crew view, Sam in the Subcontractor view, the signed-in Foreman otherwise. This is the
+     * same "mine" rule the Field task list applies, so a thread and a task never disagree about
+     * who the reader is (decided 2026-09-18).
+     */
+    fun authorIdentity(): CollabAuthor {
+        val lens = DemoProjectRepository.lensMember
+        return if (lens != null) CollabAuthor(lens.id, lens.name) else CollabAuthor(CurrentUser.ID, CurrentUser.NAME)
+    }
+
+    /**
+     * "Record · Med-gas conflict at Column 4" — the subject as a reader would name it, resolved
+     * live from the owning store so a renamed object reads correctly. Null for free-standing
+     * topics or when the object no longer exists.
+     */
+    fun subjectLabel(subject: CollabSubject?): String? {
+        subject ?: return null
+        val title = when (subject.kind) {
+            CollabSubject.Kind.RECORD -> RecordRepository.find(subject.id)?.title
+            CollabSubject.Kind.TASK -> FieldTaskRepository.find(subject.id)?.title
+            CollabSubject.Kind.PLAN_PIN -> DemoProjectRepository.pins.firstOrNull { it.id == subject.id }?.label
+            CollabSubject.Kind.IMAGE -> null
+        } ?: return null
+        return "${subject.kind.label} · $title"
+    }
+
     fun createTopic(title: String, firstMessage: String, participantIds: List<String>): String? {
         if (title.isBlank()) return null
-        val now = System.currentTimeMillis()
-        val id = "topic-new-${nextId++}"
-        _topics.add(
-            CollabTopic(
-                id = id,
-                title = title.trim(),
-                location = DemoProjectRepository.AREA,
-                participantIds = (participantIds + CurrentUser.ID).distinct(),
-                unreadCount = 0,
-                lastActivityMillis = now,
-            ),
+        val id = addTopic(
+            title = title,
+            location = DemoProjectRepository.AREA,
+            participantIds = participantIds,
+            subject = null,
         )
         if (firstMessage.isNotBlank()) postMessage(id, firstMessage)
         return id
+    }
+
+    /**
+     * Posts [body] into the thread for [subject], creating that thread on the first message
+     * (lazily, so object detail screens never litter the Collaboration index with empty
+     * topics). [title], [location] and [participantIds] seed the new topic only; an existing
+     * thread keeps its own. Returns the topic id, or null when nothing was posted.
+     */
+    fun postToSubject(
+        subject: CollabSubject,
+        title: String,
+        location: String,
+        participantIds: List<String>,
+        body: String,
+    ): String? {
+        if (body.isBlank()) return null
+        val topicId = topicFor(subject)?.id ?: addTopic(
+            title = title.ifBlank { subjectLabel(subject) ?: subject.kind.label },
+            location = location.ifBlank { DemoProjectRepository.AREA },
+            participantIds = participantIds,
+            subject = subject,
+        )
+        postMessage(topicId, body)
+        return topicId
     }
 
     fun postMessage(topicId: String, body: String) {
@@ -48,18 +101,22 @@ object CollabRepository {
         val index = _topics.indexOfFirst { it.id == topicId }
         if (index < 0) return
         val now = System.currentTimeMillis()
+        val author = authorIdentity()
         _messages.add(
             CollabMessage(
                 id = "msg-new-${nextId++}",
                 topicId = topicId,
-                authorId = CurrentUser.ID,
-                authorName = CurrentUser.NAME,
+                authorId = author.id,
+                authorName = author.name,
                 body = body.trim(),
                 timestampMillis = now,
                 queued = true,
             ),
         )
-        _topics[index] = _topics[index].copy(lastActivityMillis = now)
+        _topics[index] = _topics[index].copy(
+            lastActivityMillis = now,
+            participantIds = (_topics[index].participantIds + author.id).distinct(),
+        )
         DemoProjectRepository.queueOutbox(
             id = "outbox-msg-$nextId",
             title = "Message: ${_topics[index].title}",
@@ -81,10 +138,35 @@ object CollabRepository {
         seed()
     }
 
+    private fun addTopic(
+        title: String,
+        location: String,
+        participantIds: List<String>,
+        subject: CollabSubject?,
+    ): String {
+        val id = "topic-new-${nextId++}"
+        _topics.add(
+            CollabTopic(
+                id = id,
+                title = title.trim(),
+                location = location,
+                participantIds = (participantIds + authorIdentity().id).distinct(),
+                unreadCount = 0,
+                lastActivityMillis = System.currentTimeMillis(),
+                subject = subject,
+            ),
+        )
+        return id
+    }
+
     private fun seed() {
         val now = System.currentTimeMillis()
         val minute = 60_000L
 
+        // Seeded threads are the conversations behind seeded objects, so they link to them:
+        // the med-gas thread is the Column 4 issue's discussion, the headwall thread belongs to
+        // RFI-121, the inspection thread to the corridor C framing task. Ids come from
+        // RecordRepository / FieldTaskRepository seeds; CollabRepositoryTest checks they resolve.
         _topics.addAll(
             listOf(
                 CollabTopic(
@@ -94,6 +176,7 @@ object CollabRepository {
                     participantIds = listOf("sam-reyes", "maria-chen", CurrentUser.ID),
                     unreadCount = 2,
                     lastActivityMillis = now - 5 * minute,
+                    subject = CollabSubject(CollabSubject.Kind.RECORD, "rec-seed-issue"),
                 ),
                 CollabTopic(
                     id = "topic-frame-inspection",
@@ -102,6 +185,7 @@ object CollabRepository {
                     participantIds = listOf("hector-ortiz", CurrentUser.ID),
                     unreadCount = 0,
                     lastActivityMillis = now - 90 * minute,
+                    subject = CollabSubject(CollabSubject.Kind.TASK, "task-frame-corridor-c"),
                 ),
                 CollabTopic(
                     id = "topic-headwall-heights",
@@ -110,6 +194,7 @@ object CollabRepository {
                     participantIds = listOf("dave-miller", CurrentUser.ID),
                     unreadCount = 1,
                     lastActivityMillis = now - 200 * minute,
+                    subject = CollabSubject(CollabSubject.Kind.RECORD, "rec-seed-rfi-121"),
                 ),
                 CollabTopic(
                     id = "topic-saturday-pour",

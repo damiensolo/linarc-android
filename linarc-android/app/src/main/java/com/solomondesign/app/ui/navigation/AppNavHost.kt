@@ -51,6 +51,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.solomondesign.app.ui.capture.camera.CameraCaptureScreen
+import com.solomondesign.app.ui.collab.CollabSubject
 import com.solomondesign.app.ui.collab.CollabTopicListScreen
 import com.solomondesign.app.ui.collab.CollabTopicScreen
 import com.solomondesign.app.ui.collab.CurrentUser
@@ -534,6 +535,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         taskId = decodeArg(entry.arguments?.getString("taskId")),
                         onBack = { navController.popBackStack() },
                         onOpenCrewMember = { id -> navController.navigate(AppRoutes.crewDetail(id)) },
+                        onOpenTopic = { id -> navController.navigate(AppRoutes.collabTopic(id)) },
                     )
                 }
 
@@ -591,6 +593,19 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     CollabTopicScreen(
                         topicId = decodeArg(entry.arguments?.getString("topicId")),
                         onBack = { navController.popBackStack() },
+                        // A linked thread opens its object in the same Tools stack; pins and
+                        // photos join when their discussions land (plan phase 2).
+                        onOpenSubject = { subject ->
+                            when (subject.kind) {
+                                CollabSubject.Kind.RECORD ->
+                                    navController.navigate(AppRoutes.recordDetail(subject.id))
+                                CollabSubject.Kind.TASK ->
+                                    navController.navigate(AppRoutes.fieldTaskDetail(subject.id))
+                                CollabSubject.Kind.IMAGE ->
+                                    navController.navigate(AppRoutes.imageViewer(subject.id))
+                                CollabSubject.Kind.PLAN_PIN -> Unit
+                            }
+                        },
                     )
                 }
 
@@ -644,6 +659,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         onOpenImage = { imageId ->
                             navController.navigate(AppRoutes.imageViewer(imageId))
                         },
+                        onOpenTopic = { id -> navController.navigate(AppRoutes.collabTopic(id)) },
                     )
                 }
             }
