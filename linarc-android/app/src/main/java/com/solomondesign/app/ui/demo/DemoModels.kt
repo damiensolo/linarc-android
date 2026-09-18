@@ -118,19 +118,6 @@ fun OutboxItem.statusLine(): String {
     return if (detail.isBlank()) state else "$detail · $state"
 }
 
-/**
- * One comment on a [PlanPin]'s thread in the sheet viewer. [published] flips when the thread is
- * pushed to the team — publish queues an outbox entry, matching this prototype's offline-first
- * story (nothing actually leaves the device).
- */
-data class PinComment(
-    val id: String,
-    val authorName: String,
-    val text: String,
-    val timestampMillis: Long,
-    val published: Boolean = false,
-)
-
 /** A row in the startup Project List picker. See [DemoProjectRepository.projects]. */
 data class DemoProject(
     val id: String,

@@ -732,6 +732,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 PlanViewerScreen(
                     sheetId = decodeArg(entry.arguments?.getString("sheetId")),
                     onClose = { navController.popBackStack() },
+                    onOpenTopic = { id -> navController.navigate(AppRoutes.collabTopic(id)) },
                     // A capture pin's photo opens in the same full-screen viewer as everywhere
                     // else; it stacks on the plan viewer so Back returns to the sheet. Scoped
                     // to pinned photos: swiping here is about this plan's locations, not the
@@ -828,6 +829,7 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     imageId = decodeArg(entry.arguments?.getString("imageId")),
                     scope = ImageViewerScope.fromRoute(entry.arguments?.getString("scope")),
                     onClose = { navController.popBackStack() },
+                    onOpenTopic = { id -> navController.navigate(AppRoutes.collabTopic(id)) },
                     // The chooser picked a category; stage the form with this photo attached
                     // and its metadata seeded, then stack the form so Back returns here.
                     onCreateRecord = { image, category ->

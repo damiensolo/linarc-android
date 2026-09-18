@@ -96,6 +96,36 @@ class CollabRepositoryTest {
     }
 
     @Test
+    fun mentions_resolveByFullOrFirstName_andJoinTheThread() {
+        val crew = listOf("hector-ortiz" to "Hector Ortiz", "dave-miller" to "Dave Miller", "maria-chen" to "Maria Chen")
+        assertEquals(listOf("hector-ortiz"), mentionedIds("@Hector Ortiz can you check?", crew))
+        assertEquals(listOf("dave-miller"), mentionedIds("ask @dave about the studs", crew))
+        assertEquals(listOf("hector-ortiz", "maria-chen"), mentionedIds("@Hector and @Maria Chen", crew))
+        assertEquals(emptyList<String>(), mentionedIds("email hector@site.com, no mention", crew))
+        assertEquals(emptyList<String>(), mentionedIds("@Davey is not Dave", crew))
+
+        val before = CollabRepository.findTopic("topic-saturday-pour")!!.participantIds
+        assertTrue("maria-chen" !in before)
+        CollabRepository.postMessage("topic-saturday-pour", "@Maria Chen can your rack wait until Monday?")
+        val after = CollabRepository.findTopic("topic-saturday-pour")!!.participantIds
+        assertTrue("maria-chen" in after)
+        assertEquals(before.size + 1, after.size)
+    }
+
+    @Test
+    fun topicFilters_scopeToMineAndUnread() {
+        val topics = CollabRepository.topics
+        assertEquals(topics, topics.matching(TopicFilter.ALL, CurrentUser.ID))
+        assertEquals(setOf("topic-col4-medgas", "topic-headwall-heights"), topics.matching(TopicFilter.UNREAD, CurrentUser.ID).map { it.id }.toSet())
+        // The Foreman is in every seeded thread; Hector (the Crew lens) only in two.
+        assertEquals(4, topics.matching(TopicFilter.MINE, CurrentUser.ID).size)
+        assertEquals(
+            setOf("topic-frame-inspection", "topic-saturday-pour"),
+            topics.matching(TopicFilter.MINE, "hector-ortiz").map { it.id }.toSet(),
+        )
+    }
+
+    @Test
     fun markRead_clearsUnread_andClearReseeds() {
         assertEquals(2, CollabRepository.findTopic("topic-col4-medgas")!!.unreadCount)
         CollabRepository.markRead("topic-col4-medgas")

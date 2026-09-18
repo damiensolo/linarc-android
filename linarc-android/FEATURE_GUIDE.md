@@ -223,7 +223,10 @@ In-app Speak is only on long text and is **off by default**. Keyboard/Gboard voi
 1. Tools → Collaboration → a topic → send a message (or tap **Speak**), or FAB **New topic**.
 2. Open **Column 4 med gas conflict** → its top row reads "Record · Med-gas conflict at Column 4" → tap it to open the issue. Scroll to **Discussion** on the issue: the same thread, with a composer. Send from there, then **Open in Collaboration** returns to the full conversation.
 3. Tools → Field task → any task → **DISCUSSION** → send a message. A new thread appears at the top of Tools → Collaboration, named after the task; the Outbox holds one entry per message.
-4. Settings → Demo: view as → Crew, then send on any thread: the message posts as Hector Ortiz (the lens identity), not Alex.
+4. Settings → Demo: view as → Crew, then send on any thread: the message posts as Hector Ortiz (the lens identity), not Alex. Crew's Today gains **My discussions** — the threads Hector is in.
+5. In any composer type `@` — a crew picker appears under the field; pick a name (or keep typing to narrow). Sending adds the mentioned person to the thread's participants.
+6. Tools → Collaboration → the **All · Mine · Unread** row scopes the list; Mine follows the lens identity, so it changes with Demo: view as.
+7. Capture → Voice note → say something that names an open task or record → **Add to…**: the words post as a message in that object's discussion (author and time kept), one Outbox entry, and a Today row that opens the object.
 
 ### 12. Images views
 
@@ -241,8 +244,9 @@ The **Plans tab** and **Tools → Plans** open the **same** sheet list. From Too
 2. Open the Area B / Level 2 sheet (A-102). You should **not** see “Plans · sample 1”.
 3. Pinch to zoom, pan while zoomed, double-tap to reset.
 4. Tap a pin → sheet with title / photo / comments. Tapping the photo opens the viewer **scoped to pinned photos only** — swiping moves between this plan’s pinned captures, never unrelated album shots.
-5. Add a comment (or tap **Speak**) → **Publish to team**.
-6. **Tools → Outbox** — the publish is queued.
+5. Under **Discussion**, type (or tap **Speak**) → **Send**. On the Column 4 issue pin this is the med-gas thread itself; **Open in Collaboration** shows the same messages full screen.
+6. **Tools → Outbox** — one entry per message is queued.
+7. Tools → Images → any photo → tap the **Discuss** caption chip → send in the sheet; the chip now reads "1 comment" and the thread appears in Tools → Collaboration as "Photo · …".
 
 Superintendent: **Pinned work** on this list jumps straight to the pin sheet (tab or Tools card).
 

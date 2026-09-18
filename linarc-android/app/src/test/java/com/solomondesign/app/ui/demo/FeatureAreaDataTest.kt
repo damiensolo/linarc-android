@@ -3,6 +3,7 @@ package com.solomondesign.app.ui.demo
 import com.solomondesign.app.ui.capture.IssueDraft
 import com.solomondesign.app.ui.capture.IssueDraftHolder
 import com.solomondesign.app.ui.collab.CollabRepository
+import com.solomondesign.app.ui.collab.CollabSubject
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ProjectImageRepository
@@ -334,36 +335,39 @@ class FeatureAreaDataTest {
     // ---- plan pin comments ----
 
     @Test
-    fun pinCommentsRejectBlanksAndPublishQueuesOneOutboxBatch() {
-        val pinId = "pin-img-yesterday"
-        assertFalse(DemoProjectRepository.addPinComment(pinId, "   "))
-        assertEquals(emptyList<PinComment>(), DemoProjectRepository.pinCommentsFor(pinId))
+    fun pinDiscussionsShareTheObjectThread_andEachSendQueuesOneOutboxEntry() {
+        // A pin is a location for something: a record pin talks in the record's thread, a
+        // photo pin in the photo's; only log/video pins get a thread of their own.
+        val issuePin = DemoProjectRepository.pins.first { it.id == "pin-rec-seed-issue" }
+        assertEquals(
+            CollabSubject(CollabSubject.Kind.RECORD, "rec-seed-issue"),
+            CollabRepository.subjectForPin(issuePin),
+        )
+        val photoPin = DemoProjectRepository.pins.first { it.id == "pin-img-yesterday" }
+        val photoSubject = CollabRepository.subjectForPin(photoPin)
+        assertEquals(CollabSubject(CollabSubject.Kind.IMAGE, "img-yesterday"), photoSubject)
+        assertTrue(CollabRepository.subjectLabel(photoSubject)!!.contains("Yesterday progress"))
 
-        assertTrue(DemoProjectRepository.addPinComment(pinId, "Formwork looks short here"))
-        assertTrue(DemoProjectRepository.addPinComment(pinId, "Flagging for the AM walk"))
-        val thread = DemoProjectRepository.pinCommentsFor(pinId)
+        // The issue pin opens the seeded med-gas thread — no second conversation about it.
+        assertEquals(
+            "topic-col4-medgas",
+            CollabRepository.topicFor(CollabRepository.subjectForPin(issuePin))!!.id,
+        )
+
+        // Blank text posts nothing and creates nothing.
+        assertNull(CollabRepository.postToSubject(photoSubject, photoPin.label, photoPin.snippet, emptyList(), "   "))
+        assertNull(CollabRepository.topicFor(photoSubject))
+
+        // Per-message Send: every comment queues its own Outbox entry, linked to the thread.
+        val outboxBefore = DemoProjectRepository.outboxItems.size
+        val topicId = CollabRepository.postToSubject(photoSubject, photoPin.label, photoPin.snippet, emptyList(), "Formwork looks short here")
+        CollabRepository.postToSubject(photoSubject, photoPin.label, photoPin.snippet, emptyList(), "Flagging for the AM walk")
+        val thread = CollabRepository.messagesFor(topicId!!)
         assertEquals(2, thread.size)
         assertEquals(CurrentUser.NAME, thread.first().authorName)
-        assertTrue("comments start unpublished", thread.none { it.published })
-
-        val outboxBefore = DemoProjectRepository.outboxItems.size
-        assertEquals(2, DemoProjectRepository.publishPinComments(pinId))
-        assertTrue(DemoProjectRepository.pinCommentsFor(pinId).all { it.published })
-        assertEquals(
-            "one outbox entry per publish batch, not per comment",
-            outboxBefore + 1,
-            DemoProjectRepository.outboxItems.size,
-        )
-        assertTrue(DemoProjectRepository.outboxItems.last().title.contains("Yesterday progress"))
-
-        // Nothing left to publish: a second publish is a no-op and queues nothing.
-        assertEquals(0, DemoProjectRepository.publishPinComments(pinId))
-        assertEquals(outboxBefore + 1, DemoProjectRepository.outboxItems.size)
-
-        // A new comment after publishing republishes just that one.
-        DemoProjectRepository.addPinComment(pinId, "Confirmed fixed")
-        assertEquals(1, DemoProjectRepository.publishPinComments(pinId))
+        assertTrue("messages queue immediately", thread.all { it.queued })
         assertEquals(outboxBefore + 2, DemoProjectRepository.outboxItems.size)
+        assertTrue(DemoProjectRepository.outboxItems.takeLast(2).all { it.relatedTopicId == topicId })
     }
 
     // ---- outbox ----
@@ -684,8 +688,9 @@ class FeatureAreaDataTest {
     }
 
     @Test
-    fun appendVoiceNote_onTask_addsNoteOutboxAndTodayRow() {
+    fun appendVoiceNote_onTask_postsDiscussionMessageOutboxAndTodayRow() {
         val beforeNote = FieldTaskRepository.find("task-med-gas-col4")!!.note
+        val outboxBefore = DemoProjectRepository.outboxItems.size
         val seeds = VoiceNoteSeeds(
             description = "med gas still waiting on RFI-118",
             location = "Column 4",
@@ -696,11 +701,16 @@ class FeatureAreaDataTest {
             seeds,
         )
 
-        val note = FieldTaskRepository.find("task-med-gas-col4")!!.note
-        assertTrue(note.startsWith(beforeNote))
-        assertTrue(note.contains("med gas still waiting on RFI-118"))
+        // The words land as a message in the task's discussion — author and time kept — not
+        // as text appended to the note.
+        assertEquals(beforeNote, FieldTaskRepository.find("task-med-gas-col4")!!.note)
+        val topic = CollabRepository.topicFor(CollabSubject(CollabSubject.Kind.TASK, "task-med-gas-col4"))!!
+        val message = CollabRepository.messagesFor(topic.id).single()
+        assertEquals("med gas still waiting on RFI-118", message.body)
+        assertEquals(CurrentUser.ID, message.authorId)
         val row = DemoProjectRepository.streamItems.first()
         assertEquals("task-med-gas-col4", row.relatedTaskId)
+        assertEquals("one Outbox entry for the note", outboxBefore + 1, DemoProjectRepository.outboxItems.size)
         assertTrue(DemoProjectRepository.outboxItems.last().title.contains("Med gas"))
     }
 
@@ -722,7 +732,10 @@ class FeatureAreaDataTest {
         )
 
         val record = RecordRepository.find("rec-seed-rfi-118")!!
-        assertTrue(record.description.contains("RFI-118 still waiting"))
+        // The description stays the reporter's; the words are a message in the record's thread.
+        assertFalse(record.description.contains("RFI-118 still waiting"))
+        val topic = CollabRepository.topicFor(CollabSubject(CollabSubject.Kind.RECORD, "rec-seed-rfi-118"))!!
+        assertEquals("RFI-118 still waiting", CollabRepository.messagesFor(topic.id).single().body)
         assertTrue(record.attachments.any { it.ref == "img-yesterday" })
         assertEquals("rec-seed-rfi-118", ProjectImageRepository.find("img-yesterday")?.linkedRecordId)
         assertEquals(

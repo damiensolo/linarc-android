@@ -63,8 +63,12 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.solomondesign.app.ui.collab.CollabRepository
+import com.solomondesign.app.ui.collab.CollabSubject
+import com.solomondesign.app.ui.collab.DiscussionSection
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.PinKind
+import com.solomondesign.app.ui.designsystem.AppBottomSheet
 import com.solomondesign.app.ui.designsystem.AppSegmentedRow
 import com.solomondesign.app.ui.designsystem.BrowseScaffold
 import com.solomondesign.app.ui.designsystem.DesignTokens
@@ -373,6 +377,8 @@ fun ImageViewerScreen(
     modifier: Modifier = Modifier,
     /** What swiping reaches — the whole set, or only photos pinned on the plan (see [viewerImages]). */
     scope: ImageViewerScope = ImageViewerScope.ALL,
+    /** Opens this photo's discussion full screen in the Collaboration tool. */
+    onOpenTopic: ((String) -> Unit)? = null,
 ) {
     // The photo that opened the viewer anchors a pager over its scope, so swiping walks the
     // photos the way the plan viewer walks sheets — but only within what makes sense for where
@@ -390,6 +396,7 @@ fun ImageViewerScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAlbumSheet by remember { mutableStateOf(false) }
     var showCreateChooser by remember { mutableStateOf(false) }
+    var showDiscussionSheet by remember { mutableStateOf(false) }
 
     if (image == null) {
         TaskFlowScaffold(title = "Photo", onClose = onClose, modifier = modifier) { padding ->
@@ -504,6 +511,26 @@ fun ImageViewerScreen(
                         modifier = Modifier.testTag("viewerAlbumCaption"),
                     )
                 }
+                // The photo's discussion lives behind a caption chip rather than a sixth
+                // toolbar action: the footer is already five wide on a phone, and the chip's
+                // count tells the reader whether anyone has said anything before they open it.
+                val discussionCount = CollabRepository
+                    .topicFor(CollabSubject(CollabSubject.Kind.IMAGE, image.id))
+                    ?.let { CollabRepository.messagesFor(it.id).size } ?: 0
+                TextButton(
+                    onClick = { showDiscussionSheet = true },
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.testTag("viewerDiscussChip"),
+                ) {
+                    Text(
+                        text = when (discussionCount) {
+                            0 -> "Discuss"
+                            1 -> "1 comment"
+                            else -> "$discussionCount comments"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
         }
     }
@@ -513,6 +540,27 @@ fun ImageViewerScreen(
             image = image,
             onDismiss = { showAlbumSheet = false },
         )
+    }
+
+    if (showDiscussionSheet) {
+        // Pattern C: the photo's thread over the viewer. Same conversation a plan pin for this
+        // photo opens, and the same one the Collaboration tool indexes.
+        AppBottomSheet(
+            title = "Discussion",
+            subtitle = image.title,
+            onDismiss = { showDiscussionSheet = false },
+            modifier = Modifier.testTag("viewerDiscussionSheet"),
+        ) { dismissThen ->
+            DiscussionSection(
+                subject = CollabSubject(CollabSubject.Kind.IMAGE, image.id),
+                topicTitle = image.title,
+                location = image.area,
+                participantIds = emptyList(),
+                testTagPrefix = "imageDiscussion",
+                onOpenTopic = onOpenTopic?.let { open -> { topicId -> dismissThen { open(topicId) } } },
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+        }
     }
 
     if (showCreateChooser) {

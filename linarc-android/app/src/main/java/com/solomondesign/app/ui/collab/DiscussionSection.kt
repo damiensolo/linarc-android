@@ -1,9 +1,12 @@
 package com.solomondesign.app.ui.collab
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -15,17 +18,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.AppButton
 import com.solomondesign.app.ui.designsystem.AppButtonSize
 import com.solomondesign.app.ui.designsystem.DiscussionBubble
+import com.solomondesign.app.ui.designsystem.PersonAvatar
 import com.solomondesign.app.ui.voicelog.audio.FieldDictationBroker
 import com.solomondesign.app.ui.voicenote.SpeakableTextField
 
+/** A trailing `@word` the reader is still typing — the mention picker's query. */
+private val MENTION_QUERY = Regex("@([A-Za-z]*)$")
+
 /**
  * The message composer every discussion uses: a compact Speak-enabled field plus a small Send
- * that stays disabled while the draft is blank. Sending stops any active dictation first (one
- * in-app take at a time) and clears the draft.
+ * that stays disabled while the draft is blank. Typing `@` opens a crew picker beneath the
+ * field (non-focusable, so typing keeps narrowing it); picking a name completes the mention,
+ * and `CollabRepository` adds mentioned people to the thread when the message posts. Sending
+ * stops any active dictation first (one in-app take at a time).
  */
 @Composable
 fun DiscussionComposer(
@@ -36,17 +46,50 @@ fun DiscussionComposer(
     sendTestTag: String,
     modifier: Modifier = Modifier,
 ) {
+    val query = MENTION_QUERY.find(value)?.groupValues?.get(1)
+    val suggestions = if (query == null) {
+        emptyList()
+    } else {
+        DemoProjectRepository.crew.filter { it.name.contains(query, ignoreCase = true) }
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SpeakableTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text("Message") },
-            fieldTestTag = fieldTestTag,
-            compact = true,
-        )
+        Box {
+            SpeakableTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = { Text("Message · @ to mention") },
+                fieldTestTag = fieldTestTag,
+                compact = true,
+            )
+            DropdownMenu(
+                expanded = suggestions.isNotEmpty(),
+                onDismissRequest = {},
+                properties = PopupProperties(focusable = false),
+                modifier = Modifier.testTag("${fieldTestTag}Mentions"),
+            ) {
+                suggestions.forEach { member ->
+                    DropdownMenuItem(
+                        text = { Text(member.name) },
+                        leadingIcon = {
+                            PersonAvatar(
+                                name = member.name,
+                                color = DemoProjectRepository.avatarColorFor(member.id),
+                                photoRes = member.photoRes,
+                                size = 28.dp,
+                            )
+                        },
+                        onClick = {
+                            onValueChange(value.replace(MENTION_QUERY, "@${member.name} "))
+                        },
+                        modifier = Modifier.testTag("mention_${member.id}"),
+                    )
+                }
+            }
+        }
         AppButton(
             text = "Send",
             size = AppButtonSize.Small,
