@@ -115,7 +115,7 @@ on the emulator, `RECORD_AUDIO` grant).
 
 **Speak into a field** (`FEATURE_GUIDE.md` §10)
 
-- Long text only: record Description, Blocking reason, collab Message, plan pin comment.
+- Long text only: record Description, Blocking reason, and every discussion composer (Collaboration threads; record / task / pin / photo Discussion sections).
 - One in-app take at a time; opening the camera stops Speak.
 - Keyboard/Gboard voice typing still works on a focused field. There is no mic on Title, chips, dates, or hours.
 

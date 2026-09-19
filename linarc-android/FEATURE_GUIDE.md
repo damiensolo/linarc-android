@@ -50,8 +50,8 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | **Time card** | Crew list, member detail, new entry (FAB) | Tools → Time card |
 | **Crew** | Roster → member detail | Tools → Crew |
 | **Collaboration** | Topics → thread (Speak on message), new topic (FAB or +); linked threads open their record or task; **Discussion** section on every record and task detail | Tools → Collaboration, or any record / task detail |
-| **Images** | Grid / Timeline / Albums / Map, swipeable zoom viewer, markup, album, create-from-photo | Tools → Images |
-| **Plans** | Same sheet list + pins as the Plans tab | Tools → Plans, or the Plans tab |
+| **Images** | Grid / Timeline / Albums / Map, swipeable zoom viewer, markup, album, create-from-photo, **Discuss** caption chip → the photo's thread | Tools → Images |
+| **Plans** | Same sheet list + pins as the Plans tab; every pin sheet carries a **Discussion** (the record's or photo's own thread) | Tools → Plans, or the Plans tab |
 | **Issues** | List, detail, create (FAB or +; Speak on Description / Blocking reason) | Tools → Issues |
 | **Incidents** | Same record system as Issues | Tools → Incidents |
 | **Punch list** | Same record system as Issues | Tools → Punch list |
@@ -151,7 +151,7 @@ Start each flow from **Today** unless a step says otherwise. Use a **device or e
 
 **Blocking:** say “this is blocking plumbing at column 4” — review should pre-check Blocks work.
 
-**Add to existing:** say “RFI-118 still waiting” or name the med-gas task → **Add to…** → Today row opens that record or task. (This is the Project engineer / Superintendent path: comment on the open RFI instead of minting a duplicate issue.)
+**Add to existing:** say “RFI-118 still waiting” or name the med-gas task → **Add to…** → the words post as a message in that record's or task's **Discussion** (author and time kept), one Outbox entry, and a Today row that opens the object. (This is the Project engineer / Superintendent path: comment on the open RFI instead of minting a duplicate issue.)
 
 **Photo then voice:** Capture → photo → **Add voice note** → dictate → Create (photo already attached).
 
@@ -269,7 +269,7 @@ Superintendent: **Pinned work** on this list jumps straight to the pin sheet (ta
 
 | Pick | Then look at | You should see |
 |---|---|---|
-| **Crew** | Today, then Tools | My shift (start/end), my assignment. Tools lead with Field task / Time card |
+| **Crew** | Today, then Tools | My shift (start/end), my assignment, **My discussions** (threads Hector is in). Tools lead with Field task / Time card. Messages post as Hector |
 | **Superintendent** | Today, then Plans (or Tools → Plans) | Blockers + open issues first. Plans: **Pinned work** shortcut |
 | **Project manager** | Today | **Aging RFIs** oldest first (RFI-121 ~6 days, red), then delays, then discussions |
 | **Project engineer** | Today, then Tools | **RFI desk** card (count + oldest age, **Draft RFI** opens the Issue form already on the RFI type), Open RFIs, Coordination & quality. Tools lead with RFIs / Issues / **Plans** (live sheets, not a placeholder) |
@@ -287,7 +287,7 @@ Flip back to **Foreman** when you’re done.
 
 ### 17. Outbox (offline demo)
 
-1. Do any save/publish (photo, record, time entry, pin comments).
+1. Do any save/publish (photo, record, time entry, discussion message).
 2. Tools → **Outbox** — items “waiting for signal.”
 3. Tap **Signal restored — send all**. They flip to sent. This is **not** a real server.
 

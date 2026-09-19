@@ -19,7 +19,7 @@ It is a strategy prototype, not a shipped backend. Capture, voice, records, plan
 | Who | What they get | Why it matters |
 |---|---|---|
 | **Foreman** | Crew, blockers, Start My Day, capture in one tap | The day starts and evidence lands without hunting menus |
-| **Crew** | My shift + my assignment | Clock and task, not a GC dashboard |
+| **Crew** | My shift + my assignment + my discussions | Clock, task and the threads about them — not a GC dashboard |
 | **Superintendent** | Blockers and open issues first; Plan is one tap to pins | Oversight, not roster management |
 | **Project manager** | Aging RFIs first (oldest = loudest) | Decisions before they become delays |
 | **Project engineer** | RFI desk: draft + chase, then coordination & quality | Works the same RFIs the PM watches — one tap to Draft RFI |
@@ -47,7 +47,7 @@ It is a strategy prototype, not a shipped backend. Capture, voice, records, plan
 
 - **A — full-screen task** (camera, record create, viewer): bar hides; Close / Save.
 - **B — browse** (lists, details, settings): bar stays; Back one level; tab stacks survive.
-- **C — sheet** (profile, Start My Day, new time entry): dismiss and you’re back.
+- **C — sheet** (profile, Start My Day, new time entry, photo discussion): dismiss and you’re back.
 
 ---
 
@@ -57,7 +57,7 @@ It is a strategy prototype, not a shipped backend. Capture, voice, records, plan
 
 **Navigation.** Tabs are siblings (crossfade). Each tab keeps its own stack: leave Tools mid-task, check Today, tap Tools once — you’re back. Tap Tools again — catalog. Capture is always one tap from the bar, next to Today.
 
-**Quick actions.** Camera chips: **Voice note** (EN/ES, Pause/Resume, editable review, works without camera permission) and **Issue**. Photo: Save, or Save & create a record with the shot attached. Markup on the shot. **Speak** on long text only (description, blocking reason, collab, pin comment). Contextual FAB only where create belongs (issues, time cards, images, collab).
+**Quick actions.** Camera chips: **Voice note** (EN/ES, Pause/Resume, editable review, works without camera permission) and **Issue**. Photo: Save, or Save & create a record with the shot attached. Markup on the shot. **Speak** on long text only (description, blocking reason, every discussion composer). Contextual FAB only where create belongs (issues, time cards, images, collab).
 
 **Personalization.** Same three tabs, same objects, **reordered** by persona (Settings → Demo: view as). Profile identity stays the signed-in user. Owner is the one exception: no time cards, no voice log, no crew ops — a stakeholder view, not a hidden tile.
 
@@ -117,6 +117,7 @@ Show the bar: **Today, Capture, Plans, Tools.**
 
 1. **Plans** *or* **Tools → Plans** (same sheets; from Tools, Back is the catalog) → open the Level 2 sheet → pinch/zoom → tap a pin (Column 4 if you ran Voice daily log; otherwise any capture pin).
 2. Under **Discussion**, comment (or **Speak**) → **Send** → mention Outbox (one entry per message). On the Column 4 pin this is the same thread as the med-gas issue — say so.
+3. Type `@` → pick **Maria Chen** → Send. She joins the thread; the header's people count ticks up. Then **Open in Collaboration** → the same messages, full screen, under **All · Mine · Unread**.
 
 **Line:** “The drawing is the shared map. Pins are the work. Comments queue offline. The catalog card is the same Plans, not a placeholder.”
 
@@ -142,7 +143,7 @@ Always: **Tools ⋮ → Settings → Demo: view as.** Profile avatar stays Alex 
 
 | Order | Switch to | Show | One sentence |
 |---|---|---|---|
-| 1 | **Crew** | Today: My shift, My assignment. Start/end shift. Tools lead: Field task, Time card | “The crew sees *their* day, not the GC’s.” |
+| 1 | **Crew** | Today: My shift, My assignment, My discussions. Start/end shift; send in a thread — it posts as Hector. Tools lead: Field task, Time card | “The crew sees *their* day, not the GC’s.” |
 | 2 | **Superintendent** | Today opens on Blockers + open issues. Plans: **Pinned work** shortcut | “Oversight first. Plan is the power view.” |
 | 3 | **Project manager** | Aging RFIs oldest-first (RFI-121, 6 days, red) | “Silence gets more expensive with age.” |
 | 4 | **Project engineer** | RFI desk (count + oldest age) → **Draft RFI**. Open RFIs, then Coordination & quality (med-gas conflict first). Tools: RFIs / Issues / **Plans** (live sheets) | “The PE *works* the queue the PM *watches*.” |
@@ -176,6 +177,6 @@ If time is short: **Crew + Owner + Subcontractor** only. If you already showed A
 
 **Field prototype — exec + eng walkthrough**  
 IA: Today · Capture (action) · Plans · Tools. Default Foreman. Seven live personas via Demo: view as (same tabs, reordered Today/Tools; Owner omits labor/voice). Project engineer is the RFI desk (draft + chase) next to the PM’s aging overview.  
-Proofs: one-tap capture that fans out; tab stacks that restore; sticky create; bilingual voice → record (Pause/Resume, editable review, Speak on long text); issued ≠ blocked; Outbox for offline publish; **Tools → Plans** is the live sheet list.  
+Proofs: one-tap capture that fans out; tab stacks that restore; sticky create; bilingual voice → record (Pause/Resume, editable review, Speak on long text); one conversation primitive (an issue, task, pin or photo Discussion *is* its Collaboration thread; `@` mentions; per-message Outbox); issued ≠ blocked; Outbox for offline publish; **Tools → Plans** is the live sheet list.  
 Not in this build: sync, auth, PDF plans, dashboards as a seventh tab.  
 Ask: confirm this chassis as the field product, not a 5-tab or multi-app strategy.
