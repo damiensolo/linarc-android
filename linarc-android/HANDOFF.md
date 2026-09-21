@@ -36,9 +36,10 @@ Run the app as Foreman. Follow this order; it matches how the product is meant t
 | 4 | **Capture** → photo → Save | Fan-out: Today row, Plan pin, Images. |
 | 5 | Capture → **Voice note** (works without camera permission) → Pause/Resume if needed → type on review → Create → Issue | Note is ephemeral; the **record** is durable. Form Save is sticky. Speak is on Description, not Title. |
 | 6 | **Tools → Field task** → switch to Today → tap **Tools** once → tap Tools again | First tap restores place; second tap is catalog. Required nav contract. |
-| 7 | **Plans** *or* **Tools → Plans** → open sheet → pinch/zoom → pin → comment (or Speak) → Publish | Same sheet list either way. From Tools, Back is the catalog. Comments queue in Outbox. |
+| 7 | **Plans** *or* **Tools → Plans** → open sheet → pinch/zoom → pin → **Discussion** → Send (or Speak) | Same sheet list either way. From Tools, Back is the catalog. The Column 4 pin's thread *is* the med-gas issue's thread; each Send queues one Outbox entry. |
 | 8 | Tools **⋮ → Settings → Demo: view as** | Same bar. Profile avatar stays Alex Rivera. Only Today/Tools (and Super’s Plan shortcut) change. |
 | 9 | Flip **Crew → Superintendent → PM → Project engineer → Owner (dashboard) → Subcontractor** | Reorder, don’t fork. Owner is the one persona that **removes** labor/voice surfaces. |
+| 10 | **Tools → Issues** → any issue → **Discussion** → type `@` → pick a name → Send → **Open in Collaboration** | Conversation is one primitive: the issue's Discussion and the Collaboration thread are the same data. Mentions pull people into the thread. **All · Mine · Unread** scopes the list. |
 
 Then read `AppChrome.kt` + `AppNavHost.kt` with `NAVIGATION_PATTERNS.md` open.
 
@@ -85,7 +86,7 @@ Same three tabs, same objects, **reordered**. Workers do not switch roles in pro
 | Persona | Today lead | Tools lead | Special |
 |---|---|---|---|
 | Foreman (default) | Start My Day, crew, blockers, captures | Catalog order | Hero capture: camera + voice/issue chips |
-| Crew | My shift, my assignment (Hector Ortiz) | Field task, Time card, Images… | Shift start/end logs a real queued time entry |
+| Crew | My shift, my assignment, **my discussions** (Hector Ortiz) | Field task, Time card, Images… | Shift start/end logs a real queued time entry; messages post as Hector |
 | Superintendent | Blockers, open issues (`attentionOrder`) | Issues, Punch, Incidents… | Plans: **Pinned work** shortcut to the pin sheet |
 | Project manager | Aging RFIs **oldest first**, delays, collab | RFIs, Collaboration… | Age is urgency (inversion of newest-first) |
 | Project engineer | **RFI desk** (count + oldest age, Draft RFI), Open RFIs, Coordination & quality, collab | RFIs, Issues, **Plans** (live sheets)… | Works the same RFI objects the PM overviews; Draft RFI stages the Issue form on the RFI type |
@@ -106,7 +107,7 @@ Resolved per route in `ui/navigation/AppChrome.kt` via `resolveChrome()`.
 |---|---|---|---|
 | **A — task** | Camera, record create, viewers, voice | Bar hidden. Close left, Save/Done right | Graph **root** (must not live inside a tab) |
 | **B — browse** | Tool lists/details (including **Tools → Plans**), Settings, Outbox | Bar **stays**. Back one level | Inside the tab graph; saved/restored |
-| **C — sheet** | Profile, Start My Day, new time entry, new topic | Bar unchanged under the sheet | Not a destination |
+| **C — sheet** | Profile, Start My Day, new time entry, new topic, photo discussion | Bar unchanged under the sheet | Not a destination |
 
 **Tab roots** (Today/Plan/Tools home): bar visible, large **in-content** titles (`FieldPageHeader`), no Material top app bar. FAB only on screens that own a create action.
 
@@ -136,13 +137,13 @@ Contract tests: `AppNavHostTest` (`switchingTabs_preservesEachTabsOwnBackStack`,
 - Photo: review → Save, or **Save & create…** (issue / incident / punch) with the shot attached. Tags: suggested chips **plus search-or-add** (`TagEditor` over the project tag vocabulary). Markup optional; baked into the JPEG.
 - Video: describe (skippable) → review → optional file-as-issue (location/note prefilled, title empty — see above).
 - **Photo viewer** (2026-09-04): a `HorizontalPager` over the whole Images set, anchored on the tapped photo — swipe between photos exactly like the plan sheet viewer. Each page is its own `ZoomableContainer` (fit scale swipes, zoomed drags pan; zoom resets on swipe-away); the title, captions, “N of M” counter, and toolbar follow the current page. Close still exits in one tap. **Scope** (`ImageViewerScope`, a route argument — `viewerImages()` is the pure rule): Images / Today / Outbox / record detail open `ALL`; a plan pin opens `PLAN_PINS`, so swiping there reaches only photos pinned on the plan (a location context, not an album). The anchor photo is always shown even if it falls outside the scope.
-- **Speak** on long text only (record Description / Blocking reason, collab message, pin comment). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak. **Opt-in, off by default** (2026-09-04): Settings → Voice input → "Voice input on forms" shows the control; off, those fields are plain. Voice note on Capture is not gated.
+- **Speak** on long text only (record Description / Blocking reason, and every discussion composer — Collaboration threads and the record / task / pin / photo Discussion sections). Not a mic on every field — keyboard/IME voice typing stays the fallback. One in-app take at a time; the camera stops Speak. **Opt-in, off by default** (2026-09-04): Settings → Voice input → "Voice input on forms" shows the control; off, those fields are plain. Voice note on Capture is not gated.
 
 ### Forms
 
 Long create (records): scrolling fields + **sticky Save footer** (clear of gesture nav and keyboard). Progressive validation — don’t disable Save; announce missing required fields and jump to the first one. `*` on required labels. Description and Blocking reason have an explicit **Speak** control (EN/ES) when "Voice input on forms" is on in Settings; do not put a mic on Title, chips, dropdowns, dates, or hours.
 
-Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column. Collaboration composer and plan pin comment use the same compact Speak control.
+Lists: Material 3 `ListItem`, outlined text fields, contextual **FAB** (or extended FAB with a label) for create on that list. Do not put the list’s primary create CTA inside a scrolling column. Every discussion composer (`DiscussionComposer`) uses the same compact Speak control and the `@` crew mention picker.
 
 ### Visual
 
@@ -188,6 +189,7 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 | Field dictation (one take at a time) | `ui/voicelog/audio/FieldDictationBroker.kt`, `DictationController.kt` |
 | Voice-to-Log (scripted demo) | `ui/voicelog/` — entry: Settings → Demo |
 | Records (issue/incident/punch) | `ui/records/` |
+| Collaboration + discussions | `ui/collab/` (`CollabRepository`, `CollabSubject`, `DiscussionSection`, `TopicFilter`), `ui/designsystem/DiscussionBubble.kt` — one thread per object; pins map via `subjectForPin` |
 | Images, markup, zoom | `ui/images/` (viewer = pager over the set), `ui/markup/`, `ui/designsystem/ZoomableContainer.kt` |
 | Design system | `ui/designsystem/` — `TaskFlowScaffold`, `BrowseScaffold`, `FieldPageHeader`, `FieldForm`, `AppButton`, `AppSegmentedRow`, `TagEditor`, `FieldCollapsibleSectionHeader` |
 | Demo seed + fan-out | `ui/demo/DemoProjectRepository.kt`, `DemoSession.kt` |
