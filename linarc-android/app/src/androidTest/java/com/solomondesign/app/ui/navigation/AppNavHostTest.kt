@@ -476,7 +476,7 @@ class AppNavHostTest {
         // Immersive: the whole bar is gone, the Capture action included.
         bottomNavTabs.forEach { tab ->
             composeTestRule.onNodeWithTag("bottomNavTab_${tab.route}").assertDoesNotExist()
-        }
+        }j
         composeTestRule.onNodeWithTag("bottomNavCapture").assertDoesNotExist()
 
         composeTestRule.onNodeWithTag("cameraClose").performClick()
