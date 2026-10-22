@@ -8,6 +8,18 @@
          still installs on camera-less devices; the capture screen degrades to an explain state. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Voice note + Speak: the cloud speech recognizer and the one-time ML Kit EN<->ES model
+         download both need the network. Declared here rather than relying on a library merge. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Package visibility (Android 11+): without this, SpeechRecognizer.isRecognitionAvailable()
+         returns false on any device whose speech service isn't force-queryable (most non-Pixel
+         OEMs), and voice capture reports "not available" even though a recognizer is installed. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"
