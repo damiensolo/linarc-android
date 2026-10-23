@@ -241,12 +241,12 @@ Figma file **Linarc Onsite** (`gCgJ0AUPN0Dksqgc9BQDih`) carries two app-map page
 | Page | What it is | Use it for |
 |---|---|---|
 | `-> New Reference Designs` | Device-accurate 412 × 915 frames of every screen (Levels 1–5), exactly what fit the emulator viewport | Pixel reference for a given screen; unchanged |
-| `-> New Reference Designs · Full height + scrollable prototype` | The same map with every non-modal screen extended to its full content height (min 915) and an interactive, scrolling prototype | Clicking through the whole product, including below-the-fold content |
+| `-> New Reference Designs · Scrollable prototype` | The same map with every non-modal screen holding its full content inside a 412 × 915 viewport that scrolls in Present | Clicking through the whole product, including below-the-fold content |
 
 How the scrollable page works:
 
-- Screens hug their content; status bar, top app bars, bottom nav, FABs, sticky form action bars and the thread composer are **fixed while scrolling** (the last N children of each frame). Fixed bottom chrome sits at its viewport position (y = 811 for the nav), so on the canvas it overlaps the tail of a long screen — in Present it is pinned correctly.
-- To present: **Prototype settings → Device → Custom size 412 × 915** (Android Compact is close enough), then ▶ Present. The flow starts at `01 · Splash`.
+- Every screen stays a 412 × 915 frame with **Clip content** on and **Overflow scrolling: Vertical**; content past the fold is clipped on the canvas and scrolls in Present. Status bar, top app bars, bottom nav, FABs, sticky form action bars and the thread composer are **fixed while scrolling** (the last N children of each frame). Select a frame and turn off Clip content to see everything it holds.
+- To present: ▶ Present from `01 · Splash` (any device setting works; Custom 412 × 915 fills the phone exactly).
 - Below-the-fold content mirrors the app: all six plan disciplines and 12 sheets, the Blocks work? row on every record form, discussion composers on Issue/Task detail, Recent captures + On site today on every persona Today, the Project engineer's Decisions & discussions, and the full Owner dashboard (Quality rows, Decisions needed, Delays).
 - **Amber section = placeholder tools.** RFIs, T & M, Checklist, Drive, Toolbox Talks and Scan each have their own screen (frames 70–75) with the standard "This tool isn't interactive in this prototype" message; Back, Back to Tools and the bottom nav return to the live prototype. Every Tools catalog (Foreman and all six personas) links each card **by tool name**.
 - Modal states (sheets, menus, dialogs, pickers) stay at 915 — the overlay is the content.
