@@ -73,6 +73,8 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 
 Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs or Toolbox Talks opens “Quick create is a placeholder in this build.”
 
+In the Figma app map (page `-> New Reference Designs · Full height + scrollable prototype`), each of these six tools has its own amber placeholder screen (frames 70–75, “This tool isn’t interactive in this prototype”) reached from every Tools catalog, so the click-through never dead-ends. See `HANDOFF.md` §10.
+
 | Tool | Why it’s here |
 |---|---|
 | RFIs | Catalog; use Issues, PM Aging RFIs, or the PE **RFI desk** / **Draft RFI** for the real flow |
