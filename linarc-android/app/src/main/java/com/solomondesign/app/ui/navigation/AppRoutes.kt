@@ -58,7 +58,6 @@ object AppRoutes {
 
     const val TOOL_HOME = "tool/{toolId}"
     const val TOOL_CREATE = "tool/{toolId}/create"
-    const val TOOL_DETAIL = "tool/{toolId}/detail/{title}"
 
     // Dedicated routes for the built Tools areas. Each is Pattern B except the image / plan viewers.
     const val FIELD_TASK_LIST = "field_task"
@@ -123,9 +122,6 @@ object AppRoutes {
 
     fun toolCreate(toolId: String) = "tool/$toolId/create"
 
-    fun toolDetail(toolId: String, title: String) =
-        "tool/$toolId/detail/${URLEncoder.encode(title, "UTF-8")}"
-
     /**
      * Every navigable route pattern. Drives the completeness check in `AppChromeTest`, so a new
      * destination cannot ship without explicit chrome.
@@ -154,7 +150,6 @@ object AppRoutes {
         RECORD_DETAIL,
         TOOL_HOME,
         TOOL_CREATE,
-        TOOL_DETAIL,
         FIELD_TASK_LIST,
         FIELD_TASK_DETAIL,
         TIME_CARD_LIST,

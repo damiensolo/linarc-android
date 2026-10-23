@@ -39,8 +39,13 @@ data class PlatformTool(
     val homeRoute: String? = null,
     /** Real destination for the card's quick-create `+`. Null keeps the create placeholder. */
     val quickCreateRoute: String? = null,
-    val placeholderRows: List<String>,
-)
+) {
+    /**
+     * Catalog-only tool: its card opens `ToolPlaceholderScreen`, which says so. Becomes false the
+     * moment the tool gets a [homeRoute] — that is the whole "fill them in one by one" contract.
+     */
+    val isPlaceholder: Boolean get() = homeRoute == null
+}
 
 object PlatformTools {
     val catalog: List<PlatformTool> = listOf(
@@ -243,10 +248,5 @@ object PlatformTools {
         quickCreateUsesPhoto = quickCreateUsesPhoto,
         homeRoute = homeRoute,
         quickCreateRoute = quickCreateRoute,
-        placeholderRows = listOf(
-            "$label · sample 1",
-            "$label · sample 2",
-            "$label · sample 3",
-        ),
     )
 }

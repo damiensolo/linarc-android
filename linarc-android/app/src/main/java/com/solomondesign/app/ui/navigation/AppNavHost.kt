@@ -60,8 +60,6 @@ import com.solomondesign.app.ui.crew.CrewDetailScreen
 import com.solomondesign.app.ui.crew.CrewListScreen
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.demo.DemoSession
-import com.solomondesign.app.ui.common.DetailPlaceholderScreen
-import com.solomondesign.app.ui.common.ListPlaceholderScreen
 import com.solomondesign.app.ui.designsystem.FieldNavItemIcon
 import com.solomondesign.app.ui.designsystem.fieldNavigationBarItemColors
 import com.solomondesign.app.ui.images.ImageGridScreen
@@ -95,6 +93,7 @@ import com.solomondesign.app.ui.timecards.TimeCardCrewListScreen
 import com.solomondesign.app.ui.timecards.TimeCardDetailScreen
 import com.solomondesign.app.ui.today.TodayScreen
 import com.solomondesign.app.ui.tools.PlatformTools
+import com.solomondesign.app.ui.tools.ToolPlaceholderScreen
 import com.solomondesign.app.ui.tools.SettingsScreen
 import com.solomondesign.app.ui.tools.ToolsScreen
 import com.solomondesign.app.ui.voicelog.DailyLogHomeScreen
@@ -443,32 +442,11 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                     arguments = listOf(navArgument("toolId") { type = NavType.StringType }),
                 ) { entry ->
                     val tool = PlatformTools.byId(entry.arguments?.getString("toolId").orEmpty())
-                    ListPlaceholderScreen(
-                        title = tool?.label ?: "Tool",
-                        rows = tool?.placeholderRows.orEmpty(),
-                        onItemClick = { label ->
-                            navController.navigate(
-                                AppRoutes.toolDetail(tool?.id.orEmpty(), label),
-                            )
-                        },
+                    // Unbuilt tools explain themselves instead of faking rows; fill a tool in by
+                    // giving it a homeRoute and this branch is simply never reached for it.
+                    ToolPlaceholderScreen(
+                        tool = tool,
                         onBack = { navController.popBackStack() },
-                    )
-                }
-                composable(
-                    route = AppRoutes.TOOL_DETAIL,
-                    arguments = listOf(
-                        navArgument("toolId") { type = NavType.StringType },
-                        navArgument("title") { type = NavType.StringType },
-                    ),
-                ) { entry ->
-                    val title = URLDecoder.decode(
-                        entry.arguments?.getString("title").orEmpty(),
-                        "UTF-8",
-                    )
-                    DetailPlaceholderScreen(
-                        title = title,
-                        onBack = { navController.popBackStack() },
-                        subtitle = "Tool detail is a placeholder in this build.",
                     )
                 }
                 composable(AppRoutes.DAILY_LOG_HISTORY) {
@@ -809,10 +787,10 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                 arguments = listOf(navArgument("toolId") { type = NavType.StringType }),
             ) { entry ->
                 val tool = PlatformTools.byId(entry.arguments?.getString("toolId").orEmpty())
-                DetailPlaceholderScreen(
-                    title = "New ${tool?.label ?: "item"}",
+                ToolPlaceholderScreen(
+                    tool = tool,
                     onBack = { navController.popBackStack() },
-                    subtitle = "Quick create is a placeholder in this build.",
+                    quickCreate = true,
                 )
             }
             composable(

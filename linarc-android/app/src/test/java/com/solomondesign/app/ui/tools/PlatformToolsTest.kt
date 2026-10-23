@@ -53,6 +53,21 @@ class PlatformToolsTest {
         assertFalse(PlatformTools.byId("rfis")!!.quickCreateUsesPhoto)
     }
 
+    /** The six unbuilt modules open the explain-don't-fake placeholder; everything else is live. */
+    @Test
+    fun catalog_placeholderToolsAreTheSixUnbuiltModules() {
+        val placeholders = PlatformTools.catalog.filter { it.isPlaceholder }.map { it.label }
+        assertEquals(
+            listOf("RFIs", "T & M", "Checklist", "Drive", "Toolbox Talks", "Scan"),
+            placeholders,
+        )
+        assertEquals(
+            "You’ve reached a preview of RFIs. This area isn’t interactive, " +
+                "but you can return to explore other parts of the prototype.",
+            placeholderBody("RFIs"),
+        )
+    }
+
     @Test
     fun catalog_idsAreUnique() {
         val ids = PlatformTools.catalog.map { it.id }
