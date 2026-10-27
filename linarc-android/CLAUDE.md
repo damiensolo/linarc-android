@@ -37,6 +37,7 @@
 - Prefer Material 3 (`NavigationBar`, `FAB`, `ModalBottomSheet`, `ListItem`).
 - Keep Voice-to-Log as the scripted demo at Settings → Demo → "Voice daily log (demo)" (moved 2026-08-25). Submitted logs must land on Today and as Plan pins, not only in a private history list; the Voice logs history stays on Tools.
 - Captured photos must land on Today, as Plan pins, and in the Images grid — never only in a private list. The full-screen photo viewer is a pager over the whole Images set (swipe between photos like the plan sheet viewer; per-page zoom) — do not regress it to a single-photo screen (2026-09-04). From a **plan pin** the viewer is scoped to pinned photos only (`ImageViewerScope.PLAN_PINS`, 2026-09-09) — never let a pin's photo swipe into unrelated album shots.
+- **Unbuilt tools explain themselves** (2026-10-23): every `PlatformTool` without a `homeRoute` (RFIs, T & M, Checklist, Drive, Toolbox Talks, Scan) and its quick-create `+` open `ToolPlaceholderScreen` — "This tool isn't interactive in this prototype" + "You've reached a preview of [Tool]…" + Back to Tools, word for word the Figma placeholder frames. Never fake sample rows or a detail stub; to build a tool, give it a `homeRoute` and the placeholder disappears for it.
 - **Tools → Plans** opens the live sheet list (`PLAN_LIST` / `PlansScreen`), the same drawings as the Plans tab — not the generic `tool/{id}` placeholder. Do not send that card back to sample rows. The tab keeps `plan_home` so the two stacks stay independent; the sheet viewer stays Pattern A at graph root.
 
 ## Agent behavior

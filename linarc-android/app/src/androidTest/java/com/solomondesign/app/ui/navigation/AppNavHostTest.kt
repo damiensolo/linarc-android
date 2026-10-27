@@ -434,12 +434,15 @@ class AppNavHostTest {
         // RFIs stays a placeholder tool (the real RFI flow is Issues of that type).
         composeTestRule.onNodeWithTag("bottomNavTab_${AppRoutes.TOOLS_HOME}").performClick()
         composeTestRule.onNodeWithTag("toolCard_rfis").performClick()
-        composeTestRule.onNodeWithText("RFIs · sample 1").assertExists()
-        composeTestRule.onNodeWithContentDescription("Back").performClick()
+        composeTestRule.onNodeWithTag("toolPlaceholder_rfis").assertExists()
+        composeTestRule.onNodeWithText("This tool isn’t interactive in this prototype").assertExists()
+        composeTestRule.onNodeWithText("RFIs · sample 1").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("toolPlaceholderBackToTools").performClick()
+        composeTestRule.onNodeWithTag("toolCard_rfis").assertExists()
 
         composeTestRule.onNodeWithTag("toolQuickCreate_rfis").performClick()
         composeTestRule.onNodeWithText("New RFIs").assertExists()
-        composeTestRule.onNodeWithText("Quick create is a placeholder in this build.").assertExists()
+        composeTestRule.onNodeWithText("This tool isn’t interactive in this prototype").assertExists()
     }
 
     /** Pattern B: nested browsing keeps the bottom navigation visible. */

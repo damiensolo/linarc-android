@@ -14,7 +14,7 @@ This is a **strategy prototype**. Data lives in memory (it resets on Logout or p
 |---|---|
 | **Functional** | You can complete a real in-app workflow. Results show up on Today, Plan, and/or a tool. |
 | **Semi-functional** | The UI and local behavior work; a production piece is faked or omitted (no cloud sync, demo metrics, one shared project dataset, etc.). |
-| **Placeholder** | A tile or screen that shows the *idea* of a module. Tapping it opens a generic “not built yet” list or message. **Do not treat this as a working feature.** |
+| **Placeholder** | A tile that shows the *idea* of a module. Tapping it opens the standard “This tool isn’t interactive in this prototype” screen with a **Back to Tools** button. **Do not treat this as a working feature.** |
 
 Placeholders are intentional. They show the full Tools catalog without faking broken product.
 
@@ -71,7 +71,9 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 
 ### Placeholder tools
 
-Tapping these opens a generic sample list (“… · sample 1”). **+** on RFIs or Toolbox Talks opens “Quick create is a placeholder in this build.”
+Tapping any of these opens `ToolPlaceholderScreen`: “This tool isn’t interactive in this prototype — You’ve reached a preview of *Tool*. This area isn’t interactive, but you can return to explore other parts of the prototype.” plus **Back to Tools**. **+** on RFIs or Toolbox Talks opens the same screen as a full-screen task (“New RFIs”). Fill the tools in one by one: give a tool a `homeRoute` in `PlatformTools.kt` and the placeholder stops appearing for it.
+
+The Figma app map (page `-> New Reference Designs · Scrollable prototype`) carries the same six screens word for word as its amber placeholder frames 70–75, reached from every Tools catalog, so the click-through never dead-ends. See `HANDOFF.md` §10.
 
 | Tool | Why it’s here |
 |---|---|
@@ -294,7 +296,7 @@ Flip back to **Foreman** when you’re done.
 ### 18. What a placeholder looks like
 
 1. Tools → **Drive** or **T & M** or **Scan**.
-2. You get a back arrow and sample rows, or an explanation.
+2. You get the tool’s icon, “This tool isn’t interactive in this prototype”, a one-line explanation naming the tool, and **Back to Tools**; the bottom nav stays.
 3. That is catalog IA, not a missing crash.
 
 ---
@@ -309,7 +311,8 @@ No real login, API, or database. No PDF plan engine. No live barcode/QR scan. No
 
 | You see | It means |
 |---|---|
-| “placeholder in this build” / sample 1–3 | Unbuilt tool (RFIs, T & M, Checklist, Drive, Toolbox Talks, Scan) — expected |
+| “This tool isn’t interactive in this prototype” | Unbuilt tool (RFIs, T & M, Checklist, Drive, Toolbox Talks, Scan) — expected |
+| “… · sample 1” rows anywhere | Stale build — placeholder tools explain themselves now; reinstall |
 | **Tools → Plans** shows real sheets (A-101, Level 2…) | Correct — same list as the Plans tab |
 | “Plans · sample 1” | Stale — that card is live now; reinstall if you still see samples |
 | “Demo data” on Owner charts | Seeded metrics — expected |

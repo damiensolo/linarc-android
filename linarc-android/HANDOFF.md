@@ -198,7 +198,7 @@ Package root: `app/src/main/java/com/solomondesign/app/`
 **What’s fully built vs placeholder**
 
 - **Built:** Today, Plan viewer, Capture (photo/video/voice note/issue), Field task, Time card, Crew, Collaboration (topics plus per-object discussions inline on record and task detail — one thread per object, created on the first message, indexed in the Collaboration tool), Images, **Plans (tab and Tools card)**, Issues / Incidents / Punch list, Outbox, Voice log history, Settings / view-as, seven personas.
-- **Catalog only / placeholder:** RFIs (as a tool — PM “RFIs” are Issues of type “RFI / design clarification”), T&M, Checklist, Drive, Toolbox Talks, Scan (no live scanner), Accounts on the project picker.
+- **Catalog only / placeholder:** RFIs (as a tool — PM “RFIs” are Issues of type “RFI / design clarification”), T&M, Checklist, Drive, Toolbox Talks, Scan (no live scanner), Accounts on the project picker. Each opens `ToolPlaceholderScreen` (`ui/tools`), which says “This tool isn’t interactive in this prototype” and offers **Back to Tools** — the same copy as the Figma placeholder frames. A tool leaves the placeholder the moment it gets a `homeRoute` in `PlatformTools.kt`.
 
 ---
 
@@ -231,3 +231,24 @@ Voice mic path (Voice-to-Log, Voice note, Speak): `VOICE_LOG_TESTING.md`.
 3. Fill placeholder tools without adding tabs.
 4. Treat Settings → Demo as **internal**; production role comes from identity, not a picker.
 5. When unsure, open the matching screen in this app, then the spec section — not an older 5-tab mock.
+
+---
+
+## 10. Figma app map (design reference)
+
+Figma file **Linarc Onsite** (`gCgJ0AUPN0Dksqgc9BQDih`) carries two app-map pages of this prototype. Keep both; they are meant to be compared side by side.
+
+| Page | What it is | Use it for |
+|---|---|---|
+| `-> New Reference Designs` | Device-accurate 412 × 915 frames of every screen (Levels 1–5), exactly what fit the emulator viewport | Pixel reference for a given screen; unchanged |
+| `-> New Reference Designs · Scrollable prototype` | The same map with every non-modal screen holding its full content inside a 412 × 915 viewport that scrolls in Present | Clicking through the whole product, including below-the-fold content |
+
+How the scrollable page works:
+
+- Every screen stays a 412 × 915 frame with **Clip content** on and **Overflow scrolling: Vertical**; content past the fold is clipped on the canvas and scrolls in Present. Status bar, top app bars, bottom nav, FABs, sticky form action bars and the thread composer are **fixed while scrolling** (the last N children of each frame). Select a frame and turn off Clip content to see everything it holds.
+- To present: ▶ Present from `01 · Splash` (any device setting works; Custom 412 × 915 fills the phone exactly).
+- Below-the-fold content mirrors the app: all six plan disciplines and 12 sheets, the Blocks work? row on every record form, discussion composers on Issue/Task detail, Recent captures + On site today on every persona Today, the Project engineer's Decisions & discussions, and the full Owner dashboard (Quality rows, Decisions needed, Delays).
+- **Amber section = placeholder tools.** RFIs, T & M, Checklist, Drive, Toolbox Talks and Scan each have their own screen (frames 70–75) with the standard "This tool isn't interactive in this prototype" message; Back, Back to Tools and the bottom nav return to the live prototype. The app shows the identical screen (`ToolPlaceholderScreen`). Every Tools catalog (Foreman and all six personas) links each card **by tool name**.
+- Modal states (sheets, menus, dialogs, pickers) stay at 915 — the overlay is the content.
+- **Tools grid ⇄ list:** every Tools catalog (Foreman + six personas) has a list-view twin (frames 06L, 51L–56L in the “Tools — list view” section right of Level 4). The header View toggle switches between them; list rows use the local `Tool list row` component and open the same destinations as the grid tiles.
+- Every frame still hides a locked `Reference · device capture` layer; screens are editable auto-layout built from the page's local components board. When you add a screen to one page, add it to the other.

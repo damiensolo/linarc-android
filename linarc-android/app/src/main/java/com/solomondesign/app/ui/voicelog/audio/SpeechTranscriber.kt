@@ -80,7 +80,21 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
     /** Language the live [recognizer] was last armed with — see [start]. */
     private var recognizerLanguageTag: String? = null
 
-    override fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
+    /**
+     * The device's default recognizer when there is one; otherwise Android's on-device
+     * recognizer, so devices without a (visible) default speech service can still dictate.
+     */
+    override fun isAvailable(): Boolean =
+        SpeechRecognizer.isRecognitionAvailable(context) ||
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+
+    private fun newRecognizer(): SpeechRecognizer =
+        if (SpeechRecognizer.isRecognitionAvailable(context)) {
+            SpeechRecognizer.createSpeechRecognizer(context)
+        } else {
+            Log.d("VoiceLogSpeech", "No default recognizer — using the on-device recognizer")
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+        }
 
     override fun sessionStarted() {
         // Fresh session: make sure a leaked mute from a crashed session can't swallow the one
@@ -117,7 +131,7 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
             recognizer = null
         }
         recognizerLanguageTag = languageTag
-        val activeRecognizer = recognizer ?: SpeechRecognizer.createSpeechRecognizer(context).also { recognizer = it }
+        val activeRecognizer = recognizer ?: newRecognizer().also { recognizer = it }
         activeRecognizer.setRecognitionListener(
             object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
@@ -245,6 +259,20 @@ class AndroidSpeechTranscriber(private val context: Context) : SpeechTranscriber
         )
         SpeechRecognizer.ERROR_SERVER -> SpeechError(
             "The speech service had a problem — tap Resume to try again.",
+            recoverable = false,
+        )
+        // The recognizer service process died or was updated mid-take: recycle and re-arm,
+        // same as CLIENT/BUSY, instead of killing the take.
+        SpeechRecognizer.ERROR_SERVER_DISCONNECTED ->
+            SpeechError("Restarting the microphone…", recoverable = true, clientRetry = true)
+        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> SpeechError(
+            "Speech for this language isn't installed on this device — switch language, or add " +
+                "it in Settings › System › Languages, then tap Resume.",
+            recoverable = false,
+        )
+        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> SpeechError(
+            "The speech service is busy — wait a moment, then tap Resume.",
             recoverable = false,
         )
         else -> SpeechError(

@@ -161,7 +161,6 @@ class AppChromeTest {
             AppRoutes.OUTBOX to true,
             AppRoutes.SETTINGS to true,
             AppRoutes.TOOL_HOME to true,
-            AppRoutes.TOOL_DETAIL to true,
             AppRoutes.FIELD_TASK_LIST to true,
             AppRoutes.FIELD_TASK_DETAIL to true,
             AppRoutes.TIME_CARD_LIST to true,
