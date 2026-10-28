@@ -56,3 +56,25 @@ internal fun decodeSampledFile(absolutePath: String, maxEdgePx: Int): android.gr
     }
     return BitmapFactory.decodeFile(absolutePath, options)
 }
+
+/**
+ * Bounded decode of a bundled demo photo for the markup editor. `inScaled = false` keeps the
+ * photo's own pixels rather than density-scaling them, so the marked-up result matches a capture.
+ */
+internal fun decodeSampledResource(
+    resources: android.content.res.Resources,
+    @androidx.annotation.DrawableRes resId: Int,
+    maxEdgePx: Int,
+): android.graphics.Bitmap? {
+    val bounds = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+        inScaled = false
+    }
+    BitmapFactory.decodeResource(resources, resId, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val options = BitmapFactory.Options().apply {
+        inScaled = false
+        inSampleSize = PhotoSampling.inSampleSizeFor(bounds.outWidth, bounds.outHeight, maxEdgePx)
+    }
+    return BitmapFactory.decodeResource(resources, resId, options)
+}

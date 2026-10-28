@@ -66,7 +66,7 @@ Open **Tools**. A **+** on a card is quick-create (real or placeholder — see b
 | Outbox | Queue + “send all” flips items to sent | No network, no retry, no conflict handling |
 | RFIs as a *product idea* | PM **Aging RFIs** and PE **RFI desk / Open RFIs / Draft RFI** are real Issues of type “RFI / design clarification” | The **RFIs** Tools card is still a placeholder |
 | Owner dashboard charts | Quality/decisions use live records | Schedule and budget figures are labeled demo data |
-| Image markup | Works on **photos you capture** | Seeded demo photos explain they can’t be marked up |
+| Image markup | Works on **every photo** — captures and the seeded demo photos | Demo-photo markup resets on the next app start |
 | Scan | Tile is in the catalog | No live camera scanner |
 
 ### Placeholder tools
@@ -92,7 +92,7 @@ The Figma app map (page `-> New Reference Designs · Scrollable prototype`) carr
 |---|---|---|
 | Photo → Save | Functional | Today, Plan pin, Images |
 | Photo → Save & create… | Functional | Photo + a new issue / incident / punch with the shot attached |
-| Photo markup | Functional | Baked into the JPEG (captured photos only) |
+| Photo markup | Functional | Baked into the JPEG; demo photos reset to the original on restart |
 | Video → describe → save | Functional | Today, Plan pin |
 | Video → file as issue | Functional | Video + Issue form (location/note prefilled; **title left empty** — you name the issue) |
 | Voice note chip | Functional | Create → record form (chips, optional photo, Add to existing). Dictation fills the **description only — never the title**. Review is **editable**; recording has **Pause / Resume**. Works **without** camera permission. Note is not saved as audio |
@@ -316,7 +316,7 @@ No real login, API, or database. No PDF plan engine. No live barcode/QR scan. No
 | **Tools → Plans** shows real sheets (A-101, Level 2…) | Correct — same list as the Plans tab |
 | “Plans · sample 1” | Stale — that card is live now; reinstall if you still see samples |
 | “Demo data” on Owner charts | Seeded metrics — expected |
-| “Demo tiles can’t be marked up” | Markup needs a **captured** photo |
+| Markup on a demo photo gone after restart | Expected — demo photos start fresh on every app start |
 | Capture not highlighted in the bar | Correct — it’s an action |
 | Accounts tab empty explanation | Unbuilt — expected |
 | Logout wiped your captures | Expected — in-memory demo session |

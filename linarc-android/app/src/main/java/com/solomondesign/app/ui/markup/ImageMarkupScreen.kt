@@ -33,20 +33,24 @@ import com.solomondesign.app.ui.capture.camera.PhotoProcessor
 import com.solomondesign.app.ui.demo.DemoProjectRepository
 import com.solomondesign.app.ui.designsystem.FieldEmptyState
 import com.solomondesign.app.ui.designsystem.TaskFlowScaffold
+import com.solomondesign.app.ui.images.CapturedBitmapStore
 import com.solomondesign.app.ui.images.CapturedMediaStore
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ProjectImageRepository
 import com.solomondesign.app.ui.images.decodeSampledFile
+import com.solomondesign.app.ui.images.decodeSampledResource
+import com.solomondesign.app.ui.images.supportsMarkup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The Images-viewer entry into markup: loads a captured photo from disk, runs the editor, then
- * asks how to save — as a copy (default; the original stays and the copy fans out to Today,
+ * The Images-viewer entry into markup: loads the photo (a capture file, this session's in-memory
+ * capture, or a bundled demo photo), runs the editor, then asks how to save — as a copy (default; the original stays and the copy fans out to Today,
  * Plans, and Images like any capture) or by replacing the original in place (same image id, so
  * its pins and Today row survive; the pixels land in a NEW file because decode is keyed on the
- * path, and rewriting the old file would leave stale bitmaps on screen).
+ * path, and rewriting the old file would leave stale bitmaps on screen). Either way the bundled
+ * drawable behind a demo photo is never modified, so the seeds start fresh on every app start.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,27 +63,36 @@ fun ImageMarkupScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val image = ProjectImageRepository.find(imageId)
-    val sourcePath = (image?.source as? ImageSource.CapturedFile)?.absolutePath
-
-    if (image == null || sourcePath == null) {
-        TaskFlowScaffold(title = "Markup", onClose = onClose, modifier = modifier) { padding ->
-            FieldEmptyState(
-                message = "Markup needs a captured photo — this image can't be edited.",
-                modifier = Modifier.padding(padding),
-            )
-        }
-        return
-    }
-
-    val bitmap by produceState<Bitmap?>(initialValue = null, sourcePath) {
+    val source = image?.source
+    var loadFinished by remember(source) { mutableStateOf(false) }
+    val bitmap by produceState<Bitmap?>(initialValue = null, source) {
         value = withContext(Dispatchers.IO) {
-            decodeSampledFile(sourcePath, PhotoProcessor.MAX_EDGE_PX)
+            when (source) {
+                is ImageSource.CapturedFile ->
+                    decodeSampledFile(source.absolutePath, PhotoProcessor.MAX_EDGE_PX)
+                is ImageSource.Drawable ->
+                    decodeSampledResource(context.resources, source.resId, PhotoProcessor.MAX_EDGE_PX)
+                is ImageSource.Captured -> CapturedBitmapStore.get(source.captureKey)
+                is ImageSource.Swatch, null -> null
+            }
         }
+        loadFinished = true
     }
     var pendingResult by remember { mutableStateOf<Bitmap?>(null) }
     var saving by remember { mutableStateOf(false) }
 
     val photo = bitmap
+    // A missing image, the drawn fallback swatch, or pixels that are gone (deleted file, evicted
+    // in-memory capture) all land here instead of spinning forever.
+    if (image == null || source?.supportsMarkup != true || (photo == null && loadFinished)) {
+        TaskFlowScaffold(title = "Markup", onClose = onClose, modifier = modifier) { padding ->
+            FieldEmptyState(
+                message = "This photo isn't available to mark up.",
+                modifier = Modifier.padding(padding),
+            )
+        }
+        return
+    }
     if (photo == null) {
         Box(
             modifier = modifier

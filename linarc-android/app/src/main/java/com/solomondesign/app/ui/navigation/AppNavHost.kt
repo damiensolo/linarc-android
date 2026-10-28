@@ -63,12 +63,12 @@ import com.solomondesign.app.ui.demo.DemoSession
 import com.solomondesign.app.ui.designsystem.FieldNavItemIcon
 import com.solomondesign.app.ui.designsystem.fieldNavigationBarItemColors
 import com.solomondesign.app.ui.images.ImageGridScreen
-import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ImageSourceSheet
 import com.solomondesign.app.ui.images.ImageViewerScope
 import com.solomondesign.app.ui.images.ImageViewerScreen
 import com.solomondesign.app.ui.images.ProjectImage
 import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.images.supportsMarkup
 import com.solomondesign.app.ui.markup.ImageMarkupScreen
 import com.solomondesign.app.ui.more.OutboxScreen
 import com.solomondesign.app.ui.plan.PlanViewerScreen
@@ -820,15 +820,16 @@ fun AppNavHost(playLaunchSplash: Boolean = false, showProjectPicker: Boolean = f
                         )
                         navController.navigate(AppRoutes.recordCreate(category.routeId))
                     },
-                    // Markup edits pixels, so it needs a real capture file; the seeded demo
-                    // tiles are procedurally drawn and get an explanation instead.
+                    // Demo photos mark up like captures (the result is always a new capture
+                    // file, so the bundled seed resets on the next app start); only the drawn
+                    // "photo unavailable" swatch has no pixels to edit.
                     onMarkup = { image ->
-                        if (image.source is ImageSource.CapturedFile) {
+                        if (image.source.supportsMarkup) {
                             navController.navigate(AppRoutes.imageMarkup(image.id))
                         } else {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    "Demo photos can't be marked up — capture a photo to try it.",
+                                    "This photo isn't available to mark up.",
                                 )
                             }
                         }

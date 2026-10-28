@@ -7,6 +7,7 @@ import com.solomondesign.app.ui.collab.CollabSubject
 import com.solomondesign.app.ui.collab.CurrentUser
 import com.solomondesign.app.ui.images.ImageSource
 import com.solomondesign.app.ui.images.ProjectImageRepository
+import com.solomondesign.app.ui.images.supportsMarkup
 import com.solomondesign.app.ui.records.AttachmentKind
 import com.solomondesign.app.ui.records.FieldRecord
 import com.solomondesign.app.ui.records.RecordAttachment
@@ -310,6 +311,27 @@ class FeatureAreaDataTest {
         val before = ProjectImageRepository.images.size
         ProjectImageRepository.replaceSource("does-not-exist", ImageSource.Swatch(seed = 9))
         assertEquals(before, ProjectImageRepository.images.size)
+    }
+
+    /**
+     * Bundled demo photos are markable, and marking one up never sticks past a fresh start: the
+     * result is a new capture file (wiped at app start) and the reseed restores the shipped photo.
+     */
+    @Test
+    fun markedUpDemoPhotoStartsFreshAfterReseed() {
+        val seeded = ProjectImageRepository.find("img-corridor-c")!!
+        assertTrue(seeded.source is ImageSource.Drawable)
+        assertTrue(seeded.source.supportsMarkup)
+        assertFalse(ImageSource.Swatch(seed = 1).supportsMarkup)
+
+        ProjectImageRepository.replaceSource(seeded.id, ImageSource.CapturedFile("/captures/marked.jpg"))
+        assertTrue(ProjectImageRepository.find(seeded.id)!!.hasMarkup)
+
+        DemoSession.reset()
+
+        val fresh = ProjectImageRepository.find(seeded.id)!!
+        assertEquals(seeded.source, fresh.source)
+        assertFalse(fresh.hasMarkup)
     }
 
     // ---- albums ----

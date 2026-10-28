@@ -29,6 +29,15 @@ sealed interface ImageSource {
     data class CapturedFile(val absolutePath: String) : ImageSource
 }
 
+/**
+ * Whether the markup editor can open this photo. Bundled demo photos qualify too — the editor
+ * always writes its result to a new capture file, so the shipped drawable itself is never
+ * touched and the seeds come back unmarked on the next app start. Only the drawn swatch (the
+ * "photo unavailable" fallback) has no real pixels to annotate.
+ */
+val ImageSource.supportsMarkup: Boolean
+    get() = this !is ImageSource.Swatch
+
 data class ProjectImage(
     val id: String,
     val title: String,
